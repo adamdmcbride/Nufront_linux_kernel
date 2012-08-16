@@ -1,0 +1,55 @@
+config SND_NUSMART_SOC
+	tristate "SoC Audio for the Nufront ltd. ns2816&ns115 chips"
+	depends on ARCH_REALVIEW_PBX && SND_SOC
+	select SND_ARM
+
+
+config SND_NUSMART_SOC_MACH
+	tristate "SoC Audio support for nusmart"
+	depends on ARCH_NS115
+	select SND_ARM
+	help
+	  Say Y if you want to add support for SoC audio on Nusmart
+	  models.
+choice 
+	prompt "Select CPU DAI"
+	depends on SND_NUSMART_SOC_MACH
+	default SND_NUSMART_SOC_EVA_I2S
+
+config SND_NUSMART_SOC_I2S
+	tristate "Use Synopsys I2S as CPU DAI"
+	depends on SND_NUSMART_SOC_MACH
+	help 
+	  Only applies on Nusmart2816-1
+
+config SND_NUSMART_SOC_EVA_I2S
+	tristate "Use Evatronics I2S as CPU DAI"
+	depends on SND_NUSMART_SOC_MACH
+	help 
+	  Only applies on Nusmart2816-2
+
+endchoice
+
+choice 
+	prompt "Select CODEC DAI"
+	depends on SND_NUSMART_SOC_MACH
+	default SND_SOC_ALC5631
+
+config SND_SOC_ALC5631
+	tristate "Use RT5631 as CODEC DAI"
+	depends on SND_NUSMART_SOC_MACH
+
+config SND_SOC_WM8960
+	tristate "Use WM8960 as CODEC DAI"
+	depends on SND_NUSMART_SOC_MACH
+
+config SND_NUSMART_HDMI_CH7033
+        tristate "HDMI Audio on CH7033B support"
+        depends on SND_NUSMART_SOC_MACH
+
+endchoice
+
+
+
+
+

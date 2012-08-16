@@ -1,0 +1,114 @@
+#   ============================================================================
+#   @file   SOURCES
+#
+#   @path   $(APUDRV)/gpp/src/ldrv/
+#
+#   @desc   This file contains list of source files to be compiled.
+#
+#   @ver    0.01.00.00
+#   ============================================================================
+#   Copyright (C) 2011-2012, Nufront Incorporated - http://www.nufront.com/
+#
+#   This program is free software; you can redistribute it and/or modify it
+#   under the terms of the GNU General Public License as published by the
+#   Free Software Foundation version 2.
+#   
+#   This program is distributed "as is" WITHOUT ANY WARRANTY of any kind,
+#   whether express or implied; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+#   General Public License for more details.
+#   ============================================================================
+
+
+SOURCES :=
+PHYS    := $(NU_APUDRV_ZSP800M_PHYINTERFACE)
+PHYS    += $(NU_APUDRV_DM6446GEM_PHYINTERFACE)
+PHYS    += $(NU_APUDRV_DM6467GEM_PHYINTERFACE)
+PHYS    += $(NU_APUDRV_DM6437_PHYINTERFACE)
+PHYS    += $(NU_APUDRV_DM648_PHYINTERFACE)
+PHYS    += $(NU_APUDRV_DM642_PHYINTERFACE)
+PHYS    += $(NU_APUDRV_DRA44XGEM_PHYINTERFACE)
+PHYS    += $(NU_APUDRV_DRX416GEM_PHYINTERFACE)
+PHYS    += $(NU_APUDRV_OMAP3530_PHYINTERFACE)
+PHYS    += $(NU_APUDRV_OMAP2530_PHYINTERFACE)
+PHYS    += $(NU_APUDRV_DA8XXGEM_PHYINTERFACE)
+PHYS    += $(NU_APUDRV_TNETV107XGEM_PHYINTERFACE)
+
+ifeq ($(NU_APUDRV_ONLY_PROC_COMPONENT), 1)
+    SOURCES +=  ldrv.c                          \
+                ldrv_proc.c
+else
+ifeq ($(NU_APUDRV_USE_PROC), 1)
+    SOURCES +=  ldrv.c                          \
+                ldrv_proc.c                     \
+                DRV$(DIRSEP)ldrv_drv.c          \
+                DRV$(DIRSEP)shm_drv.c           \
+                IPS$(DIRSEP)ldrv_ips.c          \
+                IPS$(DIRSEP)ips.c               \
+                SMM$(DIRSEP)ldrv_smm.c
+endif
+
+ifeq ($(NU_APUDRV_USE_POOL), 1)
+    SOURCES +=  POOLS$(DIRSEP)ldrv_pool.c
+# If shared interface is being used
+    ifneq ("$(findstring SHMEM, $(PHYS))", "")
+        SOURCES +=  POOLS$(DIRSEP)sma_pool.c
+    endif
+# If PCI interface is being used
+    ifneq ("$(findstring PCI, $(PHYS))", "")
+        SOURCES +=  POOLS$(DIRSEP)dma_pool.c
+    endif
+# If VLYNQ interface is being used
+    ifneq ("$(findstring VLYNQ, $(PHYS))", "")
+        SOURCES +=  POOLS$(DIRSEP)dma_pool.c
+    endif
+endif
+
+ifeq ($(NU_APUDRV_USE_MSGQ), 1)
+    SOURCES +=  ldrv_msgq.c             \
+                MQT$(DIRSEP)ldrv_mqt.c
+# If SHARED interface is being used
+    ifneq ("$(findstring SHMEM, $(PHYS))", "")
+        SOURCES +=  MQT$(DIRSEP)zcpy_mqt.c \
+                    MQT$(DIRSEP)rmsgq.c
+    endif
+# If PCI interface is being used
+    ifneq ("$(findstring PCI, $(PHYS))", "")
+        SOURCES +=  MQT$(DIRSEP)dcpy_mqt.c
+    endif
+# If VLYNQ interface is being used
+    ifneq ("$(findstring VLYNQ, $(PHYS))", "")
+        SOURCES +=  MQT$(DIRSEP)dcpy_mqt.c
+    endif
+endif
+
+ifeq ($(NU_APUDRV_USE_CHNL), 1)
+    SOURCES +=  ldrv_chnl.c    \
+                ldrv_chirps.c  \
+                DATA$(DIRSEP)ldrv_data.c
+# If SHARED interface is being used
+    ifneq ("$(findstring SHMEM, $(PHYS))", "")
+        SOURCES +=  DATA$(DIRSEP)zcpy_data.c
+    endif
+# If PCI interface is being used
+    ifneq ("$(findstring PCI, $(PHYS))", "")
+        SOURCES +=  DATA$(DIRSEP)dcpy_data.c
+    endif
+# If VLYNQ interface is being used
+    ifneq ("$(findstring VLYNQ, $(PHYS))", "")
+        SOURCES +=  DATA$(DIRSEP)dcpy_data.c
+    endif
+endif
+
+ifeq ($(NU_APUDRV_USE_RINGIO), 1)
+    SOURCES +=  RINGIO$(DIRSEP)ldrv_ringio.c
+endif
+
+ifeq ($(NU_APUDRV_USE_MPCS), 1)
+    SOURCES +=  MPCS$(DIRSEP)ldrv_mpcs.c
+endif
+
+ifeq ($(NU_APUDRV_USE_MPLIST), 1)
+    SOURCES +=  MPLIST$(DIRSEP)ldrv_mplist.c
+endif
+endif #ifeq ($(NU_APUDRV_ONLY_PROC_COMPONENT), 1)

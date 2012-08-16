@@ -1,0 +1,138 @@
+#   ============================================================================
+#   @file   Makefile_kbuild
+#
+#   @path   $(APUDRV)/gpp/src/
+#
+#   @desc   This file is used to build the DSPLink using kernel build system.
+#
+#   @ver    0.01.00.00
+#   ============================================================================
+#   Copyright (C) 2011-2012, Nufront Incorporated -
+#   http://www.nufront.com/
+#
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions
+#   are met:
+#   
+#   *  Redistributions of source code must retain the above copyright
+#      notice, this list of conditions and the following disclaimer.
+#   
+#   *  Redistributions in binary form must reproduce the above copyright
+#      notice, this list of conditions and the following disclaimer in the
+#      documentation and/or other materials provided with the distribution.
+#   
+#   *  Neither the name of Nufront Incorporated nor the names of
+#      its contributors may be used to endorse or promote products derived
+#      from this software without specific prior written permission.
+#   
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+#   THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+#   PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+#   CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+#   EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+#   PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+#   OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+#   WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+#   OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+#   EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#   ============================================================================
+
+
+# Directory Separator
+DIRSEP=/
+
+NU_APUDRV_RELATIVE_PATH := ../../
+
+# Set PROFILE to DEBUG or RELEASE.
+#export PROFILE :=
+
+# include the CURRENTCFG.mk
+include $(APUDRV)$(DIRSEP)config$(DIRSEP)BUILD$(DIRSEP)CURRENTCFG.MK
+
+# Generate the list of sources
+SOURCES :=
+include $(NU_APUDRV_GPPROOT)$(DIRSEP)src$(DIRSEP)arch$(DIRSEP)SOURCES
+ARCH_SOURCES := $(addprefix $(NU_APUDRV_RELATIVE_PATH)gpp$(DIRSEP)src$(DIRSEP)arch$(DIRSEP),$(SOURCES))
+SOURCES :=
+include $(NU_APUDRV_GPPROOT)$(DIRSEP)src$(DIRSEP)ldrv$(DIRSEP)SOURCES
+LDRV_SOURCES := $(addprefix $(NU_APUDRV_RELATIVE_PATH)gpp$(DIRSEP)src$(DIRSEP)ldrv$(DIRSEP),$(SOURCES))
+SOURCES :=
+include $(NU_APUDRV_GPPROOT)$(DIRSEP)src$(DIRSEP)ldrv$(DIRSEP)$(NU_APUDRV_GPPOS)$(DIRSEP)SOURCES
+LDRV_SOURCES += $(addprefix $(NU_APUDRV_RELATIVE_PATH)gpp$(DIRSEP)src$(DIRSEP)ldrv$(DIRSEP)$(NU_APUDRV_GPPOS)$(DIRSEP),$(SOURCES))
+SOURCES :=
+include $(NU_APUDRV_GPPROOT)$(DIRSEP)src$(DIRSEP)gen$(DIRSEP)SOURCES
+GEN_SOURCES := $(addprefix $(NU_APUDRV_RELATIVE_PATH)gpp$(DIRSEP)src$(DIRSEP)gen$(DIRSEP),$(SOURCES))
+SOURCES :=
+include $(NU_APUDRV_GPPROOT)$(DIRSEP)src$(DIRSEP)pmgr$(DIRSEP)SOURCES
+PMGR_SOURCES := $(addprefix $(NU_APUDRV_RELATIVE_PATH)gpp$(DIRSEP)src$(DIRSEP)pmgr$(DIRSEP),$(SOURCES))
+SOURCES :=
+include $(NU_APUDRV_GPPROOT)$(DIRSEP)src$(DIRSEP)pmgr$(DIRSEP)$(NU_APUDRV_GPPOS)$(DIRSEP)SOURCES
+PMGR_SOURCES += $(addpreifx $(NU_APUDRV_RELATIVE_PATH)gpp$(DIRSEP)src$(DIRSEP)pmgr$(DIRSEP)$(NU_APUDRV_GPPOS)$(DIRSEP),$(SOURCES))
+SOURCES :=
+include $(NU_APUDRV_GPPROOT)$(DIRSEP)src$(DIRSEP)pmgr$(DIRSEP)$(NU_APUDRV_GPPOS)$(DIRSEP)$(NU_APUDRV_GPPOSVERSION)$(DIRSEP)SOURCES
+PMGR_SOURCES += $(addprefix $(NU_APUDRV_RELATIVE_PATH)gpp$(DIRSEP)src$(DIRSEP)pmgr$(DIRSEP)$(NU_APUDRV_GPPOS)$(DIRSEP)$(NU_APUDRV_GPPOSVERSION)$(DIRSEP),$(SOURCES))
+SOURCES :=
+include $(NU_APUDRV_GPPROOT)$(DIRSEP)src$(DIRSEP)osal$(DIRSEP)$(DIRSEP)SOURCES
+OSAL_SOURCES := $(addprefix $(NU_APUDRV_RELATIVE_PATH)gpp$(DIRSEP)src$(DIRSEP)osal$(DIRSEP),$(SOURCES))
+SOURCES :=
+include $(NU_APUDRV_GPPROOT)$(DIRSEP)src$(DIRSEP)osal$(DIRSEP)$(NU_APUDRV_GPPOS)$(DIRSEP)SOURCES
+OSAL_SOURCES += $(addprefix $(NU_APUDRV_RELATIVE_PATH)gpp$(DIRSEP)src$(DIRSEP)osal$(DIRSEP)$(NU_APUDRV_GPPOS)$(DIRSEP),$(SOURCES))
+SOURCES :=
+include $(NU_APUDRV_GPPROOT)$(DIRSEP)src$(DIRSEP)osal$(DIRSEP)$(NU_APUDRV_GPPOS)$(DIRSEP)$(NU_APUDRV_GPPOSVERSION)$(DIRSEP)SOURCES
+OSAL_SOURCES += $(addprefix $(NU_APUDRV_RELATIVE_PATH)gpp$(DIRSEP)src$(DIRSEP)osal$(DIRSEP)$(NU_APUDRV_GPPOS)$(DIRSEP)$(NU_APUDRV_GPPOSVERSION)$(DIRSEP),$(SOURCES))
+
+APUDRV_SOURCES := $(ARCH_SOURCES) $(LDRV_SOURCES) $(GEN_SOURCES) $(OSAL_SOURCES) $(PMGR_SOURCES)
+APUDRV_OBJS    := $(foreach srcFile, $(APUDRV_SOURCES),$(basename $(srcFile)).o)
+
+# CFLAGS
+EXTRA_CFLAGS += $(addprefix -D, $(NU_APUDRV_GPP_DEFINES))
+EXTRA_CFLAGS += $(addprefix -I, $(NU_APUDRV_GPP_INC_PATH))
+EXTRA_CFLAGS += -DEXPORT_SYMTAB -DTRACE_KERNEL
+EXTRA_CFLAGS += $(PROFILE_FLAGS)
+
+ifeq ("$(PROFILE)", "DEBUG")
+    EXTRA_CFLAGS += -DDDSP_DEBUG
+endif
+
+# If KERNELRELEASE is defined, then this makefile has been invoked
+# from the kernel build system. Use native build language.
+ifneq ($(KERNELRELEASE),)
+obj-$(CONFIG_NS115_APU) := apudrvk.o
+libs-$(CONFIG_NS115_APU) := $(shell pwd)
+lib-$(CONFIG_NS115_APU)  := $(foreach srcFile, $(API_SOURCES),$(basename $(srcFile)).o)
+apudrvk-$(CONFIG_NS115_APU) := $(APUDRV_OBJS)
+
+# Otherwise, this makefile has been invoked directly from the
+# command line. Invoke the kernel build system.
+else
+
+PWD	:= $(shell pwd)
+COMP_NAME  := NU_APUDRV_KBUILD_TEMPVAR
+export COMP_NAME
+
+debug:
+	$(shell echo $(addprefix -I, $(NU_APUDRV_GPP_INC_PATH)) > PMGR_includes.txt)
+	$(shell echo $(addprefix -D, $(NU_APUDRV_GPP_DEFINES)) > PMGR_defines.txt)
+	echo Building kernel side code using kbuild
+	$(MAKE) PROFILE=DEBUG -C $(KERNEL_DIR) SUBDIRS=$(PWD) $(MAKE_OPTS) modules
+	echo Kernel side build complete
+	echo Copying apudrvk.ko to $(NU_APUDRV_GPPROOT)$(DIRSEP)export$(DIRSEP)BIN$(DIRSEP)$(NU_APUDRV_GPPOSPREFIX)Linux$(DIRSEP)$(NU_APUDRV_PLATFORM)$(DIRSEP)DEBUG
+	mv apudrvk.ko Module.symvers PMGR_includes.txt PMGR_defines.txt  $(NU_APUDRV_GPPROOT)$(DIRSEP)export$(DIRSEP)BIN$(DIRSEP)$(NU_APUDRV_GPPOSPREFIX)Linux$(DIRSEP)$(NU_APUDRV_PLATFORM)$(DIRSEP)DEBUG
+
+release:
+	$(shell echo $(addprefix -I, $(NU_APUDRV_GPP_INC_PATH)) > PMGR_includes.txt)
+	$(shell echo $(addprefix -D, $(NU_APUDRV_GPP_DEFINES)) > PMGR_defines.txt)
+	echo Building kernel side code using kbuild
+	$(MAKE) PROFILE=RELEASE -C $(KERNEL_DIR) SUBDIRS=$(PWD) $(MAKE_OPTS) modules
+	echo Kernel side build complete
+	echo Copying apudrvk.ko to $(NU_APUDRV_GPPROOT)$(DIRSEP)export$(DIRSEP)BIN$(DIRSEP)$(NU_APUDRV_GPPOSPREFIX)Linux$(DIRSEP)$(NU_APUDRV_PLATFORM)$(DIRSEP)RELEASE
+	mv apudrvk.ko Module.symvers PMGR_includes.txt PMGR_defines.txt  $(NU_APUDRV_GPPROOT)$(DIRSEP)export$(DIRSEP)BIN$(DIRSEP)$(NU_APUDRV_GPPOSPREFIX)Linux$(DIRSEP)$(NU_APUDRV_PLATFORM)$(DIRSEP)RELEASE
+
+clean:
+	find $(APUDRV) -name "*.o" -exec rm {} \;
+	rm -fr PMGR_includes.txt PMGR_defines.txt apudrvk.ko apudrvk.mod.c Module.symvers apudrvk.o apudrvk.mod.o modules.order .apudrv* .tmp_versions
+
+all: debug release
+
+endif

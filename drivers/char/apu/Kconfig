@@ -1,0 +1,17 @@
+#
+# PCMCIA character device configuration
+#
+
+menu "ns115 Audio Processor"
+
+config NS115_APU
+	tristate "ns115 audio processor"
+	help
+	  Enable support for audio process hardware acceleration.
+
+	  This driver may be built as a module ( = code which can be
+	  inserted in and removed from the running kernel whenever you want).
+	  The module will be called apudrvk.  If you want to do that, say M
+	  here.
+endmenu
+

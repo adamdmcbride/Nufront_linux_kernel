@@ -1,0 +1,60 @@
+menu "Nufront NS2816"
+	depends on ARCH_NS2816
+
+config MACH_NS2816TB
+	bool "Nufront NS2816 Test Board"
+	select ARM_GIC
+	select HAVE_PATA_PLATFORM
+	select ARCH_SPARSEMEM_ENABLE if CPU_V7 && \
+		!NS2816_HIGH_PHYS_OFFSET && MMU
+	select ZONE_DMA if SPARSEMEM
+	help
+	  Include support for the Nufront NS2816 Test Board.
+
+config MACH_NS2816_DEV_BOARD 
+	bool "Nufront NS2816 DEV board"
+	select ARM_GIC
+	select HAVE_PATA_PLATFORM
+	select ARCH_SPARSEMEM_ENABLE if CPU_V7 && \
+		!NS2816_HIGH_PHYS_OFFSET && MMU
+	select ZONE_DMA if SPARSEMEM
+	help
+	  Include support for the Nufront NS2816 Dev Board.
+
+config MACH_NS2816_HUASHAN 
+	bool "Nufront NS2816 Huashan Board"
+	select ARM_GIC
+	select HAVE_PATA_PLATFORM
+	select ARCH_SPARSEMEM_ENABLE if CPU_V7 && \
+		!NS2816_HIGH_PHYS_OFFSET && MMU
+	select ZONE_DMA if SPARSEMEM
+	help
+	  Include support for the Nufront NS2816 Huashan Board.
+
+config MACH_HUANGSHANS
+	bool "Nufront NS2816 Huangshan Board"
+	select ARM_GIC
+	select HAVE_PATA_PLATFORM
+	select PL330
+	select ARCH_SPARSEMEM_ENABLE if CPU_V7 && \
+		!NS2816_HIGH_PHYS_OFFSET && MMU
+	select ZONE_DMA if SPARSEMEM
+	help
+	  Include support for the Nufront NS2816 Huangshan Board.
+
+config NS2816_HIGH_PHYS_OFFSET
+	bool "High physical base address for the NS2816 platform"
+	depends on MMU 
+	default y
+	help
+	  NS2816 board has the RAM available at 0x80000000, 
+	  2046MB of which being mirrored at 0x80000000. 
+
+config NS2816_DDR_32BIT_SUPPORT
+	bool "Support ddr 32bit for the NS2816 platform"
+	default n
+	help
+	  Include support for ns2816 platform 
+
+endmenu
+

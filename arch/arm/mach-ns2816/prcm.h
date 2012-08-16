@@ -1,0 +1,145 @@
+#ifndef PRCM_H___
+#define	PRCM_H___
+
+#define PRCM_BASE			(0x051b0000)
+#define	PRCM_RSTCTRL			((PRCM_BASE) + 0x00)
+#define	PRCM_RSTCTRL_DLL		((PRCM_BASE) + 0x04)
+#define	PRCM_RSTCTRL_USB		((PRCM_BASE) + 0x08)
+#define	PRCM_RSTCTRL_USB_REFCLK		((PRCM_BASE) + 0x0C)
+#define	PRCM_CLK_SEL_CTRL		((PRCM_BASE) + 0x10)
+#define	PRCM_PWCTRL			((PRCM_BASE) + 0x14)
+#define	PRCM_LCD_CLKCTRL		((PRCM_BASE) + 0x18)
+#define	PRCM_CLK0_CTRL			((PRCM_BASE) + 0x1C)
+#define	PRCM_CLK1_CTRL			((PRCM_BASE) + 0x20)
+#define	PRCM_CLK2_CTRL			((PRCM_BASE) + 0x24)
+#define	PRCM_SYSFREQ_MODE_CTRL		((PRCM_BASE) + 0x28)
+
+
+#define	PRCM_RSTCTRL_GLB_SW_RST		(1 << 0)
+#define	PRCM_RSTCTRL_WDRESET_EN		(1 << 2)
+
+#define	PRCM_RSTCTRL_USB_RST_PORT0	(1 << 0)
+#define	PRCM_RSTCTRL_USB_RST_PORT1	(1 << 1)
+#define	PRCM_RSTCTRL_USB_RST_PORT2	(1 << 2)
+#define	PRCM_RSTCTRL_USB_RST_PORT3	(1 << 3)
+#define	PRCM_RSTCTRL_USB_RST		(1 << 4)
+
+#define PRCM_RST_CTRL_USB_REFCLK_DIV_MASK	(3 << 1)
+#define PRCM_RST_CTRL_USB_REFCLK_DIV_12M	(0 << 1)
+#define PRCM_RST_CTRL_USB_REFCLK_DIV_24M	(1 << 1)
+#define PRCM_RST_CTRL_USB_REFCLK_DIV_48M	(2 << 1)
+
+#define PRCM_RST_CTRL_USB_REFCLK_SEL_MASK	(3 << 3)
+#define	PRCM_RST_CTRL_USB_REFCLK_SEL_CORE	(3 << 3)
+#define	PRCM_RST_CTRL_USB_REFCLK_SEL_X0_1_8	(1 << 3)
+#define	PRCM_RST_CTRL_USB_REFCLK_SEL_X0		(0 << 3)
+
+#define	PRCM_PWCTRL_DBG1_SW_RST		(1 << 2)
+#define	PRCM_PWCTRL_DBG0_SW_RST		(1 << 3)
+#define	PRCM_PWCTRL_WD1_SW_RST		(1 << 4)
+#define	PRCM_PWCTRL_WD0_SW_RST		(1 << 5)
+#define	PRCM_PWCTRL_NEON1_SW_RST	(1 << 6)
+#define	PRCM_PWCTRL_NEON0_SW_RST	(1 << 7)
+#define	PRCM_PWCTRL_CPU1_SW_RST		(1 << 8)
+#define	PRCM_PWCTRL_CPU0_SW_RST		(1 << 9)
+#define	PRCM_PWCTRL_NEON1_PWOFF		(1 << 10)
+#define	PRCM_PWCTRL_NEON0_PWOFF		(1 << 11)
+#define	PRCM_PWCTRL_CPU1_PM_EN		(1 << 12)
+#define	PRCM_PWCTRL_CPU0_PM_EN		(1 << 13)
+
+
+#define	PRCM_CLK_SEL_I2S_512K		(0x0000)
+#define	PRCM_CLK_SEL_I2S_768K		(0x0001)
+#define	PRCM_CLK_SEL_I2S_1024K		(0x0002)
+#define	PRCM_CLK_SEL_I2S_1536K		(0x0003)
+#define	PRCM_CLK_SEL_I2S_2048K		(0x0004)
+#define	PRCM_CLK_SEL_I2S_3072K		(0x0005)
+#define	PRCM_CLK_SEL_I2S_12288K		(0x0006)
+#define	PRCM_CLK_SEL_I2S_6144K		(0x0007)
+#define	PRCM_CLK_SEL_I2S_2822K		(0x0008)
+
+#define	PRCM_CLK_SEL_I2S_CLK_MASK	(0xF)
+
+#define	PRCM_LCD_CLKCTRL_PLL_NR_MASK	(0x3F << 19)
+#define	PRCM_LCD_CLKCTRL_PLL_NF_MASK	(0x1FFF << 6)
+#define	PRCM_LCD_CLKCTRL_PLL_OD_MASK	(0xF << 2)
+
+#define	PRCM_LCD_CLKCTRL_FREQ_REFRESH	(1 << 1)
+#define	PRCM_LCD_CLKCTRL_CLK_EN		(1 << 0)
+
+#define	PRCM_CLK1_EN_DMAC0_ACLKEN	(1 << 0)
+#define	PRCM_CLK1_EN_DDR_PORT2_ACLKEN	(1 << 1)
+#define	PRCM_CLK1_EN_DDR_PORT0_ACLKEN	(1 << 2)
+#define	PRCM_CLK1_EN_L2RAM_ACLKEN	(1 << 3)
+#define	PRCM_CLK1_EN_MALI_ACLKEN	(1 << 4)
+#define	PRCM_CLK1_EN_I2S_SCLKEN		(1 << 5)
+#define	PRCM_CLK1_EN_SD_CCLKEN		(1 << 6)
+
+#define	PRCM_CLK2_EN_SSI1_CLKEN		(1 << 0)
+#define	PRCM_CLK2_EN_SSI0_CLKEN		(1 << 1)
+#define	PRCM_CLK2_EN_I2C2_CLKEN		(1 << 2)
+#define	PRCM_CLK2_EN_I2C1_CLKEN		(1 << 3)
+#define	PRCM_CLK2_EN_I2C0_CLKEN		(1 << 4)
+#define	PRCM_CLK2_EN_GPIO_INTR_CLKEN	(1 << 5)
+#define	PRCM_CLK2_EN_RTC_PCLKEN		(1 << 6)
+#define	PRCM_CLK2_EN_LPC_PCLKEN		(1 << 7)
+#define	PRCM_CLK2_EN_UART1_PCLKEN	(1 << 8)
+#define	PRCM_CLK2_EN_UART0_PCLKEN	(1 << 9)
+#define	PRCM_CLK2_EN_TIMERS_PCLKEN	(1 << 10)
+#define	PRCM_CLK2_EN_SSI1_PCLKEN	(1 << 11)
+#define	PRCM_CLK2_EN_SSI0_PCLKEN	(1 << 12)
+#define	PRCM_CLK2_EN_I2S_PCLKEN		(1 << 13)
+#define	PRCM_CLK2_EN_I2C2_PCLKEN	(1 << 14)
+#define	PRCM_CLK2_EN_I2C1_PCLKEN	(1 << 15)
+#define	PRCM_CLK2_EN_I2C0_PCLKEN	(1 << 16)
+#define	PRCM_CLK2_EN_GPIO_PCLKEN	(1 << 17)
+#define	PRCM_CLK2_EN_SCM_PCLKEN		(1 << 18)
+#define	PRCM_CLK2_EN_MEMCTL1_HCLKEN	(1 << 19)
+#define	PRCM_CLK2_EN_MEMCTL0_HCLKEN	(1 << 20)
+#define	PRCM_CLK2_EN_DMA1_HCLKEN	(1 << 21)
+#define	PRCM_CLK2_EN_SD_HCLKEN		(1 << 22)
+#define	PRCM_CLK2_EN_GMAC_HCLKEN	(1 << 23)
+#define	PRCM_CLK2_EN_SATA_HCLKEN	(1 << 24)
+#define	PRCM_CLK2_EN_USB_HCLKEN		(1 << 25)
+#define	PRCM_CLK2_EN_DDRCFG_HCLKEN	(1 << 26)
+#define	PRCM_CLK2_EN_LCD_HCLKEN		(1 << 27)
+#define	PRCM_CLK2_EN_ON2_HCLKEN		(1 << 28)
+#define	PRCM_CLK2_EN_CORESIGHT_HCLKEN	(1 << 29)
+
+#define	PRCM_SYSF_MODE_CPU_FREQ_SW_EN	(1 << 6)
+#define PRCM_SYSF_MODE_CPU_MASK		(0x1F)
+
+#define	PRCM_CPU_M0_800_400_200_333_333		(0x0000)
+#define	PRCM_CPU_M0_800_400_200_400_xxx		(0x0001)
+#define	PRCM_CPU_M0_800_400_200_533_533		(0x0002)
+
+#define	PRCM_CPU_M1_1066_266_133_400_400	(0x0005)
+#define	PRCM_CPU_M1_1066_266_133_533_400	(0x0006)
+
+#define	PRCM_CPU_M2_1200_400_200_333_333	(0x0008)
+#define	PRCM_CPU_M2_1200_400_200_400_xxx	(0x0009)
+#define	PRCM_CPU_M2_1200_400_200_533_533	(0x000a)
+
+
+#define	PRCM_CPU_M3_1333_266_133_333_400	(0x000c)
+#define	PRCM_CPU_M3_1333_266_133_400_400	(0x000d)
+
+
+#define	PRCM_CPU_M4_1600_400_200_333_333	(0x0010)
+#define	PRCM_CPU_M4_1600_400_200_400_xxx	(0x0011)
+#define	PRCM_CPU_M4_1600_400_200_533_xxx	(0x0012)
+
+
+#define	PRCM_CPU_M5_2000_400_200_333_333	(0x0014)
+#define	PRCM_CPU_M5_2000_400_200_400_xxx	(0x0015)
+#define	PRCM_CPU_M5_2000_400_200_533_533	(0x0016)
+
+#define PRCM_CLK2_CTRL_MMC_INPUTCLK_ENA		(1 << 22)
+
+extern void prcm_glb_soft_reset(void);
+extern void cpu_reset_all(void);
+
+extern void reg_clr_bits(void __iomem *addr, unsigned int mask);
+extern void reg_set_bits(void __iomem *addr, unsigned int set);
+
+#endif //PRCM_H__
