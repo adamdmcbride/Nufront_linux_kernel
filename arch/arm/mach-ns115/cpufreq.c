@@ -34,6 +34,7 @@
 #include <asm/system.h>
 
 #include <mach/hardware.h>
+#include <mach/efuse.h>
 
 #include <linux/regulator/consumer.h>
 
@@ -43,6 +44,22 @@
 #define REGU_NAME		"vdd_cpu"
 #define DEFAULT_VOL_FREQ	800000
 /* Frequency table index must be sequential starting at 0 */
+
+#if 0
+#define cpufreq_debug(fmt,args...) printk(KERN_INFO "cpufreq_debug: " fmt "\n", ##args)
+#else
+#define cpufreq_debug(...)
+#endif
+
+#if defined(CONFIG_NS115_EFUSE_SUPPORT)
+static struct cpufreq_frequency_table freq_table[] = {
+	{0, 800000},
+	{1, 1000000},
+	{2, 1200000},
+	{3, 1500000},
+	{4, CPUFREQ_TABLE_END},
+};
+#else
 static struct cpufreq_frequency_table freq_table[] = {
 	{ 0, 400000 },
 	{ 1, 800000 },
@@ -69,6 +86,7 @@ static struct cpufreq_frequency_table freq_table[] = {
 	{ 9, CPUFREQ_TABLE_END },
 */
 };
+#endif
 
 #define NUM_CPUS	2
 
@@ -156,7 +174,7 @@ static int ns115_update_cpu_speed(unsigned long rate)
 		cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
 
 #ifdef DEBUG
-	printk(KERN_DEBUG "cpufreq-ns115: transition: %u --> %u\n",
+	cpufreq_debug("cpufreq-ns115: transition: %u --> %u",
 			freqs.old, freqs.new);
 #endif
 	if((cpu_vol_new == cpu_vol) || (NULL == cpu_regu)) {
@@ -287,6 +305,42 @@ static struct notifier_block ns115_cpu_pm_notifier = {
 
 static int ns115_cpu_init(struct cpufreq_policy *policy)
 {
+#if defined(CONFIG_NS115_EFUSE_SUPPORT)
+	//dump_efuse_data(get_ns115_efuse_data());
+
+	//TODO: read cpu max frequency value from e-fuse, and adjust 'freq_table' struct;
+	init_ns115_efuse_data();
+	struct EFuse_data* pdata = get_ns115_efuse_data();
+	int index = 0;
+	if (pdata) {
+		cpufreq_debug("read efuse:%x,%x", pdata->a.high, pdata->a.low);
+
+		int ncount = sizeof(freq_table) / sizeof(struct cpufreq_frequency_table);
+		unsigned int max_freq[] = {0, 800000, 1000000, 1200000, 1500000};
+		for (; index < ncount; index++) {
+			cpufreq_debug("max_freq,0 %u,%u", freq_table[index].frequency, max_freq[pdata->b.cpu_max_speed]);
+
+			//TODO: if bigger than valid value then reset to CPUFREQ_TABLE_END;
+			if (freq_table[index].frequency != CPUFREQ_TABLE_END &&
+				freq_table[index].frequency > max_freq[pdata->b.cpu_max_speed]) {
+				cpufreq_debug("max_freq,1 %u.", freq_table[index].frequency);
+				freq_table[index].frequency = CPUFREQ_TABLE_END;
+			}
+		}
+	}
+	else {
+		//TODO: if not found e-fuse data, set cpu max frequency is 1G;
+		int ncount = sizeof(freq_table) / sizeof(struct cpufreq_frequency_table);
+                for (; index < ncount; index++) {
+                        if (freq_table[index].frequency != CPUFREQ_TABLE_END &&
+                                freq_table[index].frequency > 1000000) {
+                                freq_table[index].frequency = CPUFREQ_TABLE_END;
+                        }
+                }
+		cpufreq_debug("Not found e-fuse data. use default frequency (max is 1G)");
+	}
+#endif
+
 	if (policy->cpu >= NUM_CPUS)
 		return -EINVAL;
 
@@ -295,6 +349,7 @@ static int ns115_cpu_init(struct cpufreq_policy *policy)
 		pr_err("cpu freq:get clock failed.\n");
 		return PTR_ERR(cpu_clk);
 	}
+
 
 	cpufreq_frequency_table_cpuinfo(policy, freq_table);
 	cpufreq_frequency_table_get_attr(freq_table, policy->cpu);
@@ -335,8 +390,11 @@ static struct cpufreq_driver ns115_cpufreq_driver = {
 	.attr		= ns115_cpufreq_attr,
 };
 
+
+
 static int __init ns115_cpufreq_init(void)
 {
+
 #ifdef CONFIG_AUTO_HOTPLUG
 	ns115_auto_hotplug_init(&ns115_cpu_lock, freq_table[1].frequency, freq_table[0].frequency);
 #endif

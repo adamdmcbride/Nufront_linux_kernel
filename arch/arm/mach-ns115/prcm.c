@@ -4208,6 +4208,21 @@ arch_initcall(clk_init);
 void prcm_glb_soft_reset(void)
 {
 	void __iomem *sys_rst_ctrl = __io_address(PRCM_SYS_RST_CTRL);
+	void __iomem *sys_pwr_ctrl = __io_address(PRCM_SYS_PWR_CTRL);
+	void __iomem *zsp_clk_ctrl = __io_address(PRCM_ZSP_CLK_CTRL);
+	void __iomem *misc_reg0 = __io_address(PRCM_MISC_REG0);
+	void __iomem *misc_reg1 = __io_address(PRCM_MISC_REG1);
+	void __iomem *misc_reg2 = __io_address(PRCM_MISC_REG2);
+	void __iomem *misc_reg3 = __io_address(PRCM_MISC_REG3);
+
+	reg_clr_bits(misc_reg0, 0xFFFFFFFF); //0
+	reg_clr_bits(misc_reg1, 0xFFFFFFFF); //0
+	reg_clr_bits(misc_reg2, 0xFFFFFFFF); //0
+	reg_clr_bits(misc_reg3, 0xFFFFFFFF); //0
+
+	reg_set_bits(zsp_clk_ctrl, PRCM_ZSP_CLK_CTRL_ZSP_ACLKEN | PRCM_ZSP_CLK_CTRL_ZSP_CLKEN);//1
+	reg_set_bits(sys_pwr_ctrl, PRCM_SYS_PWR_CTRL_ZSP_PWR_STATE);//1
+
 	reg_clr_bits(sys_rst_ctrl, PRCM_SYS_RST_CTRL_GLB_SW_RST); //0
 	reg_set_bits(sys_rst_ctrl, PRCM_SYS_RST_CTRL_GLB_SW_RST);//1
 	//	printk(KERN_EMERG "globle soft reset over!\n");

@@ -140,7 +140,6 @@ void __cpuinitdata platform_cpu_die(unsigned int cpu)
 	__cortex_a9_save(2);
 	
 	barrier();
-	preempt_enable_no_resched();
 	/*
 	 * bring this CPU back into the world of cache
 	 * coherency, and then restore interrupts

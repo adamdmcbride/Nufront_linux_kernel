@@ -62,6 +62,10 @@
 #include <linux/power/bq24170-charger.h>
 #endif
 
+#ifdef CONFIG_NS115_EFUSE_SUPPORT
+#include <mach/efuse.h>
+#endif
+
 #include "core.h"
 #include "prcm.h"
 #include "scm.h"
@@ -546,6 +550,7 @@ static void __init ns115_pad_ref_init(void)
 			nusmart_lcd_len(),
 			nusmart_mali_len(),
 			nusmart_mali_ump_len());
+
 }
 
 struct gpio_data __initdata ref_data = {

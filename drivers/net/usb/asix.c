@@ -38,10 +38,19 @@
 #include <linux/usb.h>
 #include <linux/crc32.h>
 
+#include <mach/efuse.h>
+
 #include "axusbnet.c"
 #include "asix.h"
 
 #define DRV_VERSION	"4.1.0"
+
+
+#if 0
+#define mac_debug(fmt, args...) printk(KERN_INFO  "mac_debug, " fmt, ##args)
+#else
+#define mac_debug(...)
+#endif
 
 static char version[] =
 KERN_INFO "ASIX USB Ethernet Adapter:v" DRV_VERSION 
@@ -67,6 +76,25 @@ static int ax88772a_phy_powerup (struct usbnet *dev);
 /* ASIX AX8817X based USB 2.0 Ethernet Devices */
 
 static unsigned char  default_mac[6] = {0x00, 0x55, 0x7B, 0xB5, 0x45, 0x7A}; 
+
+void reset_mac_addr() {
+	unsigned char node_id[6] = {0};
+	struct EFuse_data* efuse_data = get_ns115_efuse_data();
+
+	if (!efuse_data) {
+		random_ether_addr(node_id);
+	} else {
+		node_id[1] = efuse_data->a.high & 0xff;
+		node_id[2] = efuse_data->a.low  >> 24;
+		node_id[3] = efuse_data->a.low  >> 16 & 0xff;
+		node_id[4] = efuse_data->a.low  >> 8  & 0xff;
+		node_id[5] = efuse_data->a.low  & 0xff;
+	}
+
+	mac_debug(KERN_INFO "usbnet mac addr: %02x:%02x:%02x:%02x:%02x:%02x",
+			node_id[0], node_id[1], node_id[2], node_id[3], node_id[4], node_id[5]);
+	memcpy(default_mac, node_id, sizeof(node_id));
+}
 
 static int __init ax88772b_mac_setup(char* str)
 {
@@ -1583,6 +1611,8 @@ static int ax88772b_bind(struct usbnet *dev, struct usb_interface *intf)
 		kfree (ax772b_data);
 		return -ENOMEM;
 	}
+
+	reset_mac_addr();
 
 	ax772b_data->dev = dev;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,20)

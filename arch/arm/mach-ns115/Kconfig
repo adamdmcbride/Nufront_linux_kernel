@@ -73,6 +73,14 @@ config CHIP_HIGH
 	select CLASS_HIGH
 	help
 	  Select chip class as high.
+
+config NS115_EFUSE_SUPPORT
+	bool "ns115 efuse support"
+	default n
+	depends on ARCH_NS115
+	help
+	  NS115 EFUSE Support
+
 endchoice
 
 config CLASS_NORMAL

@@ -90,7 +90,7 @@
 #define err(x,args...)  printk(KERN_ERR "%s:"#x"\n",__func__,##args)
 /*******************************************************************/
 
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
 //#define ctrace printk("ctrace:%s\n",__func__)
 #define ctrace 
@@ -1810,8 +1810,6 @@ int hdmi_edid_fetch(unsigned char *edid, struct fb_info *info)
 {
 	struct fb_monspecs *specs = NULL;
 	const struct fb_videomode * m = NULL;
-	//let ours lcd1  resolution ratio <= 1280x720
-	const struct fb_videomode  lcd1_rr = {NULL, 60, 1280, 720,};
 	int ret = 0;
 	specs = &info->monspecs;
 
@@ -1820,10 +1818,11 @@ int hdmi_edid_fetch(unsigned char *edid, struct fb_info *info)
 	if(edid) {
 
 		fb_edid_to_monspecs(edid, specs);
+		if(*(edid + 126))
+		{
+			fb_edid_add_monspecs(edid + 0x80, specs); 
+		}
 		if(specs->modedb) {
-#ifdef DEBUG
-			display_modelist(&info->modelist);
-#endif
 			fb_destroy_modelist(&info->modelist);
 
 			fb_videomode_to_modelist(specs->modedb,
@@ -1832,8 +1831,10 @@ int hdmi_edid_fetch(unsigned char *edid, struct fb_info *info)
 			printk(KERN_EMERG "fb%d: %s get Mode list ok! modedb len is %d!\n", info->node,
 					info->fix.id, specs->modedb_len);
 
-			fb_select_modes(&lcd1_rr, &info->modelist);
-			m = fb_find_nearest_mode(&lcd1_rr, &info->modelist);
+#ifdef DEBUG
+			display_modelist(&info->modelist);
+#endif
+			m = fb_find_best_display(specs, &info->modelist);
 
 			if (m) {
 				printk(KERN_EMERG "xres %d,yres %d,pixclk %d\n"

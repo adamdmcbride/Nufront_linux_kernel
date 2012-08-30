@@ -412,8 +412,10 @@ int __init ns115_l2x0_init(void)
 
 	if (!(readl(l2x0_base + L2X0_CTRL) & 1)) {
 		/* set RAM latencies to 3 cycle for eASIC */
-		writel(0x777, l2x0_base + L2X0_TAG_LATENCY_CTRL);
-		writel(0x777, l2x0_base + L2X0_DATA_LATENCY_CTRL);
+		//writel(0x777, l2x0_base + L2X0_TAG_LATENCY_CTRL);
+		//writel(0x777, l2x0_base + L2X0_DATA_LATENCY_CTRL);
+		writel(0x444, l2x0_base + L2X0_TAG_LATENCY_CTRL);
+		writel(0x444, l2x0_base + L2X0_DATA_LATENCY_CTRL);
 		//writel(0x00000003, l2x0_base + L2X0_PREFETCH_CTRL);
 		writel(0x70000007, l2x0_base + L2X0_PREFETCH_CTRL);
 		writel(0x00000001, l2x0_base + L2X0_ADDR_FILTER_START);

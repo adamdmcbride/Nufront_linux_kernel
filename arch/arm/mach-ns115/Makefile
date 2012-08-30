@@ -3,6 +3,10 @@
 #
 
 obj-y					:= timer-dw.o core.o clock.o prcm.o scm.o get_bootargs.o common.o extend.o nusmart-dbg.o
+obj-y      				+= efuse.o
+
+
+
 
 obj-$(CONFIG_MACH_NS115_PAD_TEST)	+= ns115-pad-test.o pad_test_pinmux.o nusmart-pl330.o dma.o soc_power_ctrl.o 
 obj-$(CONFIG_MACH_NS115_PAD_REF)	+= ns115-pad-ref.o pad_ref_pinmux.o nusmart-pl330.o dma.o soc_power_ctrl.o 
