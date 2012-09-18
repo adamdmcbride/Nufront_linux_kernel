@@ -113,17 +113,17 @@ const static struct fvs fvs_table[] =
 	{500000, 1070},
 	{600000, 1070},
 */
-	{200000, 1100},
-	{300000, 1100},
-	{400000, 1100},
-	{500000, 1100},
-	{600000, 1100},
-	{700000, 1100},
-	{800000, 1100},
+	{200000, 1130},
+	{300000, 1130},
+	{400000, 1130},
+	{500000, 1130},
+	{600000, 1130},
+	{700000, 1130},
+	{800000, 1130},
 	{900000, 1220},
 	{1000000, 1220},
 	{1200000, 1220},
-	{1500000, 1220},
+	{1500000, 1250},
 };
 
 int ns115_verify_speed(struct cpufreq_policy *policy)
@@ -305,11 +305,12 @@ static struct notifier_block ns115_cpu_pm_notifier = {
 
 static int ns115_cpu_init(struct cpufreq_policy *policy)
 {
+	init_ns115_efuse_data();
+
 #if defined(CONFIG_NS115_EFUSE_SUPPORT)
 	//dump_efuse_data(get_ns115_efuse_data());
 
 	//TODO: read cpu max frequency value from e-fuse, and adjust 'freq_table' struct;
-	init_ns115_efuse_data();
 	struct EFuse_data* pdata = get_ns115_efuse_data();
 	int index = 0;
 	if (pdata) {
@@ -418,7 +419,7 @@ static int __init ns115_cpu_regu_init(void)
 		pr_info("cpu freq:cpu voltage:%dmV\n", cpu_vol);
 	} else {
 		pr_err("cpu freq:get regulator failed.\n");
-	}	
+	}
 	return 0;
 }
 late_initcall(ns115_cpu_regu_init);

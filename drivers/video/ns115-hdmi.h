@@ -469,12 +469,14 @@ struct ns115_hdmi_data {
 	u32 horizontal_res;
 	u32 vertical_res;
 	u32 pixel_clk;
+	u32 refresh;
 };
 
 struct ns115_hdmi_lcdc_data {
 	u32 horizontal_res;
 	u32 vertical_res;
 	u32 pixel_clk;
+	u32 refresh;
 	u8 *pedid;
 };
 

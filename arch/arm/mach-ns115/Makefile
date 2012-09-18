@@ -10,6 +10,7 @@ obj-y      				+= efuse.o
 
 obj-$(CONFIG_MACH_NS115_PAD_TEST)	+= ns115-pad-test.o pad_test_pinmux.o nusmart-pl330.o dma.o soc_power_ctrl.o 
 obj-$(CONFIG_MACH_NS115_PAD_REF)	+= ns115-pad-ref.o pad_ref_pinmux.o nusmart-pl330.o dma.o soc_power_ctrl.o 
+obj-$(CONFIG_MACH_NS115_STICK)		+= ns115-stick.o pad_ref_pinmux.o nusmart-pl330.o dma.o soc_power_ctrl.o
 obj-$(CONFIG_SMP)			+= platsmp.o headsmp.o ns115-save.o suspend.o suspend-macro.o
 obj-$(CONFIG_HOTPLUG_CPU)		+= hotplug.o
 obj-$(CONFIG_LOCAL_TIMERS)		+= localtimer.o

@@ -8,13 +8,35 @@
 
 #include "common.h"
 
+struct bus_setting
+{
+	int offset;
+	unsigned int value;
+};
+
+struct bus_setting default_setting[] = {
+	{0x20,	0x1},
+	{0x24,	0xffff0002},
+	{0x34,	0xffff0001},
+};
+
+void bus_pri_init(struct bus_setting * setting, int len)
+{
+	int idx = 0;
+	void * __iomem base = __io_address(NS115_MEM_MAX0_BASE);
+
+	for(idx = 0; idx < len; idx++) {
+		writel(setting[idx].value, base + setting[idx].offset);
+	}
+}
 void common_init(void)
 {
-        unsigned int reg;
-        asm volatile ("mrc p15, 0, %0, c15, c0, 0" : "=r" (reg) : : "cc");
-        reg |= 1; 			/*enable dynamic clock gating*/
-        asm volatile ("mcr p15, 0, %0, c15, c0, 0" : : "r" (reg) : "cc");
+	unsigned int reg;
+	asm volatile ("mrc p15, 0, %0, c15, c0, 0" : "=r" (reg) : : "cc");
+	reg |= 1; 			/*enable dynamic clock gating*/
+	asm volatile ("mcr p15, 0, %0, c15, c0, 0" : : "r" (reg) : "cc");
 
+	bus_pri_init(default_setting, ARRAY_SIZE(default_setting));
 }
 
 void ddr_pm_init(void)

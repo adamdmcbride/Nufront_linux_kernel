@@ -16,14 +16,14 @@
 
 #define		GPIO_BT_ON 	(8 + 16)   //low -> high
 #define		GPIO_BT_INT 	(8 + 15)   //bt wakeup ap
-#define		GPIO_BT_RST 	(8 + 13)   //low -> high 
+#define		GPIO_BT_RST 	(8 + 13)   //low -> high
 #define		GPIO_BT_WAKEUP 	(8 + 12)   //ap wakeup bt
 
 #else
 
 #define		GPIO_BT_ON 	(8 + 32 + 25)   //low -> high
 #define		GPIO_BT_INT 	(8 + 16)   	//bt wakeup ap
-#define		GPIO_BT_RST 	(8 + 32 + 13)   //low -> high 
+#define		GPIO_BT_RST 	(8 + 32 + 13)   //low -> high
 #define		GPIO_BT_WAKEUP 	(8 + 32 + 14)  	//ap wakeup bt
 
 #endif
@@ -136,8 +136,8 @@ void bcm_wlan_power_on(int flag)
 	mdelay(30);
 
 	gpio_free(gpio);
-	/** 
-	 * kernel will stuck if called early, 
+	/**
+	 * kernel will stuck if called early,
 	 * cuz slot2 hasn't been created.
 	 */
 	//bcm_detect();
@@ -161,7 +161,7 @@ void bcm_wlan_power_off(int flag)
 	/* pull-down */
 	gpio_direction_output(gpio, 0);
 	mdelay(20);
-	
+
 	gpio_free(gpio);
 
 #ifdef CONFIG_MACH_NS115_PAD_REF
@@ -172,10 +172,8 @@ void bcm_wlan_power_off(int flag)
 			//return;
 		} else
 			regulator_disable(regu);
-#endif
-
-		return;
 	}
+#endif
 }
 EXPORT_SYMBOL(bcm_wlan_power_off);
 #endif

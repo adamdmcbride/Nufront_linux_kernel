@@ -90,7 +90,7 @@
 #define err(x,args...)  printk(KERN_ERR "%s:"#x"\n",__func__,##args)
 /*******************************************************************/
 
-//#define DEBUG
+#define DEBUG
 #ifdef DEBUG
 //#define ctrace printk("ctrace:%s\n",__func__)
 #define ctrace 
@@ -698,6 +698,29 @@ static int nusmartfb_set_par(struct fb_info *fb)
 	return 0;	
 }
 
+static int set_resolution_ratio(struct fb_info * fb,struct fb_var_screeninfo * var)
+{
+	struct fb_var_screeninfo stdvar;
+	struct fb_videomode mode;
+	int retval;
+	char mode_option[50] = {};
+
+	if(var->bits_per_pixel)
+		var->bits_per_pixel = 16;
+
+	sprintf(mode_option, "%ux%u-%u", var->xres, var->yres, var->bits_per_pixel);
+	printk(KERN_INFO "set resolution to %ux%u-%u mode_option %s\n", var->xres, var->yres, var->bits_per_pixel, mode_option);
+	
+	retval = fb_find_mode(&stdvar, fb, mode_option, NULL, 0,NULL, var->bits_per_pixel);
+	fb_var_to_videomode(&mode, &stdvar);
+	fb_videomode_to_var(&fb->var, &mode);
+
+	retval = nusmartfb_check_var(&fb->var, fb);
+	nusmartfb_set_par(fb); 
+
+	return retval;
+}
+
 static int set_var(struct fb_info * info,struct fb_var_screeninfo * var)
 {
 	struct nusmart_par * par = info->par;
@@ -937,7 +960,7 @@ static int nusmartfb_mmap(struct fb_info *info,
 
 	if(off <= len && vma->vm_end - vma->vm_start <= len - off) {
 #ifdef	FB_RESERV
-		unsigned int video_mem_base = virt_to_phys(info->fix.smem_start);
+		unsigned int video_mem_base = info->fix.smem_start;
 		printk(KERN_EMERG "%s video mem base 0x%x\n", __func__, video_mem_base);
 		vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 		ret = remap_pfn_range(vma, vma->vm_start, video_mem_base >> PAGE_SHIFT,
@@ -1042,6 +1065,9 @@ static int nusmartfb_ioctl(struct fb_info *info, unsigned int cmd,
 	int ret = 0;
 	int flag;
 	struct nusmart_par * par = info->par;
+#ifdef CONFIG_MACH_NS115_STICK
+	unsigned long ustart = info->fix.smem_start;
+#endif
 	void __user *argp = (void __user *)arg;
 	struct fb_var_screeninfo var;
 	unsigned int ctrl;
@@ -1097,6 +1123,44 @@ static int nusmartfb_ioctl(struct fb_info *info, unsigned int cmd,
 				return -EFAULT;
 			}
 			break;
+
+		case SET_RESOLUTION_RATIO:
+			if (copy_from_user(&var, argp, sizeof(struct fb_var_screeninfo)))
+				return -EFAULT;
+			
+			set_resolution_ratio(info, &var);
+			break;
+
+#ifdef CONFIG_MACH_NS115_STICK
+		case CHNAGE_FRAMEBUFFER_ADDR:
+			if (copy_from_user(&flag, argp, sizeof(int))) {
+				printk("copy data failed.\n");
+				return -EFAULT;
+			}
+
+			if(0 == flag)
+			{
+				printk("pointer to lcd1 addr");
+				writel(ustart, par->mmio + NUSMART_LCDC_PRIPTR);
+				ustart += info->var.yres * info->fix.line_length;
+				writel(ustart, par->mmio + NUSMART_LCDC_SECPTR);
+			}else{
+				printk("pointer to lcd0 addr");
+				ustart -= VIDEO_MEM_SIZE/2; 
+				writel(ustart, par->mmio + NUSMART_LCDC_PRIPTR);
+				ustart += info->var.yres * info->fix.line_length;
+				writel(ustart, par->mmio + NUSMART_LCDC_SECPTR);
+			}
+		
+			/*read status*/
+			ctrl = readl(par->mmio); 
+
+			/*set first*/	
+			ctrl&=~NUSMART_LCDC_PTRF;
+
+			break;
+#endif
+
 		default:
 			ret = -ENOTTY;
 	}
@@ -1216,7 +1280,11 @@ static int video_mem_alloc(struct fb_info *info, unsigned int id)
 		return -ENOMEM;
 	}
 
-	//memset(info->screen_base, 0x0, info->fix.smem_len);
+#ifndef CONFIG_MACH_NS115_STICK
+	if(1 == id)
+		memset(info->screen_base, 0x0, info->fix.smem_len);
+#endif
+
 	return 0;
 }
 
@@ -1626,10 +1694,12 @@ static int __devinit nusmartfb_probe(struct platform_device *pdev)
 	register_early_suspend(&early_suspend[id].es);
 #endif
 	
+#ifndef CONFIG_MACH_NS115_STICK
 	if(1 == id){
 		nusmart_clcd_disable(info);
 	//	clk_disable(par->clk);
 	}
+#endif
 	
 	return 0;
 free_cmap:
@@ -1780,7 +1850,10 @@ void fb_select_modes(const struct fb_videomode *mode,
 	list_for_each_safe(pos, n, head) {
 		modelist = list_entry(pos, struct fb_modelist, list);
 		m = &modelist->mode;
-		if (m->xres > mode->xres || m->yres > mode->yres) {
+		if (	(((m->xres * m->yres) > (mode->xres * mode->yres)) && (m->xres !=1920 || m->yres != 1080))
+		     || (m->refresh < 59)
+		     || (m->vmode & FB_VMODE_INTERLACED))
+		{
 			list_del(pos);
 			kfree(pos);
 		}
@@ -1797,11 +1870,11 @@ void display_modelist(struct list_head *head)
 	list_for_each(pos, head) {
 		modelist = list_entry(pos, struct fb_modelist, list);
 		m = &modelist->mode;
-		printk(KERN_INFO "%s: xres %d,yres %d,pixclk %d, leftm %d,rm %d,um %d,lowm %d, hsync %d,vsync,%d",
+		printk(KERN_INFO "%s: xres %d,yres %d,pixclk %d, leftm %d,rm %d,um %d,lowm %d, hsync %d,vsync %d, refresh %d flag=0x%x,vmode=0x%x",
 				__func__,
 				m->xres,m->yres,m->pixclock,
 				m->left_margin,m->right_margin,m->upper_margin,m->lower_margin,
-				m->hsync_len,m->vsync_len);
+				m->hsync_len,m->vsync_len, m->refresh,m->flag,m->vmode);
 	}
 }
 #endif
@@ -1811,6 +1884,9 @@ int hdmi_edid_fetch(unsigned char *edid, struct fb_info *info)
 	struct fb_monspecs *specs = NULL;
 	const struct fb_videomode * m = NULL;
 	int ret = 0;
+	const struct fb_videomode  select_mode = {NULL, 60, 1280, 720,};
+	const struct fb_videomode  find_mode = {NULL, 60, 1920, 1080,};
+
 	specs = &info->monspecs;
 
 	printk(KERN_EMERG "%s............\n", __func__);
@@ -1818,10 +1894,10 @@ int hdmi_edid_fetch(unsigned char *edid, struct fb_info *info)
 	if(edid) {
 
 		fb_edid_to_monspecs(edid, specs);
-		if(*(edid + 126))
-		{
-			fb_edid_add_monspecs(edid + 0x80, specs); 
-		}
+//		if(*(edid + 126))
+//		{
+//			fb_edid_add_monspecs(edid + 0x80, specs); 
+//		}
 		if(specs->modedb) {
 			fb_destroy_modelist(&info->modelist);
 
@@ -1834,7 +1910,14 @@ int hdmi_edid_fetch(unsigned char *edid, struct fb_info *info)
 #ifdef DEBUG
 			display_modelist(&info->modelist);
 #endif
-			m = fb_find_best_display(specs, &info->modelist);
+			fb_select_modes(&select_mode, &info->modelist);
+
+#ifdef DEBUG
+			display_modelist(&info->modelist);
+#endif
+			//m = fb_find_best_display(specs, &info->modelist);
+			m = fb_find_nearest_mode(&find_mode, &info->modelist);
+
 
 			if (m) {
 				printk(KERN_EMERG "xres %d,yres %d,pixclk %d\n"
@@ -1845,6 +1928,13 @@ int hdmi_edid_fetch(unsigned char *edid, struct fb_info *info)
 						m->hsync_len,m->vsync_len);
 
 				fb_videomode_to_var(&info->var, m);
+				info->mode = m;
+				if((m->xres == 1920) && (m->yres == 1080))
+					info->var.pixclock = 6734;
+
+				if((m->xres == 1280) && (m->yres == 720))
+					info->var.pixclock = 13468;
+		
 			} else {
 				printk(KERN_EMERG "fb%d: %s get best display failed!\n", 
 						info->node, info->fix.id);
@@ -1883,10 +1973,12 @@ static int enable_lcd1(struct ns115_hdmi_lcdc_data *hdmi)
 		retval = fb_find_mode(&stdvar, fb1_info, mode_option, NULL, 0,NULL, 16);
 		fb_var_to_videomode(&mode, &stdvar);
 		fb_videomode_to_var(&fb1_info->var, &mode);
+		hdmi->refresh = 60;
 	}else{
 		printk(KERN_EMERG "%dx%d-%d pixclock %d\n", 
 				fb1_info->var.xres, fb1_info->var.yres,
 				fb1_info->var.bits_per_pixel, fb1_info->var.pixclock);
+		hdmi->refresh = fb1_info->mode->refresh;
 	}
 
 	nusmartfb_check_var(&fb1_info->var, fb1_info);

@@ -1036,8 +1036,8 @@ void fb_edid_add_monspecs(unsigned char *edid, struct fb_monspecs *specs)
 
 	for (i = specs->modedb_len; i < specs->modedb_len + num; i++) {
 		get_detailed_timing(edid + edt[i - specs->modedb_len], &m[i]);
-		if (i == specs->modedb_len)
-			m[i].flag |= FB_MODE_IS_FIRST;
+//		if (i == specs->modedb_len)
+//			m[i].flag |= FB_MODE_IS_FIRST;
 		pr_debug("Adding %ux%u@%u\n", m[i].xres, m[i].yres, m[i].refresh);
 	}
 

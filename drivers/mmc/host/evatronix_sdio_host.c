@@ -29,7 +29,7 @@
 
 /**************************************************************************/
 #define DRIVER_NAME     "ns115-sdmmc"
-#define evatronix_sd_vcode "v3.1"
+#define evatronix_sd_vcode "v3.2 2012-Sep-04"
 
 //#define	DEBUG
 //#define	ERROR_RECOVERY
@@ -670,7 +670,7 @@ static irqreturn_t evatronix_irq_handler_new(int irq, void *dev_id)
 				ignore_cd = 1;
 				err("IGNORE CD");
 			}
-#ifdef DEBUG	
+#ifdef DEBUG
 			if(slot->irq_status == 0 && pending == 0x108000) {
 				err("cur_slot %d #pre_slot %d pre_cmd CMD%d############slot%d CMD%d####### 0x108000\n",
 					host->cur_slot, 
@@ -681,7 +681,7 @@ static irqreturn_t evatronix_irq_handler_new(int irq, void *dev_id)
 			/* clear host-side interrupts */
 			slot_writel(host, SFR12, i, pending);
 			wmb();
-	
+
 			slot->irq_status |= pending;
 			//VDBG("slot%u: penging 0x%08x", i, pending);
 
@@ -939,15 +939,6 @@ static void evatronix_start_request(struct evatronix_host *host,
 		struct evatronix_slot *slot, struct mmc_request *req)
 {
 	ENTER();
-	spin_lock_bh(&host->lock);
-
-	if (!test_bit(EVA_MMC_CARD_PRESENT, &slot->cd_flags)) {
-		spin_unlock_bh(&host->lock);
-		req->cmd->error = -ENOMEDIUM;
-		mmc_request_done(slot->mmc, req);
-
-		return;
-	}
 
 	/* gimme that */
 	slot->mrq 	= req;
@@ -983,7 +974,7 @@ static u8 check_dma_desc(struct evatronix_slot *slot, struct mmc_data *data, int
 	u8 ret = 1;
 	struct scatterlist *sg;
 	u32 desc_addr = 0;
-	
+
 	NumberOfDescriptos = host->sg_len;
 	pDesc = (u32 *)host->desc;
 	sg = data->sg;
@@ -997,14 +988,14 @@ static u8 check_dma_desc(struct evatronix_slot *slot, struct mmc_data *data, int
 				| ADMA2_DESCRIPTOR_VAL);
 
 		if((i + 2) == NumberOfDescriptos * 2)
-			Descriptors |= (0x04 | ADMA1_DESCRIPTOR_END);	
+			Descriptors |= (0x04 | ADMA1_DESCRIPTOR_END);
 		desc_addr = ((u32)sg_dma_address(&sg[i/2]));
 		wmb();
-	
+
 		if(Descriptors == 0 || pDesc[i] == 0)
 			printk(KERN_EMERG " %s, desc == 0 <<<<<<<<<<<<<<<<<<<<<\n", __func__);
 		if(desc_addr == 0 || pDesc[i + 1] == 0)
-			printk(KERN_EMERG "%s, desc_addr = 0 <<<<<<<<<<<<< \n", __func__);	
+			printk(KERN_EMERG "%s, desc_addr = 0 <<<<<<<<<<<<< \n", __func__);
 
 		if(log > 0) {
 			printk(KERN_EMERG "check: 0x%08x[0x%08x] 0x%08x[0x%08x]\n", 
@@ -1019,7 +1010,6 @@ static u8 check_dma_desc(struct evatronix_slot *slot, struct mmc_data *data, int
 		ret = 0; 
 	}
 	wmb();
-	
 	if(ret == 0) {
 		printk(KERN_EMERG " %s BUG <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", __func__);
 	}
@@ -1300,6 +1290,16 @@ static void evatronix_request(struct mmc_host *mmc, struct mmc_request *req)
 	struct evatronix_slot *slot = mmc_priv(mmc);
 	struct evatronix_host *host = slot->host;
 
+	spin_lock_bh(&host->lock);
+
+	if(!test_bit(EVA_MMC_CARD_PRESENT, &slot->cd_flags)) {
+		spin_unlock_bh(&host->lock);
+		req->cmd->error = -ENOMEDIUM;
+		mmc_request_done(slot->mmc, req);
+
+		return;
+	}
+
 	slot->step = 1;
 
 	ENTER();
@@ -1328,8 +1328,8 @@ static void set_host_drv_type(struct evatronix_host *host, struct mmc_ios *ios, 
 	slot_writel(host, SFR15, id, tmp);
 }
 
-static int set_uhs_mode(struct evatronix_host *host, 
-			struct mmc_host *mmc, int id, u32 cap)
+static int set_uhs_mode(struct evatronix_host *host,
+		struct mmc_host *mmc, int id, u32 cap)
 {
 	u32 mode = -EINVAL;
 	u32 val = 0;
@@ -1587,10 +1587,10 @@ static int voltage_switch(struct mmc_host *mmc, struct mmc_ios *ios)
 	int err = 0, mode;
 	u32 val = 0;
 
-	printk(KERN_ERR "Enter %s\n", __func__);
+	//printk(KERN_ERR "Enter %s\n", __func__);
 
 	if(ios->signal_voltage == MMC_SIGNAL_VOLTAGE_330) {
-		printk(KERN_ERR "Leave %s: do nothing\n", __func__);
+		//printk(KERN_ERR "Leave %s: do nothing\n", __func__);
 		return 0;
 	}
 
@@ -1652,7 +1652,7 @@ static int voltage_switch(struct mmc_host *mmc, struct mmc_ios *ios)
 		goto fail;
 	}
 fail:
-	printk(KERN_ERR "%s: fail with error %d\n", __func__, err);
+	//printk(KERN_ERR "%s: fail with error %d\n", __func__, err);
 	return err;
 }
 
@@ -1723,8 +1723,6 @@ static int evatronix_create_slot(struct evatronix_host *host, int id)
 
 	/* core layer setup */
 	mmc->ops 	= &evatronix_mmc_ops;
-	err("slot%u: pdata->freq is %d, slot->freq is %d, mmc->f_max is %d",
-					slot->id, pdata->freq, slot->freq, mmc->f_max);
 
 	/**
 	 * max_blk_size <= FIFO buffer size
@@ -1911,7 +1909,7 @@ static void evatronix_reset_slot(struct evatronix_host *host, struct evatronix_s
 		count ++;
 		val = slot_readl(host, SFR11, slot->id);
 	}while(val & (1 << 24));
-	
+
 	err("\t *** reset slot%d, wait %d us", slot->id, count * 2);
 }
 
@@ -1939,9 +1937,9 @@ static void evatronix_tasklet_cd(unsigned long data)
 				break;
 			}
 			set_bit(EVENT_CARD_DETECT, &slot->completed_events);
-			
+
 			change = 1;
-			if(present == 0) {	
+			if(present == 0) {
 				//reset slot
 				evatronix_reset_slot(host, slot);
 
@@ -1982,7 +1980,7 @@ static void evatronix_tasklet_cd(unsigned long data)
 		if(change == 0) { //After enter s3 state, uplug tf card, resume back and plug tf card.
 			err("\t *** plug state unchanged! present = %d\n", present);
 			spin_lock(&host->lock);
-		
+
 			evatronix_reset_slot(host, slot);
 			evatronix_init_slot(host, i);
 			if(present) {
@@ -2021,7 +2019,7 @@ static void evatronix_tasklet_cd(unsigned long data)
 			slot_writel(host, SFR11, slot->id, val);
 		}
 
-		err("\t *** re-arm: SFR10 0x%08x, SFR11 0x%08x", slot->id,
+		err("\t *** re-arm: SFR10 0x%08x, SFR11 0x%08x",
 						slot_readl(host, SFR10, slot->id),
 						slot_readl(host, SFR11, slot->id));
 
@@ -2362,7 +2360,6 @@ static int evatronix_resume(struct platform_device *pdev)
 			wmb();
 			spin_unlock_irqrestore(&host->lock, flags);
 			printk(KERN_NOTICE "slot2 restore FIN");
-			
 #ifndef CONFIG_WIFI_S3_PLAN_B
 			ret = mmc_resume_host(slot->mmc);
 			if(ret < 0) {

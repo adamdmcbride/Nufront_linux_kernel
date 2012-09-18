@@ -101,7 +101,7 @@ static struct kxtj9_platform_data kxtj9_ns115_pdata = {
 NS115_PINMUX_DECLARE(pad_refboard);
 
 #if 1
-static struct lcdc_platform_data lcdc_data = 
+static struct lcdc_platform_data lcdc_data =
 {
 	.ddc_adapter = I2C_BUS_2,
 };
@@ -318,7 +318,8 @@ static int slot_attr_init(struct evatronix_sdio_slot_data *sd,
 	return 0;
 }
 
-#define WIFI_REG_ON_GPIO	57
+//#define WIFI_REG_ON_GPIO	(1)
+#define WIFI_REG_ON_GPIO	(8+32+17)
 static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 	.ref_clk		= 100000000,
 	.nr_slots 		= 3,
@@ -330,8 +331,8 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 		.ctype       	= SD_CARD,
 		.force_rescan	= false,
 		.caps		= (MMC_CAP_4_BIT_DATA|
-				MMC_CAP_SD_HIGHSPEED|MMC_CAP_MMC_HIGHSPEED|
-				MMC_CAP_UHS_SDR12|MMC_CAP_UHS_SDR50),
+					MMC_CAP_SD_HIGHSPEED|MMC_CAP_MMC_HIGHSPEED|
+					MMC_CAP_UHS_SDR12|MMC_CAP_UHS_SDR50),
 		.freq 		= 100000000,
 		.ocr_avail	= 0xff8000,	//2.6V-3.7V
 
@@ -342,7 +343,7 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 		.ctype       	= EMMC_CARD,
 		.force_rescan	= true,
 		.caps		= (MMC_CAP_NONREMOVABLE|
-				MMC_CAP_8_BIT_DATA|MMC_CAP_MMC_HIGHSPEED),
+					MMC_CAP_8_BIT_DATA|MMC_CAP_MMC_HIGHSPEED),
 		.freq 		= 50000000,
 		.ocr_avail	= 0xff8000,
 	},
@@ -351,15 +352,15 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 		.ctype       	= SDIO_CARD,
 		.force_rescan	= true,
 		.caps		= (MMC_CAP_4_BIT_DATA|MMC_CAP_SD_HIGHSPEED|
-				MMC_CAP_NONREMOVABLE/*|MMC_CAP_SDIO_IRQ*/),
+					MMC_CAP_NONREMOVABLE/*|MMC_CAP_SDIO_IRQ*/),
 		.pm_caps	= (MMC_PM_KEEP_POWER|MMC_PM_IGNORE_PM_NOTIFY),
-		.freq 		= 25000000, 
+		.freq 		= 25000000,
 		.ocr_avail	= 0xff8000,
 	},
 
 	.slots[3] = {
 		.ctype       	= SD_CARD,
-		.freq 		= 25000000/2, 
+		.freq 		= 25000000/2,
 	},
 };
 
@@ -404,7 +405,7 @@ static struct wake_timer_data wake_data = {
 	.wake_ms = 2000,
 };
 
-static struct soc_plat_dev plat_devs[] = 
+static struct soc_plat_dev plat_devs[] =
 {
 	SOC_PLAT_DEV(&ns115_serial_device, 	NULL),
 	SOC_PLAT_DEV(&ns115_sdmmc_device,  	&nusmart_sdmmc_data),
@@ -447,7 +448,7 @@ static struct soc_plat_dev plat_devs[] =
 #endif
 };
 
-static struct extend_i2c_device __initdata extend_i2c_devs[] = 
+static struct extend_i2c_device __initdata extend_i2c_devs[] =
 {
 #ifdef CONFIG_MFD_RICOH583
 	EXT_I2C_DEV(I2C_BUS_1, &ricoh583_i2c_dev, NULL, \
@@ -498,11 +499,11 @@ static struct extend_i2c_device __initdata extend_i2c_devs[] =
 #ifdef CONFIG_BATTERY_BQ27410_GASGAUGE
 	EXT_I2C_DEV(I2C_BUS_1, &bq27410_gasgauge, NULL, \
 			EXT_IRQ_NOTSPEC, USE_DEFAULT),
-#endif           
+#endif
 };
 
 #ifdef CONFIG_PL330_DMA
-static struct amba_device * amba_devs[] = 
+static struct amba_device * amba_devs[] =
 {
 	&pl330_dma_device,
 };
@@ -544,7 +545,7 @@ static void __init ns115_pad_ref_init(void)
 
 	printk("on2_base = 0x%x, on2_size = 0x%x\n lcd_base = 0x%x, \
 			lcd_size = 0x%x\n gpu_size = 0x%x, ump_size = 0x%x\n",\
-			nusmart_on2_base(), 
+			nusmart_on2_base(),
 			nusmart_on2_len(),
 			nusmart_lcd_base(),
 			nusmart_lcd_len(),

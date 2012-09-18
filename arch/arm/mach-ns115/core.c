@@ -741,7 +741,7 @@ static struct plat_serial8250_port serial_platform_data[] = {
 		.type	  = PORT_NF_16550A,
 		.iotype   = UPIO_MEM32,
 		.regshift = 2,
-		.uartclk  = 66000000,
+		.uartclk  = 32000000,
 	},{
 		.mapbase  = NS115_UART3_BASE,
 		.irq      = IRQ_NS115_UART3_INTR,

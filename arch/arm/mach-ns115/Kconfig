@@ -44,6 +44,17 @@ config MACH_NS115_PHONE_REF
 	help
 	  Include support for the Nufront NS115 Phone Ref Board.
 
+config MACH_NS115_STICK
+	bool "Nufront NS115 Stick Board"
+	select ARM_GIC
+	select PL330
+	select HAVE_PATA_PLATFORM
+	select ARCH_SPARSEMEM_ENABLE if CPU_V7 && \
+		!NS115_HIGH_PHYS_OFFSET && MMU
+	select ZONE_DMA if SPARSEMEM
+	help
+	  Include support for the Nufront NS115 Stick Board.
+
 config NS115_HIGH_PHYS_OFFSET
 	bool "High physical base address for the NS115 platform"
 	depends on MMU 
@@ -61,6 +72,7 @@ config NUSMART_PL330_DMA
 choice
 	prompt "NS115 chip class"
 	depends on ARCH_NS115
+	depends on CPU_FREQ
 
 config CHIP_NORMAL
 	bool "Normal"

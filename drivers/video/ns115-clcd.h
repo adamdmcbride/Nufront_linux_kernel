@@ -73,6 +73,8 @@ int lcd_init_hx8369(void);
 #define		FBIOPUT_PWSTAT		_IOW('F', 0x21, struct clk_status)
 
 #define 	GET_FB_BUFFER_ADDR	_IOW('F', 0x22, unsigned long)
+#define 	CHNAGE_FRAMEBUFFER_ADDR _IOW('F', 0x23, unsigned long)
+#define 	SET_RESOLUTION_RATIO	_IOW('F', 0x24, struct fb_var_screeninfo)
 
 struct clk_status
 {
