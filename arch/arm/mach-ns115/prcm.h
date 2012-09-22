@@ -874,6 +874,7 @@
 // Section-5: PRCM Task/Function(s) Prototype Definition
 
 extern void prcm_glb_soft_reset(void);
+extern void prcm_glb_soft_power_off(void);
 extern void cpu_reset_all(void);
 
 extern struct clk;

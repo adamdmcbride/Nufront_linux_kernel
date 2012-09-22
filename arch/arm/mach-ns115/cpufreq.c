@@ -221,6 +221,8 @@ static int ns115_update_cpu_speed(unsigned long rate)
 			pr_err("cpu-ns115: Failed to set cpu voltage to %d mV\n",cpu_vol_new);
 	}
 
+	cpu_vol = cpu_vol_new;
+
 	for_each_online_cpu(freqs.cpu)
 		cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
 
@@ -415,7 +417,7 @@ static int __init ns115_cpu_regu_init(void)
 	/*initialize cpu regulator after regulator ready*/
 	cpu_regu = regulator_get(NULL, REGU_NAME);
 	if(!IS_ERR(cpu_regu)) {
-		cpu_vol = regulator_get_voltage(cpu_regu);
+		cpu_vol = regulator_get_voltage(cpu_regu) / 1000;
 		pr_info("cpu freq:cpu voltage:%dmV\n", cpu_vol);
 	} else {
 		pr_err("cpu freq:get regulator failed.\n");

@@ -1280,10 +1280,10 @@ static int video_mem_alloc(struct fb_info *info, unsigned int id)
 		return -ENOMEM;
 	}
 
-#ifndef CONFIG_MACH_NS115_STICK
+//#ifndef CONFIG_MACH_NS115_STICK
 	if(1 == id)
 		memset(info->screen_base, 0x0, info->fix.smem_len);
-#endif
+//#endif
 
 	return 0;
 }

@@ -4228,6 +4228,19 @@ void prcm_glb_soft_reset(void)
 	//	printk(KERN_EMERG "globle soft reset over!\n");
 }
 
+/*
+ * Global software power off control
+ */
+void prcm_glb_soft_power_off(void)
+{
+	void __iomem *sys_pwr_ctrl = __io_address(PRCM_SYS_PWR_CTRL);
+	void __iomem *sys_pll_ctrl = __io_address(PRCM_SYS_PLL_CTRL);
+
+	reg_clr_bits(sys_pwr_ctrl, 0x7FFF); //0
+	reg_set_bits(sys_pll_ctrl, 0x7F); //1
+	asm("wfi");
+}
+
 
 /*
  * CPU system reset control: Reset all CPU related units

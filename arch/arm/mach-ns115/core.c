@@ -372,6 +372,7 @@ static void ns115_power_off(void)
 #ifdef CONFIG_MFD_RICOH583
 	ricoh583_power_off();
 #endif
+	prcm_glb_soft_power_off();
 }
 
 /*
