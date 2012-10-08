@@ -39,7 +39,10 @@
 #define GPIO_NS115_HDMI_INTERRUPT 4
 
 #define NS115_I2C_EDID
+
+#ifndef CONFIG_MACH_NS115_STICK  //hdmi stick only use I2C edid
 #define NS115_DDC_EDID
+#endif
 
 #if defined(NS115_I2C_EDID)
 #define I2C_BUS_0 0
@@ -70,6 +73,10 @@ extern int send_hdmi_hotplug_event(unsigned long val, void *v);
 #endif
 static irqreturn_t ns115_hdmi_hotplug(int irq, void *dev_id);
 void hdmi_notifier(int flag);
+
+static void ns115_hdmi_hot_connect();
+static void ns115_hdmi_hot_disconnect();
+
 /*
 DByte1:
 F7 Y1 Y0 A0 B1 B0 S1 S0
@@ -94,6 +101,39 @@ static unsigned char avi_info_frame_data[] = {
 	0x00,///12
 	0x00,///13
 	0x00///14
+};
+
+static ssize_t hdmi_test_show(struct device *pdev, struct device_attribute *attr, char *buf)
+{
+        struct ns115_hdmi_data *hdmi = dev_get_drvdata(pdev);
+        return sprintf(buf, "%d\n", hdmi->enabled);
+}
+
+static ssize_t hdmi_test_store(struct device *pdev, struct device_attribute *attr,const char *buff, size_t size)
+{
+        struct ns115_hdmi_data *hdmi = dev_get_drvdata(pdev);
+
+        int enabled = 0;
+        sscanf(buff, "%d", &enabled);
+        if(enabled)
+        {
+                ns115_hdmi_hot_connect();
+                hdmi->enabled = 1;
+        }
+        else
+        {
+                ns115_hdmi_hot_disconnect();
+                hdmi->enabled = 0;
+        }
+        return size;
+
+}
+
+static DEVICE_ATTR(hdmi_test, S_IRUGO | S_IWUSR, hdmi_test_show, hdmi_test_store);
+static struct class *hdmi_class;
+static struct device_attribute *hdmi_attributes[] = {
+        &dev_attr_hdmi_test,
+        NULL
 };
 
 static void ns115_hdmi_set_irq(int irq)
@@ -200,201 +240,238 @@ static int ns115_hdmi_EDIDRead_I2C(struct ns115_hdmi_data *hdmi,
 
    Hotplug interrupt occurred, read EDID
    */
+
+#if defined(NS115_HDMI_INTERRUPT_GPIO_EDGE) || defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL)
+static int ns115_hdmi_dec_fun(struct ns115_hdmi_data *hdmi)
+{
+        unsigned long flags_irq = 0;
+        int level_gpio = 0;
+	printk(KERN_WARNING "[HDMI:wangzhi]%d:hr_msleep(100);.\r\n",__LINE__);
+        hr_msleep(100);
+        level_gpio = gpio_get_value(GPIO_NS115_HDMI_INTERRUPT);
+        printk(KERN_WARNING "[HDMI:wangzhi]%d:level_gpio: 0x%X.\r\n",__LINE__, level_gpio);
+        if (level_gpio == 1)
+        {
+                if (hdmi->hp_state == HDMI_HOTPLUG_DISCONNECTED)
+                {
+#if defined(NS115_HDMI_INTERRUPT_GPIO_EDGE)
+                        flags_irq = IRQF_TRIGGER_FALLING;
+#elif defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL)
+                        flags_irq = IRQF_TRIGGER_LOW;
+#endif
+                        printk(KERN_WARNING "[HDMI:wangzhi]%d:hdmi plug bounce!\r\n",__LINE__);
+                        enable_irq(hdmi->irq);
+                        goto err_hdmi_work;
+                }
+#if defined(NS115_HDMI_INTERRUPT_GPIO_EDGE)
+                flags_irq = IRQF_TRIGGER_FALLING;
+#elif defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL)
+                flags_irq = IRQF_TRIGGER_LOW;
+#endif
+                ns115_hdmi_tmds_clock_disable(hdmi);
+                ns115_hdmi_DisableTMDS(hdmi);
+
+                hdmi->hp_state = HDMI_HOTPLUG_DISCONNECTED;
+                printk(KERN_WARNING "[HDMI:wangzhi]%d:HDMI_HOTPLUG_DISCONNECTED!\r\n",__LINE__);
+        }
+        else
+        {
+                if (hdmi->hp_state == HDMI_HOTPLUG_CONNECTED)
+                {
+#if defined(NS115_HDMI_INTERRUPT_GPIO_EDGE)
+                        flags_irq = IRQF_TRIGGER_RISING;
+#elif defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL)
+                        flags_irq = IRQF_TRIGGER_HIGH;
+#endif
+                        printk(KERN_WARNING "[HDMI:wangzhi]%d:hdmi plug bounce!\r\n",__LINE__);
+                        enable_irq(hdmi->irq);
+                        goto err_hdmi_work;
+                }
+#if defined(NS115_HDMI_INTERRUPT_GPIO_EDGE)
+                flags_irq = IRQF_TRIGGER_RISING;
+#elif defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL)
+                flags_irq = IRQF_TRIGGER_HIGH;
+#endif
+                ns115_hdmi_configure(hdmi);
+                hdmi->hp_state = HDMI_HOTPLUG_CONNECTED;
+                printk(KERN_WARNING "[HDMI:wangzhi]%d:HDMI_HOTPLUG_CONNECTED!\r\n",__LINE__);
+        }
+        reurn 1;
+err_hdmi_dec:
+        return 0
+}
+
+#else
+static int ns115_hdmi_dec_fun(struct ns115_hdmi_data *hdmi)
+{
+        unsigned char  InterruptStatusImage = 0;
+        int err;
+        bool b_edid = false;
+        int ret;
+#if defined(NS115_DDC_EDID)
+        u8 SysCtrlReg;
+        u8 edid_block_count = 1;
+#endif
+	hr_msleep(500);
+        //get interrupts status
+        InterruptStatusImage = ReadByteHDMI(hdmi,TPI_INTERRUPT_STATUS_REG);
+        // Clear this event
+        ReadSetWriteTPI(hdmi,TPI_INTERRUPT_STATUS_REG, (RECEIVER_SENSE_EVENT_ENDING | CONNECTION_EVENT_PENDING));
+        //printk(KERN_EMERG "[HDMI]%d:TPI_INTERRUPT_STATUS_REG: 0x%x,hp_state=%d.\r\n",__LINE__, InterruptStatusImage,hdmi->hp_state);
+
+        //no hotplug or no Rxsen, then disconnect
+#ifdef CONFIG_MACH_NS115_STICK
+        if ((hdmi->hp_state == HDMI_HOTPLUG_CONNECTED) &&  ((InterruptStatusImage & 0x4) != 0x4))
+#else
+        if ((hdmi->hp_state == HDMI_HOTPLUG_CONNECTED) &&  ((InterruptStatusImage & 0xC) != 0xC))
+#endif
+        {
+                hdmi->hp_state = HDMI_HOTPLUG_DISCONNECTED;
+                printk(KERN_WARNING "[HDMI:wangzhi]%d:HDMI_HOTPLUG_DISCONNECTED!\r\n",__LINE__);
+        }
+#ifdef CONFIG_MACH_NS115_STICK
+        else if ((hdmi->hp_state == HDMI_HOTPLUG_DISCONNECTED) && ((InterruptStatusImage & 0x04) == 0x04)) //hotplug, then connect
+#else
+        else if ((hdmi->hp_state == HDMI_HOTPLUG_DISCONNECTED) && ((InterruptStatusImage & 0x0C) == 0x0C)) //hotplug and Rxen, then connect
+#endif
+        {
+                hdmi->hp_state = HDMI_HOTPLUG_CONNECTED;
+                printk(KERN_WARNING "[HDMI:wangzhi]%d:HDMI_HOTPLUG_CONNECTED!\r\n",__LINE__);
+        }
+        else
+        {
+                printk(KERN_WARNING "[HDMI:wangzhi]%d:hdmi plug bounce!\r\n",__LINE__);
+                goto err_hdmi_dec;
+        }
+        /* HDMI plug in */
+        if (hdmi->hp_state == HDMI_HOTPLUG_CONNECTED)
+        {
+                // get EDID first from I2C 0
+#ifdef NS115_I2C_EDID
+                err = ns115_hdmi_EDIDRead_I2C(hdmi,EDID_BLOCK_SIZE*2,hdmi_edid_buff,EDID_BLOCK_0_OFFSET);
+                if (err < 0 ){
+                        printk(KERN_WARNING "[HDMI:wangzhi]I2C Read EDID Error.\r\n");
+                }
+                else
+                {
+                        b_edid = true;
+                }
+#endif
+#if defined(NS115_DDC_EDID)
+                if(!b_edid)
+                if (GetDDC_Access(hdmi,&SysCtrlReg) )  //if get edid from I2C, then skip ddc read
+                {
+                        err = ns115_hdmi_EDIDRead(hdmi,EDID_BLOCK_SIZE,hdmi_edid_buff,EDID_BLOCK_0_OFFSET);
+
+                        if (err < 0 ){
+                                printk(KERN_WARNING "[HDMI:wangzhi]Read EDID Error.\r\n");
+                }
+                else
+                {
+                        b_edid = true;
+                }
+		}
+#endif
+#if defined(NS115_DDC_EDID)
+                if(!b_edid)
+                if (GetDDC_Access(hdmi,&SysCtrlReg) )  //if get edid from I2C, then skip ddc read
+                {
+                        err = ns115_hdmi_EDIDRead(hdmi,EDID_BLOCK_SIZE,hdmi_edid_buff,EDID_BLOCK_0_OFFSET);
+
+                        if (err < 0 ){
+                                printk(KERN_WARNING "[HDMI:wangzhi]Read EDID Error.\r\n");
+                        }
+                        else
+                        {
+                                b_edid = true;
+                                if (hdmi_edid_buff[OFFSET_BYTE_END_OF_PADING] == 0x01)///End of Padding
+                                {
+                                        edid_block_count = 2;
+                                        err = ns115_hdmi_EDIDRead(hdmi,EDID_BLOCK_SIZE,hdmi_edid_buff+EDID_BLOCK_SIZE,EDID_BLOCK_1_OFFSET);
+                                }
+                        }
+                        if (!ReleaseDDC(hdmi,SysCtrlReg))// Host must release DDC bus once it is done reading EDID
+                        {
+                                printk(KERN_WARNING "[HDMI:wangzhi]EDID -> DDC bus release failed\n");
+                        }
+                }
+                else
+                {
+                        printk(KERN_WARNING "[HDMI:wangzhi]EDID -> DDC bus access failed.\r\n");
+                }
+#endif
+#if defined(SND_NOTIFIER_HDMI_SUPPORT)
+                hdmi_notifier(1);  //notifier I2S driver to get audio parameters
+#endif
+#if defined(LCDC1_NOTIFIER_HDMI_SUPPORT)
+                if (b_edid == true)
+                {
+                        ns115_hdmi_lcdc.pedid = hdmi_edid_buff;
+                }
+                else
+                {
+                        ns115_hdmi_lcdc.pedid = NULL;
+                }
+                //enable LCDC1 and get video parameters
+                ret = send_hdmi_hotplug_event(1, &ns115_hdmi_lcdc);
+                if (ret)
+                {
+                        printk(KERN_WARNING "notifier_call_chain error\n");
+                }
+                else
+                {
+                        hdmi->horizontal_res = ns115_hdmi_lcdc.horizontal_res;
+                        hdmi->vertical_res = ns115_hdmi_lcdc.vertical_res;
+                        hdmi->pixel_clk = ns115_hdmi_lcdc.pixel_clk;
+                        hdmi->refresh = ns115_hdmi_lcdc.refresh;
+                        printk(KERN_INFO "hdmi %dx%d@%dHZ, pclk = %d\n",hdmi->horizontal_res,hdmi->vertical_res,hdmi->refresh,hdmi->pixel_clk);
+                }
+#endif
+                //configure HDMI's audio and video parameters and infoframes
+                ns115_hdmi_configure(hdmi);
+                ns115_hdmi_TxPowerStateD0(hdmi);
+                ns115_hdmi_EnableTMDS(hdmi);
+        }
+        /* HDMI disconnect */
+        else if (hdmi->hp_state == HDMI_HOTPLUG_DISCONNECTED)
+        {
+#if defined(SND_NOTIFIER_HDMI_SUPPORT)
+                hdmi_notifier(0);
+#endif
+
+#if defined(LCDC1_NOTIFIER_HDMI_SUPPORT)
+                printk(KERN_WARNING "==============================\n");
+                ret = send_hdmi_hotplug_event(2, NULL);
+                printk(KERN_WARNING "==============================\n");
+                if (ret)
+                        printk(KERN_WARNING "notifier_call_chain error\n");
+#endif
+                ns115_hdmi_tmds_clock_disable(hdmi);
+                ns115_hdmi_DisableTMDS(hdmi);
+        }
+#if defined(HDMI_SWITCH_CLASS)
+        switch_set_state(&hdmi->sdev, hdmi->hp_state);
+#endif
+        return 1;
+err_hdmi_dec:
+        return 0;
+}
+#endif
+
 static void ns115_hdmi_hpd_work_fn(struct work_struct *work)
 {
 	struct ns115_hdmi_data *hdmi = container_of(work, struct ns115_hdmi_data, edid_work.work);
 
-	unsigned char  InterruptStatusImage = 0;
 	int err;
-#if defined(NS115_DDC_EDID)
-	u8 SysCtrlReg;
-	u8 edid_block_count = 1;
-#endif
 #if defined(LCDC1_NOTIFIER_HDMI_SUPPORT)
 	int ret;
 #endif
-	bool b_edid = false;
-#if defined(NS115_HDMI_INTERRUPT_GPIO_EDGE) || defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL)
-	unsigned long flags_irq = 0;
-	int level_gpio = 0;
-#endif
-
 	mutex_lock(&hdmi->mutex);
 
 #if defined(NS115_HDMI_INTERRUPT_GPIO_EDGE) || defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL)
-	free_irq(hdmi->irq, hdmi);
-	printk(KERN_WARNING "[HDMI:wangzhi]%d:hr_msleep(100);.\r\n",__LINE__);
-	hr_msleep(100);
-	level_gpio = gpio_get_value(GPIO_NS115_HDMI_INTERRUPT);
-	printk(KERN_WARNING "[HDMI:wangzhi]%d:level_gpio: 0x%X.\r\n",__LINE__, level_gpio);
-	if (level_gpio == 1)
-	{
-		if (hdmi->hp_state == HDMI_HOTPLUG_DISCONNECTED)
-		{
-#if defined(NS115_HDMI_INTERRUPT_GPIO_EDGE)
-			flags_irq = IRQF_TRIGGER_FALLING;
-#elif defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL)
-			flags_irq = IRQF_TRIGGER_LOW;
+        free_irq(hdmi->irq, hdmi);
 #endif
-			printk(KERN_WARNING "[HDMI:wangzhi]%d:hdmi plug bounce!\r\n",__LINE__);
-			enable_irq(hdmi->irq);
-			goto err_hdmi_work;
-		}
-#if defined(NS115_HDMI_INTERRUPT_GPIO_EDGE)
-		flags_irq = IRQF_TRIGGER_FALLING;
-#elif defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL)
-		flags_irq = IRQF_TRIGGER_LOW;
-#endif
-		ns115_hdmi_tmds_clock_disable(hdmi);
-		ns115_hdmi_DisableTMDS(hdmi);
-
-		hdmi->hp_state = HDMI_HOTPLUG_DISCONNECTED;
-		printk(KERN_WARNING "[HDMI:wangzhi]%d:HDMI_HOTPLUG_DISCONNECTED!\r\n",__LINE__);
-	}
-	else
-	{
-		if (hdmi->hp_state == HDMI_HOTPLUG_CONNECTED)
-		{
-#if defined(NS115_HDMI_INTERRUPT_GPIO_EDGE)
-			flags_irq = IRQF_TRIGGER_RISING;
-#elif defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL)
-			flags_irq = IRQF_TRIGGER_HIGH;
-#endif
-			printk(KERN_WARNING "[HDMI:wangzhi]%d:hdmi plug bounce!\r\n",__LINE__);
-			enable_irq(hdmi->irq);
-			goto err_hdmi_work;
-		}
-#if defined(NS115_HDMI_INTERRUPT_GPIO_EDGE)
-		flags_irq = IRQF_TRIGGER_RISING;
-#elif defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL)
-		flags_irq = IRQF_TRIGGER_HIGH;
-#endif
-		ns115_hdmi_configure(hdmi);
-		hdmi->hp_state = HDMI_HOTPLUG_CONNECTED;
-		printk(KERN_WARNING "[HDMI:wangzhi]%d:HDMI_HOTPLUG_CONNECTED!\r\n",__LINE__);
-	}
-#else
-	hr_msleep(500);
-	//get interrupts status
-	InterruptStatusImage = ReadByteHDMI(hdmi,TPI_INTERRUPT_STATUS_REG);
-	// Clear this event
-	ReadSetWriteTPI(hdmi,TPI_INTERRUPT_STATUS_REG, (RECEIVER_SENSE_EVENT_ENDING | CONNECTION_EVENT_PENDING));
-	printk(KERN_EMERG "[HDMI]%d:TPI_INTERRUPT_STATUS_REG: 0x%x,hp_state=%d.\r\n",__LINE__, InterruptStatusImage,hdmi->hp_state);
-	
-	//no hotplug or no Rxsen, then disconnect
-	if ((hdmi->hp_state == HDMI_HOTPLUG_CONNECTED) &&  ((InterruptStatusImage & 0xC) != 0xC))  
-	{
-		hdmi->hp_state = HDMI_HOTPLUG_DISCONNECTED;
-		printk(KERN_WARNING "[HDMI:wangzhi]%d:HDMI_HOTPLUG_DISCONNECTED!\r\n",__LINE__);
-	}
-	else if ((hdmi->hp_state == HDMI_HOTPLUG_DISCONNECTED) && ((InterruptStatusImage & 0x0C) == 0x0C)) //hotplug and Rxen, then connect
-	{
-		hdmi->hp_state = HDMI_HOTPLUG_CONNECTED;        
-		printk(KERN_WARNING "[HDMI:wangzhi]%d:HDMI_HOTPLUG_CONNECTED!\r\n",__LINE__);
-	}
-	else
-	{
-		printk(KERN_WARNING "[HDMI:wangzhi]%d:hdmi plug bounce!\r\n",__LINE__);
-		goto err_hdmi_work;
-	}
-#endif
-	/* HDMI plug in */
-	if (hdmi->hp_state == HDMI_HOTPLUG_CONNECTED) 
-	{
-		// get EDID first from I2C 0
-#ifdef NS115_I2C_EDID
-		err = ns115_hdmi_EDIDRead_I2C(hdmi,EDID_BLOCK_SIZE*2,hdmi_edid_buff,EDID_BLOCK_0_OFFSET);
-		if (err < 0 ){
-			printk(KERN_WARNING "[HDMI:wangzhi]I2C Read EDID Error.\r\n");
-		}
-		else
-		{
-			b_edid = true;
-		}
-#endif
-#if defined(NS115_DDC_EDID)
-		if(!b_edid)
-		if (GetDDC_Access(hdmi,&SysCtrlReg) )  //if get edid from I2C, then skip ddc read
-		{
-			err = ns115_hdmi_EDIDRead(hdmi,EDID_BLOCK_SIZE,hdmi_edid_buff,EDID_BLOCK_0_OFFSET);
-
-			if (err < 0 ){
-				printk(KERN_WARNING "[HDMI:wangzhi]Read EDID Error.\r\n");
-			}
-			else
-			{
-				b_edid = true;
-				if (hdmi_edid_buff[OFFSET_BYTE_END_OF_PADING] == 0x01)///End of Padding 
-				{
-					edid_block_count = 2;
-					err = ns115_hdmi_EDIDRead(hdmi,EDID_BLOCK_SIZE,hdmi_edid_buff+EDID_BLOCK_SIZE,EDID_BLOCK_1_OFFSET);
-				}
-			}
-			if (!ReleaseDDC(hdmi,SysCtrlReg))// Host must release DDC bus once it is done reading EDID
-			{
-				printk(KERN_WARNING "[HDMI:wangzhi]EDID -> DDC bus release failed\n");
-			}
-		}
-		else
-		{
-			printk(KERN_WARNING "[HDMI:wangzhi]EDID -> DDC bus access failed.\r\n");
-		}
-#endif
-err_edid:
-#if defined(SND_NOTIFIER_HDMI_SUPPORT)
-		hdmi_notifier(1);  //notifier I2S driver to get audio parameters
-#endif
-#if defined(LCDC1_NOTIFIER_HDMI_SUPPORT)
-		if (b_edid == true)
-		{
-			ns115_hdmi_lcdc.pedid = hdmi_edid_buff;
-		}
-		else
-		{
-			ns115_hdmi_lcdc.pedid = NULL;
-		}
-		//enable LCDC1 and get video parameters
-		ret = send_hdmi_hotplug_event(1, &ns115_hdmi_lcdc);
-		if (ret)
-		{
-			printk(KERN_WARNING "notifier_call_chain error\n");
-		}
-		else
-		{
-			hdmi->horizontal_res = ns115_hdmi_lcdc.horizontal_res;
-			hdmi->vertical_res = ns115_hdmi_lcdc.vertical_res;
-			hdmi->pixel_clk = ns115_hdmi_lcdc.pixel_clk;
-			hdmi->refresh = ns115_hdmi_lcdc.refresh;
-			printk(KERN_INFO "hdmi %dx%d@%dHZ, pclk = %d\n",hdmi->horizontal_res,hdmi->vertical_res,hdmi->refresh,hdmi->pixel_clk);
-		}
-#endif
-		//configure HDMI's audio and video parameters and infoframes
-		ns115_hdmi_configure(hdmi);
-		ns115_hdmi_TxPowerStateD0(hdmi);
-		ns115_hdmi_EnableTMDS(hdmi);
-	}
-	/* HDMI disconnect */
-	else if (hdmi->hp_state == HDMI_HOTPLUG_DISCONNECTED)
-	{
-#if defined(SND_NOTIFIER_HDMI_SUPPORT)
-		hdmi_notifier(0);
-#endif
-
-#if defined(LCDC1_NOTIFIER_HDMI_SUPPORT)
-		printk(KERN_WARNING "==============================\n");
-		ret = send_hdmi_hotplug_event(2, NULL);
-		printk(KERN_WARNING "==============================\n");
-		if (ret)
-			printk(KERN_WARNING "notifier_call_chain error\n");
-#endif
-		ns115_hdmi_tmds_clock_disable(hdmi);
-		ns115_hdmi_DisableTMDS(hdmi);
-	}
-#if defined(HDMI_SWITCH_CLASS)
-	switch_set_state(&hdmi->sdev, hdmi->hp_state);
-#endif
-
-err_hdmi_work:
+	err = ns115_hdmi_dec_fun(hdmi);
 	mutex_unlock(&hdmi->mutex);
 #if defined(NS115_HDMI_INTERRUPT_GPIO_EDGE) || defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL)
 	printk(KERN_WARNING "[HDMI:wangzhi]%d:flags_irq: 0x%X.\r\n",__LINE__, flags_irq);
@@ -573,12 +650,30 @@ static void ns115_hdmi_poll()
 	hr_msleep(500);
 	EnableInterrupts(hdmi,HOT_PLUG_EVENT | RX_SENSE_EVENT);
 #endif
-	int irq = ns115_hdmi_get_irq();
-	ns115_hdmi_hotplug(irq,hdmi);
+	ns115_hdmi_dec_fun(hdmi);
 	return 0;
 
 }
 
+
+static void ns115_hdmi_hot_disconnect()
+{
+        unsigned char ret = 0;
+        //char *soft_disconnected[2]    = { "HDMI_SOFT_STATE=DISCONNECTED", NULL };
+	struct ns115_hdmi_data *hdmi = ns115_hdmi_get_pt();
+        printk(KERN_WARNING "[HDMI:libenqi]ns115_hdmi_hot_disconnect()\n");
+        ns115_hdmi_TxPowerStateD2(hdmi);
+	//kobject_uevent_env(&hdmi->sdev.dev->kobj, KOBJ_CHANGE, soft_disconnected);
+}
+
+static void ns115_hdmi_hot_connect()
+{
+        //char *soft_connected[2]    = { "HDMI_SOFT_STATE=CONNECTED", NULL };
+	printk(KERN_WARNING "ns115_hdmi_hot_connect()\n");
+        struct ns115_hdmi_data *hdmi = ns115_hdmi_get_pt();
+        ns115_hdmi_TxPowerStateD0(hdmi);
+	//kobject_uevent_env(&hdmi->sdev.dev->kobj, KOBJ_CHANGE, soft_connected);
+}
 
 
 #ifdef CONFIG_EARLYSUSPEND
@@ -1305,6 +1400,7 @@ static int __init ns115_hdmi_probe(struct platform_device *pdev)
 	struct resource * res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	int ret;
 	struct ns115_hdmi_data *hdmi;
+	int err;
 
 	if (irq < 0)
 		return -ENODEV;
@@ -1341,6 +1437,7 @@ static int __init ns115_hdmi_probe(struct platform_device *pdev)
 	hdmi->irq = irq;
 
 	platform_set_drvdata(pdev, hdmi);
+	err = device_create_file(hdmi->sdev.dev, &dev_attr_hdmi_test);
 
 	INIT_DELAYED_WORK(&hdmi->edid_work,ns115_hdmi_hpd_work_fn);
 
@@ -1374,6 +1471,7 @@ static int __init ns115_hdmi_probe(struct platform_device *pdev)
 #endif
 	ns115_hdmi_TxPowerStateD2(hdmi);	
 	ns115_hdmi_hotplug(irq,hdmi);
+	// ns115_hdmi_dec_fun(hdmi);
 
 #ifdef CONFIG_EARLYSUSPEND
 	register_early_suspend(&es);

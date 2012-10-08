@@ -331,9 +331,9 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 		.ctype       	= SD_CARD,
 		.force_rescan	= false,
 		.caps		= (MMC_CAP_4_BIT_DATA|
-					MMC_CAP_SD_HIGHSPEED|MMC_CAP_MMC_HIGHSPEED|
-					MMC_CAP_UHS_SDR12|MMC_CAP_UHS_SDR50),
-		.freq 		= 100000000,
+					MMC_CAP_SD_HIGHSPEED|MMC_CAP_MMC_HIGHSPEED/*|
+					MMC_CAP_UHS_SDR12|MMC_CAP_UHS_SDR50*/),
+		.freq 		= 25000000,
 		.ocr_avail	= 0xff8000,	//2.6V-3.7V
 
 		.voltage_switch = slot0_voltage_switch,

@@ -198,6 +198,7 @@ static ssize_t show_modes(struct device *device, struct device_attribute *attr,
 	struct list_head *pos;
 	struct fb_modelist *modelist;
 	const struct fb_videomode *mode;
+    const struct fb_videomode mode_1080 = {NULL, 60, 1920, 1080};
 
 	i = 0;
 	list_for_each(pos, &fb_info->modelist) {
@@ -205,6 +206,7 @@ static ssize_t show_modes(struct device *device, struct device_attribute *attr,
 		mode = &modelist->mode;
 		i += mode_string(buf, i, mode);
 	}
+    i += mode_string(buf, i, &mode_1080);
 	return i;
 }
 

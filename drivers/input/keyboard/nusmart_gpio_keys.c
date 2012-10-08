@@ -26,12 +26,12 @@
 static struct workqueue_struct *nusmart_gpiokeys_wq;
 struct nusmart_gpio_keys_drvdata{
 	struct input_dev *input;
-	int irq[KEY_NUM];
-	int state[KEY_NUM];
-	int gpio[KEY_NUM];
-	int code[KEY_NUM];
+	int irq[KEY_NUM_MAX];
+	int state[KEY_NUM_MAX];
+	int gpio[KEY_NUM_MAX];
+	int code[KEY_NUM_MAX];
 	int max_key_id;
-	int key_pressed[KEY_NUM];
+	int key_pressed[KEY_NUM_MAX];
 	struct work_struct work;
 	struct timer_list timer;
 };
@@ -146,6 +146,12 @@ static int __devinit nusmart_keys_probe(struct platform_device *pdev)
 	pinput->evbit[0] = BIT_MASK(EV_KEY);
 	
 	pkeys->input = pinput;
+
+	if (pdata->nbuttons > KEY_NUM_MAX){
+		printk(KERN_ERR"Please Check KEY_NUM_MAX and pdata->nbuttons\n");
+		goto err_free_input;
+	}
+
 	pkeys->max_key_id = pdata->nbuttons;
 	for (key_id = 0; key_id < pkeys->max_key_id; key_id++)
 	{

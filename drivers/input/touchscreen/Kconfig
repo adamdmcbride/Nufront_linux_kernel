@@ -44,6 +44,14 @@ config TOUCHSCREEN_GOODIX_IAP
                                                                              
 
 
+ config TOUCHSCREEN_FT5X06
+	 tristate "ft5x06 TouchScreen Driver"
+	 default n
+	 depends on I2C
+	 help
+	 This is a android driver to support the ft5x06 touchscreen.
+	 It only build passed, but there is not verified.
+
 config TOUCHSCREEN_ADS7846
 	tristate "ADS7846/TSC2046/AD7873 and AD(S)7843 based touchscreens"
 	depends on SPI_MASTER

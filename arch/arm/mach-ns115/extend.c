@@ -151,6 +151,13 @@ struct i2c_board_info __initdata ns115_tp_goodix =
 	.platform_data = &ns115_tp_platform_data, 
 };     
 
+struct i2c_board_info __initdata ns115_tp_ft5x06 =
+{
+	I2C_BOARD_INFO("ft5x0x_ts", 0x38),
+	.irq = IRQ_NS115_GPIO1_INTR6,
+	.platform_data = &ns115_tp_platform_data,
+};
+
 struct i2c_board_info __initdata ns115_tp_sis = 
 {
 	I2C_BOARD_INFO("sis_i2c_ts", 0x05),

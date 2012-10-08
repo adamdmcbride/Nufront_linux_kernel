@@ -1,7 +1,7 @@
 #ifndef _GPIO_KEYS_H
 #define _GPIO_KEYS_H
 
-#define KEY_NUM	2
+#define KEY_NUM_MAX	3
 
 #define PRESSED_IS_LOWLEVEL	0
 #define PRESSED_IS_HIGHLEVEL	1

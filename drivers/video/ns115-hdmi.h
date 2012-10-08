@@ -470,6 +470,7 @@ struct ns115_hdmi_data {
 	u32 vertical_res;
 	u32 pixel_clk;
 	u32 refresh;
+	bool enabled;
 };
 
 struct ns115_hdmi_lcdc_data {

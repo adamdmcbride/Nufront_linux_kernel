@@ -66,6 +66,11 @@
 #include <mach/efuse.h>
 #endif
 
+#ifdef CONFIG_KEYBOARD_NUSMART_GPIO_KEYS
+#include <linux/input.h>
+#include <linux/nusmart_gpio_keys.h>
+#endif
+
 #include "core.h"
 #include "prcm.h"
 #include "scm.h"
@@ -363,6 +368,20 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 		.freq 		= 25000000/2,
 	},
 };
+#ifdef CONFIG_KEYBOARD_NUSMART_GPIO_KEYS
+static struct gpio_keys_button nusmart_buttons_data = {
+	.code = KEY_F1,
+	.irq = IRQ_NS115_GPIO1_INTR26,
+	.key_pressed = PRESSED_IS_LOWLEVEL,
+	.desc = "ns115_keys",
+};
+
+static struct gpio_keys_platform_data nusmart_gpio_keys_data = {
+	.buttons = &nusmart_buttons_data,
+	.nbuttons = 1,
+	.name = "ns115-keys",
+};
+#endif
 
 #ifdef CONFIG_NS115_BATTERY
 static struct ns115_battery_platform_data ns115_batt_pdata = {
@@ -426,7 +445,9 @@ static struct soc_plat_dev plat_devs[] =
 	/*SOC_PLAT_DEV(&ns115_backlight_device, 	NULL),*/
 	/*SOC_PLAT_DEV(&ns115_camera_device,	NULL),*/
 	SOC_PLAT_DEV(&ns115_hdmi_device,        NULL),  //wangzhi
-	SOC_PLAT_DEV(&nusmart_gpio_keys_device, NULL),
+#ifdef CONFIG_KEYBOARD_NUSMART_GPIO_KEYS
+	SOC_PLAT_DEV(&nusmart_gpio_keys_device, &nusmart_gpio_keys_data),
+#endif
 	/*SOC_PLAT_DEV(&ns115_vibrator_device,   NULL),*/
 #ifdef CONFIG_SND_SOC_ALC5631
 	SOC_PLAT_DEV(&ns115ref_rt5631_jd_device, NULL),

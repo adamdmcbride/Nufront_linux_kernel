@@ -1174,14 +1174,14 @@ AMBA_DEVICE(pl330_dma,  "dma-pl330",    NS115_DMA_330S, SZ_4K, &pl330_plat_data)
  *            Author   xujing jing.xu@nufront.com
  *            Date     2012-04-05
  **************************************************************/
-static struct gpio_keys_button nusmart_buttons_data[KEY_NUM] = {
-	{
+static struct gpio_keys_button nusmart_buttons_data[] = {
+	[0] = {
 		.code = KEY_VOLUMEDOWN,
 		.irq = IRQ_NS115_GPIO1_INTR18,
 		.key_pressed = PRESSED_IS_LOWLEVEL,
 		.desc = "ns115_keys",
 	},
-	{
+	[1] = {
 		.code = KEY_VOLUMEUP,
 		.irq = IRQ_NS115_GPIO1_INTR20,
 		.key_pressed = PRESSED_IS_LOWLEVEL,
@@ -1190,7 +1190,7 @@ static struct gpio_keys_button nusmart_buttons_data[KEY_NUM] = {
 };
 static struct gpio_keys_platform_data nusmart_gpio_keys_data = {
 	.buttons = nusmart_buttons_data,
-	.nbuttons = KEY_NUM,
+	.nbuttons = 2,
 	.name = "ns115-keys",
 };
 
