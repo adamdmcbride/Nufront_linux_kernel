@@ -193,8 +193,12 @@ static int uart_startup(struct tty_struct *tty, struct uart_state *state, int in
 
 		if (port->flags & ASYNC_CTS_FLOW) {
 			spin_lock_irq(&uport->lock);
-			if (!(uport->ops->get_mctrl(uport) & TIOCM_CTS))
-				tty->hw_stopped = 1;
+			/*
+			 *add hancheng
+			 *if (!(uport->ops->get_mctrl(uport) & TIOCM_CTS))
+			 *tty->hw_stopped = 1;
+			 *end
+			 */
 			spin_unlock_irq(&uport->lock);
 		}
 
