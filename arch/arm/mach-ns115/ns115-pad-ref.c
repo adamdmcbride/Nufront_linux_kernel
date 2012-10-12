@@ -50,6 +50,7 @@
 #include <mach/extend.h>
 #include <mach/get_bootargs.h>
 #include <mach/gpio.h>
+#include <mach/ns115-cpufreq.h>
 
 #include <media/soc_camera.h>
 #include <mach/soc_power_ctrl.h>

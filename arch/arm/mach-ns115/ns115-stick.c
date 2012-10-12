@@ -50,6 +50,7 @@
 #include <mach/extend.h>
 #include <mach/get_bootargs.h>
 #include <mach/gpio.h>
+#include <mach/ns115-cpufreq.h>
 
 #include <media/soc_camera.h>
 #include <mach/soc_power_ctrl.h>
@@ -103,7 +104,7 @@ static struct kxtj9_platform_data kxtj9_ns115_pdata = {
 };
 #endif /* CONFIG_INPUT_KXTJ9 */
 
-NS115_PINMUX_DECLARE(pad_refboard);
+NS115_PINMUX_DECLARE(stick_board);
 
 #if 1
 static struct lcdc_platform_data lcdc_data =
@@ -111,6 +112,11 @@ static struct lcdc_platform_data lcdc_data =
 	.ddc_adapter = I2C_BUS_2,
 };
 #endif
+
+// usb hdmi stick not intergated dynamic adjust voltage.
+static struct ns115_cpufreq_config hdmi_stick_freq_cfg = {
+	.max_frequency = 1000000,
+};
 
 #ifdef CONFIG_BATTERY_BQ27410_GASGAUGE
 
@@ -548,12 +554,13 @@ device_initcall(dma_pl330_init);
 
 static void __init ns115_stick_init(void)
 {
+	ns115_cpufreq_cfg = &hdmi_stick_freq_cfg;
 	common_init();
 #if 0
 	ddr_pm_init();
 	scm_init();
 #endif
-	NS115_PINMUX_INIT(pad_refboard);
+	NS115_PINMUX_INIT(stick_board);
 
 #if 0
 	bt_init();

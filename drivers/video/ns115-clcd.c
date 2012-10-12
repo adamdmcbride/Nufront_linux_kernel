@@ -1934,6 +1934,17 @@ void display_modelist(struct list_head *head)
 }
 #endif
 
+static ssize_t show_all_vendor(struct device *dev, struct device_attribute *attr,
+                               char *buf)
+{
+       struct fb_info *info = dev_get_drvdata(dev);
+       struct fb_monspecs *specs = &info->monspecs;
+               
+	snprintf(buf, PAGE_SIZE, "%d.%d:%s:%d:%d:%s:%s:%d:%d\n", (int)specs->version, (int)specs->revision, specs->manufacturer, specs->model, specs->serial, specs->monitor, specs->serial_no, specs->max_x, specs->max_y);
+}
+
+static DEVICE_ATTR(vendor, 0444, show_all_vendor, NULL);
+
 int hdmi_edid_fetch(unsigned char *edid, struct fb_info *info)
 {
 	struct fb_monspecs *specs = NULL;
@@ -1953,6 +1964,10 @@ int hdmi_edid_fetch(unsigned char *edid, struct fb_info *info)
 //		{
 //			fb_edid_add_monspecs(edid + 0x80, specs); 
 //		}
+
+               if(device_create_file(info->dev, &dev_attr_vendor)){
+                       device_remove_file(info->dev, &dev_attr_vendor);
+               }
 		if(specs->modedb) {
 			fb_destroy_modelist(&info->modelist);
 
@@ -2085,6 +2100,8 @@ static int hdmi_hotplug_probe_lcd(struct notifier_block *this, unsigned long eve
 		hdmi_edid = NULL;
 		hdmi_state = 0;
 		fb_destroy_modelist(&fb1_info->modelist);
+
+		device_remove_file(fb1_info->dev, &dev_attr_vendor);
 		nusmart_clcd_disable(fb1_info);
 		//if(par->clk->enabled)
 		//	clk_disable(par->clk);

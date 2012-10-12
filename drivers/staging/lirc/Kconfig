@@ -57,6 +57,13 @@ config LIRC_SERIAL_TRANSMITTER
 	help
 	  Serial Port Transmitter support
 
+config LIRC_SERIAL_NS115
+	bool "NS115 Serial Port Receiver"
+	default y
+	depends on LIRC_SERIAL
+	help
+	  NS115 Serial Port Receiver support
+
 config LIRC_SIR
 	tristate "Built-in SIR IrDA port"
 	depends on LIRC

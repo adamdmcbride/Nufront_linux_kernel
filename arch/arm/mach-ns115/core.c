@@ -66,6 +66,7 @@
 #include <mach/board-ns115.h>
 #include <mach/camera.h>
 #include <mach/system.h>
+#include <mach/ns115-cpufreq.h>
 
 #ifdef CONFIG_GENERIC_GPIO
 #include <mach/gpio.h>
@@ -127,6 +128,13 @@ void __init ns115_adjust_zones(int node, unsigned long *size,
 	hole[ZONE_DMA] = 0;
 }
 #endif
+
+/*
+ *  cpufreq configure for each board.
+ */
+
+struct ns115_cpufreq_config* ns115_cpufreq_cfg = NULL;
+
 /*
  *ns115 io table
  */

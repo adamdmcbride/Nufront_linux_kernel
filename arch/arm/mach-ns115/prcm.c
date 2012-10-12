@@ -659,6 +659,7 @@ static struct clk cpu_clk = {
 };
 
 
+int pll_calc_fout(int fout, int *pnf, int *pnr, int *pod, int *pnb);
 
 /* SECTION 3: Clock Control Function/Tasks Definition */
 
@@ -1042,8 +1043,10 @@ int ns115_pll_get_param(unsigned long rate, unsigned int * pll_nr, unsigned int 
 			*pll_nb = PRCM_PLL_NB_324MHZ;
 			break;
 		default:
-			printk(KERN_NOTICE "Cannot Generate parameters for this rate %ld.\n", rate);
-			return -EINVAL;
+			if(pll_calc_fout(rate, pll_nf, pll_nr, pll_od, pll_nb)) {
+				printk(KERN_NOTICE "Cannot Generate parameters for this rate %ld.\n", rate);
+				return -EINVAL;
+			}
 			break;
 	}
 
@@ -4293,4 +4296,54 @@ void watchdog_reset_enable(void)
 	__raw_writel(value, private_watchdog + NS115_SYS_WATCHDOG_CONTROL);
 }
 
+//#define PLL_DEBUG
+#define nfmax	(1<<12)
+#define nrmax	(1<<6)
+#define odmax	(1<<4)
+#define IS_VALID(nf, nr)	((12*nf/nr >= 300) && (12*nf/nr <= 1500))
+#ifdef PLL_DEBUG
+#define pll_dbg(args...) pr_emerg(args)
+#else
+#define pll_dbg(...)
+#endif
+
+int pll_calc_fout(int fout, int *pnf, int *pnr, int *pod, int *pnb)
+{
+	int factor = (fout)/120;
+	int nf,nr,od;
+	int fdst = 0, bias = 4000, tbias;
+	int temp;
+	int count = 0;
+	pll_dbg("fout %d factor = %d\n nfmax = %d;nrmax = %d odmax = %d\n",\
+		fout, factor, nfmax, nrmax, odmax);
+	for(od=odmax; od>=1; od=(od==2)?1:(od-2)) {
+		for(nr=1; nr<=nrmax; nr++) {
+			temp = (factor * od * nr);
+
+			nf = (temp / 50000);
+			nf = (nf >> 1) + (nf & 0x1);
+			if(nf > nfmax)
+				break;
+
+			count++;
+			fdst = (nf*100000)/nr/od;
+			tbias = fdst - factor;
+			tbias = tbias > 0?tbias:(-tbias);
+			if(tbias < bias) {
+				if(IS_VALID(nf, nr)) {
+					bias = tbias;
+					*pnf = nf, *pnr = nr, *pod = od, *pnb = (nf>>1);
+					pll_dbg("(nf:%d,nr:%d,od:%d)new bias = %d, fdst = %d, target = %d\n",\
+							nf, nr, od, bias, fdst, factor);
+					if(bias == 0) {
+						pll_dbg("total %d\n", count);
+						return bias == 4000;
+					}
+				}
+			}
+		}
+	}
+	pll_dbg("total %d\n", count);
+	return bias == 4000;
+}
 

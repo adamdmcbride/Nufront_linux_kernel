@@ -80,6 +80,12 @@
 #define UART_IE_IXP42X_UUE   0x40 /* IXP42X UART Unit enable */
 #define UART_IE_IXP42X_RTOIE 0x10 /* IXP42X Receiver Data Timeout int.enable */
 
+#ifdef CONFIG_LIRC_SERIAL_NS115
+#include <mach/irqs.h>
+#include <mach/board-ns115.h>
+#include <asm/io.h>
+#endif
+
 #include <media/lirc.h>
 #include <media/lirc_dev.h>
 
@@ -102,9 +108,10 @@ struct lirc_serial {
 #define LIRC_ANIMAX		3
 #define LIRC_IGOR		4
 #define LIRC_NSLU2		5
+#define LIRC_NS115		6
 
 /*** module parameters ***/
-static int type;
+static int type =6;
 static int io;
 static int irq;
 static int iommap;
@@ -218,6 +225,24 @@ static struct lirc_serial hardware[] = {
 	},
 #endif
 
+#ifdef CONFIG_LIRC_SERIAL_NS115
+	[LIRC_NS115] = {
+		.signal_pin        = UART_MSR_CTS,
+		.signal_pin_change = UART_MSR_DCTS,
+		.on  = (UART_MCR_RTS | UART_MCR_OUT2 | UART_MCR_DTR),
+		.off = (UART_MCR_RTS | UART_MCR_OUT2),
+		.send_pulse = send_pulse_homebrew,
+		.send_space = send_space_homebrew,
+#ifdef CONFIG_LIRC_SERIAL_TRANSMITTER
+		.features    = (LIRC_CAN_SET_SEND_DUTY_CYCLE |
+				LIRC_CAN_SET_SEND_CARRIER |
+				LIRC_CAN_SEND_PULSE | LIRC_CAN_REC_MODE2)
+#else
+		.features    = LIRC_CAN_REC_MODE2
+#endif
+	},
+#endif
+
 };
 
 #define RS_ISR_PASS_LIMIT 256
@@ -293,7 +318,11 @@ static u8 sinp(int offset)
 		/* the register is memory-mapped */
 		offset <<= ioshift;
 
+#ifdef CONFIG_LIRC_SERIAL_NS115
+	return readl(io + offset);
+#else
 	return inb(io + offset);
+#endif
 }
 
 /* write serial output packet (1 byte) of value to register offset */
@@ -303,7 +332,11 @@ static void soutp(int offset, u8 value)
 		/* the register is memory-mapped */
 		offset <<= ioshift;
 
+#ifdef CONFIG_LIRC_SERIAL_NS115
+	writel(value, io + offset);
+#else
 	outb(value, io + offset);
+#endif
 }
 
 static void on(void)
@@ -877,6 +910,9 @@ static int init_port(void)
 		       ": make sure this module is loaded first\n");
 		return -EBUSY;
 	}
+#ifdef CONFIG_LIRC_SERIAL_NS115
+	io = ioremap_nocache(iommap, 8 << ioshift);
+#endif
 
 	if (hardware_init_port() < 0)
 		return -EINVAL;
@@ -1210,6 +1246,13 @@ static int __init lirc_serial_init_module(void)
 		ioshift = ioshift ? ioshift : 2;
 		break;
 #endif
+#ifdef CONFIG_LIRC_SERIAL_NS115
+	case LIRC_NS115:
+		irq = irq ? irq : IRQ_NS115_UART1_INTR;
+		iommap = iommap ? iommap : NS115_UART1_BASE;
+		ioshift = ioshift ? ioshift : 2;
+		break;
+#endif
 	default:
 		result = -EINVAL;
 		goto exit_serial_exit;
@@ -1220,6 +1263,9 @@ static int __init lirc_serial_init_module(void)
 		case LIRC_IGOR:
 #ifdef CONFIG_LIRC_SERIAL_NSLU2
 		case LIRC_NSLU2:
+#endif
+#ifdef CONFIG_LIRC_SERIAL_NS115
+		case LIRC_NS115:
 #endif
 			hardware[type].features &=
 				~(LIRC_CAN_SET_SEND_DUTY_CYCLE|

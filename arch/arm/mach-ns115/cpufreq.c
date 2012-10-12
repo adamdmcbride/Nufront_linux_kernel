@@ -35,6 +35,7 @@
 
 #include <mach/hardware.h>
 #include <mach/efuse.h>
+#include <mach/ns115-cpufreq.h>
 
 #include <linux/regulator/consumer.h>
 
@@ -237,8 +238,14 @@ static unsigned long ns115_cpu_highest_speed(void)
 	for_each_online_cpu(i)
 		rate = max(rate, target_cpu_speed[i]);
 	/*avold target rate exceed default max rate with default voltage*/
-	if(cpu_regu == NULL)
-		rate = min(rate, (unsigned long)DEFAULT_VOL_FREQ);
+	if(cpu_regu == NULL) {
+		if (ns115_cpufreq_cfg) {
+			rate = min(rate, (unsigned long)ns115_cpufreq_cfg->max_frequency);
+		}
+		else {
+			rate = min(rate, (unsigned long)DEFAULT_VOL_FREQ);
+		}
+	}
 	return rate;
 }
 
