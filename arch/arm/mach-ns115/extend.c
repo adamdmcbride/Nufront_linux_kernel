@@ -445,6 +445,30 @@ static struct ricoh583_pwrkey_platform_data ricoh583_pwrkey_data = {
 #endif
 
 #ifdef CONFIG_BATTERY_RICOH583
+static int ricoh583_capacity[][2] = {
+	{100, 4160},
+	{95, 4100},
+	{90, 4000},
+	{85, 3981},
+	{80, 3960},
+	{75, 3953},
+	{70, 3940},
+	{65, 3920},
+	{60, 3900},
+	{55, 3876},
+	{50, 3840},
+	{45, 3816},
+	{40, 3790},
+	{35, 3756},
+	{30, 3720},
+	{25, 3700},
+	{20, 3680},
+	{15, 3660},
+	{10, 3640},
+	{5, 3620},
+	{0, 3600},
+};
+
 static struct ricoh583_battery_platform_data ricoh583_battery_data = {
 	.irq_base = RICOH583_IRQ_BASE,
 	.adc_channel = RICOH583_ADC_CHANNEL_AIN1,
@@ -452,7 +476,16 @@ static struct ricoh583_battery_platform_data ricoh583_battery_data = {
 	.alarm_mvolts = 3660,  //15%
 	.power_off_mvolts = 3400,  
 	.adc_vdd_mvolts = 2800,  
+	.pre_chg_mvolts = 3100,
+	.full_mvolts = 4150,
+	.normal_pwr = 4000,//mW, average value
+	.early_pwr = 895,//mW
+	.suspend_pwr = 73,//mW
 	.resistor_mohm = 75,
+	.max_mAh = 4000,
+	.capacity_table = &ricoh583_capacity,
+	.table_size = sizeof(ricoh583_capacity) / (sizeof(int) * 2),
+	.table_step = 5,
 };
 #define RICOH583_BATTERY_REG    \
 {       \

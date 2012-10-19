@@ -11,6 +11,7 @@
 struct bq24170_charger_platform_data {
 	int stat_gpio;
 	int ac_chg_current;
+	int usb_chg_current;
 };
 
 #endif

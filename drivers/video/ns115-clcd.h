@@ -74,7 +74,7 @@ int lcd_init_hx8369(void);
 
 #define 	GET_FB_BUFFER_ADDR	_IOW('F', 0x22, unsigned long)
 #define 	CHNAGE_FRAMEBUFFER_ADDR _IOW('F', 0x23, unsigned long)
-#define 	SET_RESOLUTION_RATIO	_IOW('F', 0x24, struct fb_var_screeninfo)
+#define 	SET_RESOLUTION_RATIO	_IOW('F', 0x24, struct fb_videomode)
 
 struct clk_status
 {

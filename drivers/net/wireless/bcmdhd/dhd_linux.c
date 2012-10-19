@@ -2974,6 +2974,12 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	uint32 glom = 0;
 	uint bcn_timeout = 10;
 	uint retry_max = 3;
+
+#ifndef CONFIG_WIFI_NW51	/* added by Li Le for coexist */
+	uint btc_wire_value = 0;
+	uint btc_mode_value = 0;
+#endif
+
 #if defined(ARP_OFFLOAD_SUPPORT)
 	int arpoe = 1;
 #endif
@@ -3188,6 +3194,21 @@ if ((!op_mode && strstr(fw_path, "_p2p") != NULL) || (op_mode == 0x04) ||
 	bcm_mkiovar("assoc_retry_max", (char *)&retry_max, 4, iovbuf, sizeof(iovbuf));
 	dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0);
 
+#ifndef CONFIG_WIFI_NW51	/* added by Li Le for coexist */
+	btc_wire_value = 4;
+	bzero(iovbuf, sizeof(iovbuf));
+	bcm_mkiovar("btc_wire", (char*)&btc_wire_value, 4, iovbuf, sizeof(iovbuf));
+	if(dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0) < 0)
+		DHD_ERROR(("setting btc wire failed"));
+
+
+	btc_mode_value = 1;
+	bzero(iovbuf, sizeof(iovbuf));
+	bcm_mkiovar("btc_mode", (char*)&btc_mode_value, 4, iovbuf, sizeof(iovbuf));
+	if(dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0) < 0)
+		DHD_ERROR(("setting btc mode failed"));
+#endif
+
 #if defined(AP) && !defined(WLP2P)
 	/* Turn off MPC in AP mode */
 	bcm_mkiovar("mpc", (char *)&mpc, 4, iovbuf, sizeof(iovbuf));
@@ -3195,6 +3216,7 @@ if ((!op_mode && strstr(fw_path, "_p2p") != NULL) || (op_mode == 0x04) ||
 	bcm_mkiovar("apsta", (char *)&apsta, 4, iovbuf, sizeof(iovbuf));
 	dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0);
 #endif /* defined(AP) && !defined(WLP2P) */
+
 
 #if defined(SOFTAP)
 	if (ap_fw_loaded == TRUE) {

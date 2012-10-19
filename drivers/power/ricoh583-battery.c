@@ -63,7 +63,6 @@ struct ricoh583_battery_info {
 	int         min_mvolts;
 	int         max_mvolts;
 	int         cur_mvolts;
-	int			resistor_mohm;
 };
 
 static struct ricoh583_battery_info * g_info;
@@ -72,20 +71,6 @@ enum ricoh583_adc_mode{
 	ADC_MODE_OFF,
 	ADC_MODE_SINGLE,
 	ADC_MODE_AUTO
-};
-
-static int capacity_map[][2] = {
-	{100, 4160},
-	{90, 4000},
-	{80, 3960},
-	{70, 3940},
-	{60, 3900},
-	{50, 3840},
-	{40, 3790},
-	{30, 3720},
-	{20, 3680},
-	{10, 3640},
-	{0, 3600},
 };
 
 static int ricoh583_adc_mode_set(struct ricoh583_battery_info *info, enum ricoh583_adc_mode mode)
@@ -180,23 +165,8 @@ err:
 	return 0;
 }
 
-static int ricoh583_get_capacity(int mvolts)
-{
-	int i;
-	struct ricoh583_battery_info *info = g_info;
-
-	info->cur_mvolts = mvolts;
-	for (i = 0; i < sizeof(capacity_map) / (sizeof(int) * 2); ++i){
-		if (mvolts >= capacity_map[i][1]){
-			return capacity_map[i][0];
-		}
-	}
-	return 0;
-}
-
 static struct ns115_battery_gauge ricoh583_battery_gauge = {
 	.get_battery_mvolts = ricoh583_get_mvolts,
-	.get_battery_capacity = ricoh583_get_capacity,
 };
 
 static irqreturn_t ricoh583_battery_adc(int irq, void *_info)
@@ -276,6 +246,16 @@ static __devinit int ricoh583_battery_probe(struct platform_device *pdev)
 	}
 
 	ricoh583_battery_gauge.resistor_mohm = pdata->resistor_mohm;
+	ricoh583_battery_gauge.normal_pwr = pdata->normal_pwr;
+	ricoh583_battery_gauge.early_pwr = pdata->early_pwr;
+	ricoh583_battery_gauge.suspend_pwr = pdata->suspend_pwr;
+	ricoh583_battery_gauge.pre_chg_mvolts = pdata->pre_chg_mvolts;
+	ricoh583_battery_gauge.full_mvolts = pdata->full_mvolts;
+	ricoh583_battery_gauge.max_mAh = pdata->max_mAh;
+	ricoh583_battery_gauge.capacity_table = pdata->capacity_table;
+	ricoh583_battery_gauge.table_size = pdata->table_size;
+	ricoh583_battery_gauge.table_step = pdata->table_step;
+
 	ret = ns115_battery_gauge_register(&ricoh583_battery_gauge);
 	if (ret){
 		goto irq;
@@ -310,6 +290,7 @@ static int ricoh583_battery_suspend(struct device *dev)
 {
 	struct ricoh583_battery_info *info = dev_get_drvdata(dev);
 
+	dev_err(dev, "%s\n", __func__);
 	if (info->alarm_mode == ALARM_LOW && info->cur_mvolts < info->alarm_mvolts){
 		ricoh583_alarm_mvolts_set(info, info->power_off_mvolts);
 		info->alarm_mode = ALARM_OFF;
@@ -325,6 +306,7 @@ static int ricoh583_battery_suspend(struct device *dev)
 static int ricoh583_battery_resume(struct device *dev)
 {
 	struct ricoh583_battery_info *info = dev_get_drvdata(dev);
+	dev_err(dev, "%s\n", __func__);
 	ricoh583_adc_mode_set(info, ADC_MODE_OFF);
 
 	return 0;

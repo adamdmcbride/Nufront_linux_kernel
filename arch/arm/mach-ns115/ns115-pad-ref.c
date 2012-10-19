@@ -367,11 +367,8 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 
 #ifdef CONFIG_NS115_BATTERY
 static struct ns115_battery_platform_data ns115_batt_pdata = {
-	.update_time = 5,//seconds
+	.update_time = 10,//seconds
 	.safety_time = 60 * 10,//minute
-	.consumption = 4000,//mW, average value
-	.pre_chg_mvolts = 3100,
-	.full_mvolts = 4150,
 };
 
 static struct platform_device ns115_batt_device = {
@@ -384,6 +381,7 @@ static struct platform_device ns115_batt_device = {
 static struct bq24170_charger_platform_data bq24170_charger_pdata = {
 	.stat_gpio = 17 + 8,
 	.ac_chg_current = 2000,
+	.usb_chg_current = 400,
 };
 
 static struct platform_device bq24170_charger_device = {

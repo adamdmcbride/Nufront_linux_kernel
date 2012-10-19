@@ -179,7 +179,6 @@ static struct ns115_charger bq24170_ac_chg = {
 static struct ns115_charger bq24170_usb_chg = {
 	.type = CHG_TYPE_USB,
 	.name = "charger_usb",
-	.chg_current = 400,
 	.start_charging = bq24170_start_chg,
 	.stop_charging = bq24170_stop_chg,
 };
@@ -203,6 +202,7 @@ static __devinit int bq24170_charger_probe(struct platform_device *pdev)
 	g_info = info;
 
 	bq24170_ac_chg.chg_current = pdata->ac_chg_current;
+	bq24170_usb_chg.chg_current = pdata->usb_chg_current;
 	ret = ns115_charger_register(&bq24170_ac_chg);
 	if (ret){
 		goto out;

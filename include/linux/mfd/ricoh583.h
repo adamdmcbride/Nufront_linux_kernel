@@ -151,7 +151,16 @@ struct ricoh583_battery_platform_data {
 	int alarm_mvolts; 
 	int power_off_mvolts;
 	int adc_vdd_mvolts;
+	int pre_chg_mvolts;
+	int full_mvolts;
+	int normal_pwr;
+	int early_pwr;
+	int suspend_pwr;
 	int resistor_mohm;
+	int max_mAh;
+	int (*capacity_table)[][2];
+	int table_size;
+	int table_step;
 };
 
 struct ricoh583_gpio_init_data {

@@ -54,12 +54,21 @@ struct ns115_charger {
 };
 
 struct ns115_battery_gauge {
-	int resistor_mohm;
 	int (*get_battery_mvolts) (void);
 	int (*get_battery_temperature) (void);
 	int (*get_battery_status)(void);
 	int (*get_battery_capacity) (int mvolts);
 	int (*is_batt_temp_out_of_range) (void);
+	int resistor_mohm;
+	int normal_pwr;
+	int early_pwr;
+	int suspend_pwr;
+	int pre_chg_mvolts;
+	int full_mvolts;
+	int max_mAh;
+	int (*capacity_table)[][2];
+	int table_size;
+	int table_step;
 };
 /**
  * struct ns115_battery_platform_data
@@ -69,9 +78,6 @@ struct ns115_battery_gauge {
 struct ns115_battery_platform_data {
 	unsigned int update_time;
 	unsigned int safety_time;
-	int consumption;
-	int pre_chg_mvolts;
-	int full_mvolts;
 };
 
 int ns115_battery_gauge_register(struct ns115_battery_gauge *batt_gauge);

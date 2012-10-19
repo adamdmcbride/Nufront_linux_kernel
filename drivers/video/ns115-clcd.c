@@ -700,38 +700,38 @@ static int nusmartfb_set_par(struct fb_info *fb)
 	return 0;	
 }
 
-static int set_resolution_ratio(struct fb_info * fb,struct fb_var_screeninfo * var)
+static int set_resolution_ratio(struct fb_info * fb,struct fb_videomode *find_mode)
 {
 	const struct fb_videomode * m = NULL;
-	struct fb_videomode  find_mode = {NULL,0,};
+	struct fb_var_screeninfo var;
 	int retval;
-    struct fb_var_screeninfo stdvar;
-    struct fb_videomode mode;
-    char mode_option[50] = {};
+	struct fb_var_screeninfo stdvar;
+	struct fb_videomode mode;
+	char mode_option[50] = {};
 
-	if(var->bits_per_pixel)
-		var->bits_per_pixel = 16;
+	fb_videomode_to_var(&var, find_mode);
 
-	printk(KERN_INFO "set resolution to %ux%u-%u\n", var->xres, var->yres, var->bits_per_pixel);
-	find_mode.refresh = 60;
-	find_mode.xres = var->xres;
-	find_mode.yres = var->yres;
+	if(var.bits_per_pixel)
+		var.bits_per_pixel = 16;
+
+	printk(KERN_INFO "set resolution to %ux%u-%u@%d\n", find_mode->xres, find_mode->yres, var.bits_per_pixel, find_mode->refresh);
 
 #ifdef DEBUG
 	display_modelist(&fb->modelist);
 #endif
-		
-	m = fb_find_nearest_mode(&find_mode, &fb->modelist);
 
-    if (m && (m->xres != var->xres || m->yres != var->yres)) {
-        sprintf(mode_option, "%ux%u-%u", var->xres, var->yres, var->bits_per_pixel);
-        retval = fb_find_mode(&stdvar, fb, mode_option, NULL, 0,NULL, var->bits_per_pixel);
-        if (retval > 0) {
-            fb_var_to_videomode(&mode, &stdvar);
-            fb_videomode_to_var(&fb->var, &mode);
-            goto done;
-        }
-    }
+	m = fb_find_nearest_mode(find_mode, &fb->modelist);
+
+	if (m && (m->xres != var.xres || m->yres != var.yres)) {
+		sprintf(mode_option, "%ux%u-%u", var.xres, var.yres, var.bits_per_pixel);
+		retval = fb_find_mode(&stdvar, fb, mode_option, NULL, 0,NULL, var.bits_per_pixel);
+		if (retval > 0) {
+			fb_var_to_videomode(&mode, &stdvar);
+			fb_videomode_to_var(&fb->var, &mode);
+			fb->mode = &mode;
+			goto done;
+		}
+	}
 
 	if (m) {
 		printk(KERN_EMERG "xres %d,yres %d,pixclk %d\n"
@@ -743,24 +743,14 @@ static int set_resolution_ratio(struct fb_info * fb,struct fb_var_screeninfo * v
 
 		fb_videomode_to_var(&fb->var, m);
 		fb->mode = m;
-		if((m->xres == 1920) && (m->yres == 1080))
-			fb->var.pixclock = 6734;
-
-		if((m->xres == 1280) && (m->yres == 720))
-			fb->var.pixclock = 13468;
-		
 	} else {
-			printk(KERN_EMERG "fb%d: %s set resolution failed! %dx%d resolution not support!\n", 
-				fb->node, fb->fix.id, var->xres, var->yres);
-			retval = -2;
+		printk(KERN_EMERG "fb%d: %s set resolution failed! %dx%d resolution not support!\n", 
+				fb->node, fb->fix.id, var.xres, var.yres);
+		retval = -2;
 
-			return retval;
+		return retval;
 	}
-#if 0
-	retval = fb_find_mode(&stdvar, fb, mode_option, NULL, 0,NULL, var->bits_per_pixel);
-	fb_var_to_videomode(&mode, &stdvar);
-	fb_videomode_to_var(&fb->var, &mode);
-#endif
+
 done:
 	retval = nusmartfb_check_var(&fb->var, fb);
 	nusmartfb_set_par(fb); 
@@ -1117,6 +1107,7 @@ static int nusmartfb_ioctl(struct fb_info *info, unsigned int cmd,
 #endif
 	void __user *argp = (void __user *)arg;
 	struct fb_var_screeninfo var;
+	struct fb_videomode  mode;
 	unsigned int ctrl;
 	unsigned long fb_phy_addr = 0;
 	int vmem_base;
@@ -1173,10 +1164,10 @@ static int nusmartfb_ioctl(struct fb_info *info, unsigned int cmd,
 			break;
 
 		case SET_RESOLUTION_RATIO:
-			if (copy_from_user(&var, argp, sizeof(struct fb_var_screeninfo)))
+			if (copy_from_user(&mode, argp, sizeof(struct fb_videomode)))
 				return -EFAULT;
 			
-			ret = set_resolution_ratio(info, &var);
+			ret = set_resolution_ratio(info, &mode);
 			if(!ret)
 				set_resolution = 1;
 
@@ -1906,7 +1897,7 @@ void fb_select_modes(const struct fb_videomode *mode,
 		modelist = list_entry(pos, struct fb_modelist, list);
 		m = &modelist->mode;
 		if (	(((m->xres * m->yres) > (mode->xres * mode->yres)) && (m->xres !=1920 || m->yres != 1080))
-		     || (m->refresh < 59)
+//		     || (m->refresh < 59)
 		     || (m->vmode & FB_VMODE_INTERLACED))
 		{
 			list_del(pos);
@@ -1940,7 +1931,7 @@ static ssize_t show_all_vendor(struct device *dev, struct device_attribute *attr
        struct fb_info *info = dev_get_drvdata(dev);
        struct fb_monspecs *specs = &info->monspecs;
                
-	snprintf(buf, PAGE_SIZE, "%d.%d:%s:%d:%d:%s:%s:%d:%d\n", (int)specs->version, (int)specs->revision, specs->manufacturer, specs->model, specs->serial, specs->monitor, specs->serial_no, specs->max_x, specs->max_y);
+	snprintf(buf, PAGE_SIZE, "%d.%d:%s:%d:%d:%s:%s:%d:%d", (int)specs->version, (int)specs->revision, specs->manufacturer, specs->model, specs->serial, specs->monitor, specs->serial_no, specs->max_x, specs->max_y);
 }
 
 static DEVICE_ATTR(vendor, 0444, show_all_vendor, NULL);
@@ -2000,12 +1991,13 @@ int hdmi_edid_fetch(unsigned char *edid, struct fb_info *info)
 
 					fb_videomode_to_var(&info->var, m);
 					info->mode = m;
+#if 0
 					if((m->xres == 1920) && (m->yres == 1080))
 						info->var.pixclock = 6734;
 
 					if((m->xres == 1280) && (m->yres == 720))
 						info->var.pixclock = 13468;
-		
+#endif		
 				} else {
 					printk(KERN_EMERG "fb%d: %s get best display failed!\n", 
 							info->node, info->fix.id);
