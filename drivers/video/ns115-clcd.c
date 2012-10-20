@@ -722,7 +722,8 @@ static int set_resolution_ratio(struct fb_info * fb,struct fb_videomode *find_mo
 
 	m = fb_find_nearest_mode(find_mode, &fb->modelist);
 
-	if (m && (m->xres != var.xres || m->yres != var.yres)) {
+	if ((m && (m->xres != var.xres || m->yres != var.yres))
+            || (!m && ((var.xres == 1280 && var.yres == 720) || (var.xres == 1920 && var.yres == 1080)))) {
 		sprintf(mode_option, "%ux%u-%u", var.xres, var.yres, var.bits_per_pixel);
 		retval = fb_find_mode(&stdvar, fb, mode_option, NULL, 0,NULL, var.bits_per_pixel);
 		if (retval > 0) {
@@ -1896,7 +1897,8 @@ void fb_select_modes(const struct fb_videomode *mode,
 	list_for_each_safe(pos, n, head) {
 		modelist = list_entry(pos, struct fb_modelist, list);
 		m = &modelist->mode;
-		if (	(((m->xres * m->yres) > (mode->xres * mode->yres)) && (m->xres !=1920 || m->yres != 1080))
+		if (	(((m->xres * m->yres) > (mode->xres * mode->yres)) && (m->xres !=1920 || m->yres != 1080)
+			&& (m->xres !=1280 || m->yres != 1024))
 //		     || (m->refresh < 59)
 		     || (m->vmode & FB_VMODE_INTERLACED))
 		{

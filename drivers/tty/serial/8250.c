@@ -1585,8 +1585,12 @@ static void transmit_chars(struct uart_8250_port *up)
 
 static unsigned int check_modem_status(struct uart_8250_port *up)
 {
-	unsigned int status = serial_in(up, UART_MSR);
+	unsigned int status;
 
+	if (up->port.type == PORT_NF_16550A)
+		return UART_MSR_CTS;
+
+	status = serial_in(up, UART_MSR);
 	status |= up->msr_saved_flags;
 	up->msr_saved_flags = 0;
 	if (status & UART_MSR_ANY_DELTA && up->ier & UART_IER_MSI &&
