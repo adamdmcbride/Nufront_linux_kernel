@@ -27,6 +27,7 @@ config MACH_NS115_PAD_REF
 config MACH_NS115_PHONE_TEST
 	bool "Nufront NS115 Phone Test Board"
 	select ARM_GIC
+	select PL330
 	select HAVE_PATA_PLATFORM
 	select ARCH_SPARSEMEM_ENABLE if CPU_V7 && \
 		!NS115_HIGH_PHYS_OFFSET && MMU
@@ -37,6 +38,7 @@ config MACH_NS115_PHONE_TEST
 config MACH_NS115_PHONE_REF
 	bool "Nufront NS115 Phone Ref Board"
 	select ARM_GIC
+	select PL330
 	select HAVE_PATA_PLATFORM
 	select ARCH_SPARSEMEM_ENABLE if CPU_V7 && \
 		!NS115_HIGH_PHYS_OFFSET && MMU
