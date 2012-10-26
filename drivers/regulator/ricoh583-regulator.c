@@ -38,7 +38,7 @@ struct ricoh583_regulator {
 	int		deepsleep_id;
 	/* Regulator register address.*/
 	u8		reg_en_reg;
-	u8		en_bit;
+	u8		en_mask;
 	u8		reg_disc_reg;
 	u8		disc_bit;
 	u8		vout_reg;
@@ -87,7 +87,7 @@ static int ricoh583_reg_is_enabled(struct regulator_dev *rdev)
 		dev_err(&rdev->dev, "Error in reading the control register\n");
 		return ret;
 	}
-	return (((control >> ri->en_bit) & 1) == 1);
+	return ((control & ri->en_mask) == ri->en_mask);
 }
 
 static int ricoh583_reg_enable(struct regulator_dev *rdev)
@@ -96,7 +96,7 @@ static int ricoh583_reg_enable(struct regulator_dev *rdev)
 	struct device *parent = to_ricoh583_dev(rdev);
 	int ret;
 
-	ret = ricoh583_set_bits(parent, ri->reg_en_reg, (1 << ri->en_bit));
+	ret = ricoh583_update(parent, ri->reg_en_reg, ri->en_mask, ri->en_mask);
 	if (ret < 0) {
 		dev_err(&rdev->dev, "Error in updating the STATE register\n");
 		return ret;
@@ -111,7 +111,7 @@ static int ricoh583_reg_disable(struct regulator_dev *rdev)
 	struct device *parent = to_ricoh583_dev(rdev);
 	int ret;
 
-	ret = ricoh583_clr_bits(parent, ri->reg_en_reg, (1 << ri->en_bit));
+	ret = ricoh583_update(parent, ri->reg_en_reg, 0, ri->en_mask);
 	if (ret < 0)
 		dev_err(&rdev->dev, "Error in updating the STATE register\n");
 
@@ -201,12 +201,12 @@ static struct regulator_ops ricoh583_ops = {
 	.enable_time	= ricoh583_regulator_enable_time,
 };
 
-#define RICOH583_REG(_id, _en_reg, _en_bit, _disc_reg, _disc_bit, _vout_reg, \
+#define RICOH583_REG(_id, _en_reg, _en_mask, _disc_reg, _disc_bit, _vout_reg, \
 		_vout_mask, _ds_reg, _min_mv, _max_mv, _step_uV, _nsteps,    \
 		_ops, _delay)		\
 {								\
 	.reg_en_reg	= _en_reg,				\
-	.en_bit		= _en_bit,				\
+	.en_mask		= _en_mask,				\
 	.reg_disc_reg	= _disc_reg,				\
 	.disc_bit	= _disc_bit,				\
 	.vout_reg	= _vout_reg,				\
@@ -230,33 +230,33 @@ static struct regulator_ops ricoh583_ops = {
 }
 
 static struct ricoh583_regulator ricoh583_regulator[] = {
-	RICOH583_REG(DC0, 0x30, 0, 0x30, 1, 0x31, 0x7F, 0x60,
+	RICOH583_REG(DC0, 0x30, 0x03, 0x30, 1, 0x31, 0x7F, 0x60,
 			700, 1500, 12500, 0x41, ricoh583_ops, 500),
-	RICOH583_REG(DC1, 0x34, 0, 0x34, 1, 0x35, 0x7F, 0x61,
+	RICOH583_REG(DC1, 0x34, 0x03, 0x34, 1, 0x35, 0x7F, 0x61,
 			750, 1500, 12500, 0x41, ricoh583_ops, 500),
-	RICOH583_REG(DC2, 0x38, 0, 0x38, 1, 0x39, 0x7F, 0x62,
+	RICOH583_REG(DC2, 0x38, 0x03, 0x38, 1, 0x39, 0x7F, 0x62,
 			900, 2400, 12500, 0x79, ricoh583_ops, 500),
-	RICOH583_REG(DC3, 0x3C, 0, 0x3C, 1, 0x3D, 0x7F, 0x63,
+	RICOH583_REG(DC3, 0x3C, 0x03, 0x3C, 1, 0x3D, 0x7F, 0x63,
 			900, 2400, 12500, 0x79, ricoh583_ops, 500),
-	RICOH583_REG(LDO0, 0x51, 0, 0x53, 0, 0x54, 0x7F, 0x64,
+	RICOH583_REG(LDO0, 0x51, 0x01, 0x53, 0, 0x54, 0x7F, 0x64,
 			900, 3400, 25000, 0x65, ricoh583_ops, 500),
-	RICOH583_REG(LDO1, 0x51, 1, 0x53, 1, 0x55, 0x7F, 0x65,
+	RICOH583_REG(LDO1, 0x51, 0x02, 0x53, 1, 0x55, 0x7F, 0x65,
 			900, 3400, 25000, 0x65, ricoh583_ops, 500),
-	RICOH583_REG(LDO2, 0x51, 2, 0x53, 2, 0x56, 0x7F, 0x66,
+	RICOH583_REG(LDO2, 0x51, 0x04, 0x53, 2, 0x56, 0x7F, 0x66,
 			900, 3400, 25000, 0x65, ricoh583_ops, 500),
-	RICOH583_REG(LDO3, 0x51, 3, 0x53, 3, 0x57, 0x7F, 0x67,
+	RICOH583_REG(LDO3, 0x51, 0x08, 0x53, 3, 0x57, 0x7F, 0x67,
 			900, 3400, 25000, 0x65, ricoh583_ops, 500),
-	RICOH583_REG(LDO4, 0x51, 4, 0x53, 4, 0x58, 0x3F, 0x68,
+	RICOH583_REG(LDO4, 0x51, 0x10, 0x53, 4, 0x58, 0x3F, 0x68,
 			750, 1500, 12500, 0x3D, ricoh583_ops, 500),
-	RICOH583_REG(LDO5, 0x51, 5, 0x53, 5, 0x59, 0x7F, 0x69,
+	RICOH583_REG(LDO5, 0x51, 0x20, 0x53, 5, 0x59, 0x7F, 0x69,
 			900, 3400, 25000, 0x65, ricoh583_ops, 500),
-	RICOH583_REG(LDO6, 0x51, 6, 0x53, 6, 0x5A, 0x7F, 0x6A,
+	RICOH583_REG(LDO6, 0x51, 0x40, 0x53, 6, 0x5A, 0x7F, 0x6A,
 			900, 3400, 25000, 0x65, ricoh583_ops, 500),
-	RICOH583_REG(LDO7, 0x51, 7, 0x53, 7, 0x5B, 0x7F, 0x6B,
+	RICOH583_REG(LDO7, 0x51, 0x80, 0x53, 7, 0x5B, 0x7F, 0x6B,
 			900, 3400, 25000, 0x65, ricoh583_ops, 500),
-	RICOH583_REG(LDO8, 0x50, 0, 0x52, 0, 0x5C, 0x7F, 0x6C,
+	RICOH583_REG(LDO8, 0x50, 0x01, 0x52, 0, 0x5C, 0x7F, 0x6C,
 			900, 3400, 25000, 0x65, ricoh583_ops, 500),
-	RICOH583_REG(LDO9, 0x50, 1, 0x52, 1, 0x5D, 0x7F, 0x6D,
+	RICOH583_REG(LDO9, 0x50, 0x02, 0x52, 1, 0x5D, 0x7F, 0x6D,
 			900, 3400, 25000, 0x65, ricoh583_ops, 500),
 };
 static inline struct ricoh583_regulator *find_regulator_info(int id)
@@ -314,11 +314,10 @@ static int ricoh583_regulator_preinit(struct device *parent,
 	}
 
 	if (ricoh583_pdata->init_enable)
-		ret = ricoh583_set_bits(parent, ri->reg_en_reg,
-				(1 << ri->en_bit));
+		ret = ricoh583_update(parent, ri->reg_en_reg,
+				ri->en_mask, ri->en_mask);
 	else
-		ret = ricoh583_clr_bits(parent, ri->reg_en_reg,
-				(1 << ri->en_bit));
+		ret = ricoh583_update(parent, ri->reg_en_reg, 0, ri->en_mask);
 	if (ret < 0)
 		dev_err(ri->dev, "Not able to %s rail %d err %d\n",
 				(ricoh583_pdata->init_enable) ? "enable" : "disable",

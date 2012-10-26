@@ -27,11 +27,7 @@ source "drivers/gpu/ion/Kconfig"
 
 source "drivers/gpu/pvr/Kconfig"
 
-if MACH_NS115_STICK
-endif
 
-if !MACH_NS115_STICK
-endif
 
 
 config VGASTATE

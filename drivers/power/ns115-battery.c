@@ -49,7 +49,7 @@
 #define NS115_BATT_PRE_CHG_MVOLTS 3100
 #define NS115_BATT_FULL_MVOLTS	 4150
 #define NS115_BATT_TRKL_DROP	20
-#define NS115_MAX_VOLT_BUF		10
+#define NS115_MAX_VOLT_BUF		5
 #define NS115_VOLT_WINDOWS		25
 
 #define NS115_CHG_MAX_EVENTS	16
@@ -117,14 +117,15 @@ struct ns115_battery_mux {
 
 	struct mutex status_lock;
 	int	batt_mvolts;
-#ifdef VOLTAGE_DEBOUCE
 	int	batt_volt_buf[NS115_MAX_VOLT_BUF];
 	int batt_volt_pointer;
 	int batt_volt_times;
+#ifdef VOLTAGE_DEBOUCE
 	int batt_left_windows;
 	int batt_right_windows;
-#endif
 	int charger_power_on;
+#endif
+	int power_on;
 	int resume_by_charger;
 	enum ns115_battery_status batt_status;
 	struct ns115_charger_priv *current_chg_priv;
@@ -208,7 +209,6 @@ static int get_open_circuit_volt(int mvolts)
 	return ocv;
 }
 
-#ifdef VOLTAGE_DEBOUCE
 static int batt_voltage_debouce(int mvolts)
 {
 	int new_mvolts = mvolts;
@@ -217,8 +217,10 @@ static int batt_voltage_debouce(int mvolts)
 	if (!mvolts){
 		return ns115_chg.batt_mvolts;
 	}
-	dev_dbg(ns115_chg.dev, "votage before Calibration: %d\n", mvolts);
+	PDBG("votage before Calibration: %d\n", mvolts);
 
+	new_mvolts = get_open_circuit_volt(mvolts);
+#ifdef VOLTAGE_DEBOUCE
 	if (ns115_chg.batt_status == BATT_STATUS_FAST_CHARGING){
 		if (ns115_chg.charger_power_on++ < 3){
 			return ns115_chg.batt_mvolts;
@@ -229,8 +231,6 @@ static int batt_voltage_debouce(int mvolts)
 			ns115_chg.batt_volt_pointer = 0;
 		}
 	}
-	new_mvolts = get_open_circuit_volt(mvolts);
-
 	if (ns115_chg.batt_volt_times >= NS115_MAX_VOLT_BUF){
 		if (new_mvolts < ns115_chg.batt_mvolts - NS115_VOLT_WINDOWS){
 			ns115_chg.batt_right_windows = 0;
@@ -252,6 +252,11 @@ static int batt_voltage_debouce(int mvolts)
 	ns115_chg.batt_right_windows = 0;
 	ns115_chg.batt_left_windows = 0;
 normal:
+#else
+	if (ns115_chg.batt_volt_times++ >= NS115_MAX_VOLT_BUF){
+		ns115_chg.batt_volt_times = NS115_MAX_VOLT_BUF;
+	}
+#endif
 	ns115_chg.batt_volt_buf[ns115_chg.batt_volt_pointer] = new_mvolts;
 	if (++ns115_chg.batt_volt_pointer >= NS115_MAX_VOLT_BUF){
 		ns115_chg.batt_volt_pointer = 0;
@@ -266,7 +271,6 @@ normal:
 
 	return new_mvolts;
 }
-#endif
 
 static int get_prop_batt_mvolts(void)
 {
@@ -274,9 +278,7 @@ static int get_prop_batt_mvolts(void)
 
 	if (ns115_batt_gauge && ns115_batt_gauge->get_battery_mvolts){
 		mvolts = ns115_batt_gauge->get_battery_mvolts();
-#ifdef VOLTAGE_DEBOUCE
 		mvolts = batt_voltage_debouce(mvolts);
-#endif
 		ns115_chg.batt_mvolts = mvolts;
 		return mvolts;
 	}else {
@@ -307,13 +309,10 @@ static int is_batt_temp_out_of_range(void)
 
 static int ns115_get_batt_vol_cc(int mvolts)
 {
-	int ocv = 0;
 	int i;
 
-	ocv = get_open_circuit_volt(mvolts);
-	dev_dbg(ns115_chg.dev, "ocv = %dmV\n", ocv);
 	for (i = ns115_batt_gauge->table_size -1; i >= 0; --i){
-		if (ocv < (*(ns115_batt_gauge->capacity_table))[i][1]){
+		if (mvolts < (*(ns115_batt_gauge->capacity_table))[i][1]){
 			 return (*(ns115_batt_gauge->capacity_table))[i][0];
 		}
 	}
@@ -385,7 +384,7 @@ static int ns115_get_capacity(int vbat)
 
 	PDBG("*************************\n");
 	if (ns115_chg.sys_stat == SYS_STAT_SUSPEND){
-		goto no_change;
+		goto out;
 	}
 	cc = ns115_get_batt_vol_cc(vbat);
 	PDBG("voltage: %dmV vol_cc:%d%%\n", vbat, cc);
@@ -417,7 +416,7 @@ static int ns115_get_capacity(int vbat)
 		if (last_diff_cc <= step_cc){
 			goto no_change;
 		}
-		if (last_diff_cc >= 2 * step_cc && diff_mAh > step_mAh / 2){
+		if (last_diff_cc >= 2 * step_cc && diff_mAh > step_mAh / 3 * 2){
 			goto chg_one_step;
 		}
 		goto no_change;
@@ -457,9 +456,10 @@ no_change:
 	}
 	PDBG("battery capacity: %d%%\n", ns115_chg.batt_cc);
 	PDBG("*************************\n");
-	if (ns115_chg.charger_power_on++ >= 5){
-		ns115_chg.charger_power_on = 5;
+	if (ns115_chg.power_on++ >= 5){
+		ns115_chg.power_on = 5;
 	}
+out:
 
 	return ns115_chg.batt_cc;
 }
@@ -764,12 +764,14 @@ static int ns115_start_charging(void)
 		dev_err(ns115_chg.dev, "%s couldnt start chg error = %d\n",
 			priv->hw_chg->name, ret);
 	} else{
-		if (ns115_chg.charger_power_on < 5){
+		if (ns115_chg.power_on < 5){
 			cal_time = ns115_get_seconds() - ns115_chg.init_mAh_time;
 			dev_info(ns115_chg.dev, "cal_time: %ds\n", cal_time);
 			if (cal_time <= 3){
 				dev_info(ns115_chg.dev, "the charger plug when capacity init\n");
 				priv->hw_chg_state = CHG_CHARGING_STATE;
+				ns115_chg.batt_volt_times  = 0;
+				ns115_chg.batt_volt_pointer = 0;
 				ns115_batt_init_mAh();
 			}
 		}else{
@@ -1092,10 +1094,8 @@ static int __init determine_initial_batt_status(void)
 {
 	int rc;
 
-#ifdef VOLTAGE_DEBOUCE
 	ns115_chg.batt_volt_times  = 0;
 	ns115_chg.batt_volt_pointer = 0;
-#endif
 	ns115_chg.sys_stat = SYS_STAT_NORMAL;
 	ns115_chg.batt_status = BATT_STATUS_DISCHARGING;
 	ns115_chg.pre_chg_mvolts = ns115_batt_gauge->pre_chg_mvolts;
@@ -1109,7 +1109,7 @@ static int __init determine_initial_batt_status(void)
 	}
 
 	ns115_batt_init_mAh();
-	ns115_chg.charger_power_on = 0;
+	ns115_chg.power_on = 0;
 	ns115_chg.resume_by_charger = 0;
 
 	rc = power_supply_register(ns115_chg.dev, &ns115_psy_batt);
@@ -1294,12 +1294,29 @@ EXPORT_SYMBOL(ns115_battery_gauge_unregister);
 static int ns115_battery_suspend(struct device *dev)
 {
 	unsigned long cur_time;
+	int cur_mAh, step_mAh, diff_mAh;
+	int step_cc;
 
 	dev_dbg(ns115_chg.dev, "%s suspended\n", __func__);
 	ns115_chg.stop_update = 1;
 	cancel_delayed_work(&ns115_chg.update_heartbeat_work);
 
-	ns115_chg.init_mAh = ns115_get_batt_mAh(ns115_chg.batt_mvolts);
+	step_cc = ns115_batt_gauge->table_step;
+	step_mAh = ns115_batt_gauge->max_mAh * step_cc / 100;
+	cur_mAh = ns115_get_batt_mAh(ns115_chg.batt_mvolts);
+	diff_mAh = cur_mAh - (ns115_batt_gauge->max_mAh * ns115_chg.batt_cc / 100);
+	if (abs(diff_mAh) > step_mAh + step_mAh / 4){
+		if (diff_mAh > 0){
+			cur_mAh = ns115_batt_gauge->max_mAh * ns115_chg.batt_cc / 100
+				+ (step_mAh + step_mAh / 4);
+		}else{
+			cur_mAh = ns115_batt_gauge->max_mAh * ns115_chg.batt_cc / 100
+				- (step_mAh + step_mAh / 4);
+		}
+	}
+	ns115_chg.init_mAh = cur_mAh;
+	PDBG("suspend battery cur_mAh: %dmAh\n", cur_mAh);
+
 	cur_time = get_seconds();
 	ns115_chg.init_mAh_time = cur_time;
 	ns115_chg.init_mAh_time_cache = cur_time;
@@ -1313,10 +1330,8 @@ static int ns115_battery_resume(struct device *dev)
 {
 	dev_dbg(ns115_chg.dev, "%s resumed\n", __func__);
 	ns115_chg.stop_update = 0;
-#ifdef VOLTAGE_DEBOUCE
 	ns115_chg.batt_volt_times  = 0;
 	ns115_chg.batt_volt_pointer = 0;
-#endif
 
 	/* start updaing the battery powersupply every ns115_chg.update_time
 	 * milliseconds */

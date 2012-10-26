@@ -1421,13 +1421,13 @@ static int ricoh583_i2c_suspend(struct i2c_client *i2c, pm_message_t state)
 		dev_err(&i2c->dev, "Error in writing reg %d error: "
 				"%d\n", 0x35, ret);
 	}
-#endif
 	// set LDOSW on for DVS
 	ret = __ricoh583_write(i2c, RICOH_SWCTL_REG, 0x1);
 	if (ret < 0){
 		dev_err(&i2c->dev, "Error in writing reg %d error: "
 				"%d\n", RICOH_SWCTL_REG, ret);
 	}
+#endif
 
 	if (i2c->irq)
 		disable_irq(i2c->irq);
@@ -1439,12 +1439,14 @@ static int ricoh583_i2c_resume(struct i2c_client *i2c)
 {
 	int ret;
 
+#if 0
 	// set LDOSW off for DVS
 	ret = __ricoh583_write(i2c, RICOH_SWCTL_REG, 0x0);
 	if (ret < 0){
 		dev_err(&i2c->dev, "Error in writing reg %d error: "
 				"%d\n", RICOH_SWCTL_REG, ret);
 	}
+#endif
 
 	if (i2c->irq)
 		enable_irq(i2c->irq);

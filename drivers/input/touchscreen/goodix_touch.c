@@ -502,6 +502,14 @@ static irqreturn_t goodix_ts_irq_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static void wakeup_sleep_and_green_mode(unsigned int gpio)
+{
+			gpio_direction_output(gpio, 0);
+			msleep(4);
+			gpio_direction_input(gpio);
+			udelay(1000);
+}
+
 /*******************************************************
 Description:
 	Goodix touchscreen power manage function.
@@ -526,10 +534,13 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 	if(ts != NULL && !ts->use_irq)
 		return -2;
 	
+	printk(KERN_EMERG "%s suspend %d\n", __func__, on);
+
 	if(on == 0)		//suspend
 	{ 
 		if(ts->green_wake_mode)
 		{
+			printk(KERN_EMERG "%s green wake mode\n", __func__);
 			disable_irq(ts->client->irq);
 			//gpio_direction_output(INT_PORT, 0);
 			gpio_direction_output(ts->gpio, 0);
@@ -538,6 +549,7 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 			gpio_direction_input(ts->gpio);
 			enable_irq(ts->client->irq);
 		}
+
 		while(retry<5)
 		{
 			ret = i2c_write_bytes(ts->client, i2c_control_buf, 2);
@@ -547,6 +559,7 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 				break;
 			}
 			printk("Send cmd failed!\n");
+			wakeup_sleep_and_green_mode(ts->gpio);
 			retry++;
 			msleep(10);
 		}
@@ -555,19 +568,31 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 	}
 	else if(on == 1)		//resume
 	{
-		printk(KERN_INFO"Int resume\n");
-		//gpio_direction_output(INT_PORT, 0); 
-		gpio_direction_output(ts->gpio, 0); 
-		msleep(20);
-		//if(ts->use_irq) 
-		//	s3c_gpio_cfgpin(INT_PORT, INT_CFG);	//Set IO port as interrupt port	
-		//else 
-		//	gpio_direction_input(INT_PORT);
+		char rd_cfg_buf[2] = {0};
+		printk(KERN_EMERG "Int resume\n");
+		//gpio_direction_output(INT_PORT, 0);
+
+		retry = 0;
+		wakeup_sleep_and_green_mode(ts->gpio);
+		wakeup_sleep_and_green_mode(ts->gpio);
+		while(retry < 5){
+			rd_cfg_buf[0] = 0x6e;
+			rd_cfg_buf[1] = 0x00;
+			ret = i2c_read_bytes(ts->client, rd_cfg_buf, 2);
+			if(ret <= 0){
+				wakeup_sleep_and_green_mode(ts->gpio);
+				retry++;
+				msleep(10);
+			}
+			else{
+				break;
+			}
+
+		}
 		if(ts->use_irq) {
 			gpio_direction_input(ts->gpio);
 		}
-		//msleep(260);
-
+		//msleep(260)
 		ret = 0;
 	}	 
 	return ret;
@@ -995,7 +1020,7 @@ err_gpio_request_failed:
 	}
 	ts->bad_data = 0;
 
-#ifdef INT_PORT	
+#ifdef INT_PORT
 	ret  = request_irq(client->irq, goodix_ts_irq_handler,  irq_table[ts->int_trigger_type], client->name, ts);
 	if (ret != 0) {
 		dev_err(&client->dev,"Cannot allocate ts INT!ERRNO:%d\n", ret);
@@ -1168,13 +1193,16 @@ static void goodix_ts_early_suspend(struct early_suspend *h)
 {
 	struct goodix_ts_data *ts;
 	ts = container_of(h, struct goodix_ts_data, early_suspend);
-	
+
+	printk(KERN_EMERG "begin %s\n", __func__);
 	if (ts->use_irq)
 		disable_irq(ts->client->irq);
 	else
 		hrtimer_cancel(&ts->timer);
+	printk(KERN_EMERG "mid %s\n", __func__);
 		
 	goodix_ts_suspend(ts->client, PMSG_SUSPEND);
+	printk(KERN_EMERG "end %s\n", __func__);
 }
 
 static void goodix_ts_late_resume(struct early_suspend *h)
@@ -1256,15 +1284,15 @@ static struct file * update_file_open(char * path, mm_segment_t * old_fs_p)
 {
 	struct file * filp = NULL;
 	int errno = -1;
-		
+
 	filp = filp_open(path, O_RDONLY, 0644);
-	
+
 	if(!filp || IS_ERR(filp))
 	{
 		if(!filp)
 			errno = -ENOENT;
 		else 
-			errno = PTR_ERR(filp);					
+			errno = PTR_ERR(filp);
 		printk(KERN_ERR "The update file for Guitar open error.\n");
 		return NULL;
 	}
@@ -1286,7 +1314,7 @@ static int update_get_flen(char * path)
 	struct file * file_ck = NULL;
 	mm_segment_t old_fs;
 	int length ;
-	
+
 	file_ck = update_file_open(path, &old_fs);
 	if(file_ck == NULL)
 		return 0;
@@ -1304,12 +1332,12 @@ static int update_file_check(char * path)
 	struct file * file_ck = NULL;
 	mm_segment_t old_fs;
 	int count, ret, length ;
-	
+
 	file_ck = update_file_open(path, &old_fs);
-	
+
 	if(path != NULL)
 		printk("File Path:%s\n", path);
-	
+
 	if(file_ck == NULL)
 		return -ERROR_NO_FILE;
 
@@ -1322,7 +1350,7 @@ static int update_file_check(char * path)
 		update_file_close(file_ck, old_fs);
 		return -ERROR_FILE_TYPE;
 	}
-	
+
 	//set file point to the begining of the file
 	file_ck->f_op->llseek(file_ck, 0, SEEK_SET);	
 	oldcrc32 = 0xFFFFFFFF;
@@ -1332,7 +1360,7 @@ static int update_file_check(char * path)
 		ret = file_ck->f_op->read(file_ck, buffer, sizeof(buffer), &file_ck->f_pos);
 		if(ret > 0)
 		{
-			for(count = 0; count < ret;  count++) 	
+			for(count = 0; count < ret;  count++)	
 				GenerateCRC32(&buffer[count],1);			
 		}
 		else 
@@ -1378,7 +1406,7 @@ static int goodix_update_write(struct file *filp, const char __user *buff, unsig
 	static unsigned char update_path[100];
 	static unsigned short time_count = 0;
 	static unsigned int file_len = 0;
-	
+
 	unsigned char i2c_control_buf[2] = {ADDR_CMD, 0};
 	unsigned char i2c_states_buf[2] = {ADDR_STA, 0};
 	unsigned char i2c_data_buf[PACK_SIZE+1+8] = {ADDR_DAT,};
@@ -1400,11 +1428,11 @@ static int goodix_update_write(struct file *filp, const char __user *buff, unsig
 	struct file * file_data = NULL;
 	mm_segment_t old_fs;
 	struct goodix_ts_data *ts;
-	
+
 	ts = i2c_get_clientdata(i2c_connect_client);
 	if(ts==NULL)
 		return 0;
-	
+
 	if(copy_from_user(&cmd, buff, len))
 	{
 		return -EFAULT;
@@ -1555,7 +1583,7 @@ static int goodix_update_write(struct file *filp, const char __user *buff, unsig
 					i2c_data_buf[5+rd_len+3] = (frame_checksum>>24)&0xff;
 				}
 rewrite:
-				printk(KERN_INFO"[GOODiX_ISP_NEW]:%d\n", file_len);				
+				printk(KERN_INFO"[GOODiX_ISP_NEW]:%d\n", file_len);	
 				ret = i2c_write_bytes(ts->client, i2c_data_buf, 1+4+rd_len+4);
 					//if(ret <= 0)
 				if(ret != 1)
@@ -1591,7 +1619,7 @@ rewrite:
 					i2c_control_buf[1] = 0x04;													//let LDROM write flash
 					i2c_write_bytes(ts->client, i2c_control_buf, 2);
 				}
-				
+
 				//Wait for slave ready signal.and read the checksum
 				ret = wait_slave_ready(ts, &time_count);
 				if((ret & CHECKSUM_ERROR)||(!i))
@@ -1674,7 +1702,7 @@ rewrite:
 					}
 				}
 				file_len -= rd_len;
-			
+
 				//Wait for slave ready signal.
 				ret = wait_slave_ready(ts, &time_count);
 				if(ret == ERROR_I2C_TRANSFER)
@@ -1781,7 +1809,7 @@ rewrite:
 			}
 			return 1;
 		case FUN_WRITE_CONFIG:
-			
+
 			printk(KERN_INFO"Begin write config info!Config length:%d\n",cmd[1]);
 			for(i=3; i<cmd[1];i++)
 			{
@@ -1813,7 +1841,7 @@ reconfig:
 					return -1;
 				}
 				if(!update_need_config)return 1;
-				
+
 				i2c_rd_buf[0] = cmd[2];
 				ret = i2c_read_bytes(ts->client, i2c_rd_buf, cmd[1]);
 				if(ret != 2)
@@ -1848,7 +1876,7 @@ reconfig:
 					i2c_write_bytes(ts->client, i2c_control_buf, 2);
 					return 1;
 				}
-				
+
 			}
 			else
 			{
@@ -1952,7 +1980,7 @@ static int goodix_update_read( char *page, char **start, off_t off, int count, i
 
 	return len;
 }
-              
+
 #endif
 //******************************End of firmware update surpport*******************************
 static const struct i2c_device_id goodix_ts_id[] = {
@@ -1983,15 +2011,15 @@ return:
 static int __devinit goodix_ts_init(void)
 {
 	int ret;
-	
+
 	goodix_wq = create_workqueue("goodix_wq");		//create a work queue and worker thread
 	if (!goodix_wq) {
 		printk(KERN_ALERT "creat workqueue faiked\n");
 		return -ENOMEM;
-		
+
 	}
 	ret=i2c_add_driver(&goodix_ts_driver);
-	return ret; 
+	return ret;
 }
 
 /*******************************************************	
