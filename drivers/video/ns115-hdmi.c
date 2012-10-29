@@ -191,10 +191,14 @@ static int ns115_hdmi_EDIDRead_I2C(struct ns115_hdmi_data *hdmi,
 	unsigned char * edid = NULL;
 	int i = 0;
 	int ret = 0;
+	int edid_check1 = 0;
+	int edid_read_times = 3;
 
 	adapter = i2c_get_adapter(ddc_adapter);
 	if(adapter) {
+edid_get:
 		edid=fb_ddc_read_i2c(adapter);
+		edid_read_times--;
 		if(edid){
 			memcpy(uc_RegBuf,edid,2*EDID_LENGTH);
 			kfree(edid);
@@ -207,6 +211,17 @@ static int ns115_hdmi_EDIDRead_I2C(struct ns115_hdmi_data *hdmi,
 				} else {
 					printk(" %02X", uc_RegBuf[i]);
 				}
+			}
+			for(i = 0; i<EDID_LENGTH; i++)
+			{
+				edid_check1 += uc_RegBuf[i];
+			}
+			edid_check1 = edid_check1%256;
+			if(edid_check1 != 0)
+			{
+				edid_check1 = 0;
+				if(edid_read_times > 0)
+					goto edid_get;
 			}
 			ret = 1;
 		}
@@ -348,6 +363,7 @@ static int ns115_hdmi_dec_fun(struct ns115_hdmi_data *hdmi)
         {
                 // get EDID first from I2C 0
 #ifdef NS115_I2C_EDID
+		mutex_lock(&hdmi->mutex_edid);
                 err = ns115_hdmi_EDIDRead_I2C(hdmi,EDID_BLOCK_SIZE*2,hdmi_edid_buff,EDID_BLOCK_0_OFFSET);
                 if (err < 0 ){
                         printk(KERN_WARNING "[HDMI:wangzhi]I2C Read EDID Error.\r\n");
@@ -356,6 +372,7 @@ static int ns115_hdmi_dec_fun(struct ns115_hdmi_data *hdmi)
                 {
                         b_edid = true;
                 }
+		mutex_unlock(&hdmi->mutex_edid);
 #endif
 #if defined(NS115_DDC_EDID)
                 if(!b_edid)
@@ -659,20 +676,20 @@ static void ns115_hdmi_poll()
 static void ns115_hdmi_hot_disconnect()
 {
         unsigned char ret = 0;
-        //char *soft_disconnected[2]    = { "HDMI_SOFT_STATE=DISCONNECTED", NULL };
+        char *soft_disconnected[2]    = { "HDMI_SOFT_STATE=0", NULL };
 	struct ns115_hdmi_data *hdmi = ns115_hdmi_get_pt();
         printk(KERN_WARNING "[HDMI:libenqi]ns115_hdmi_hot_disconnect()\n");
         ns115_hdmi_TxPowerStateD2(hdmi);
-	//kobject_uevent_env(&hdmi->sdev.dev->kobj, KOBJ_CHANGE, soft_disconnected);
+	kobject_uevent_env(&hdmi->sdev.dev->kobj, KOBJ_CHANGE, soft_disconnected);
 }
 
 static void ns115_hdmi_hot_connect()
 {
-        //char *soft_connected[2]    = { "HDMI_SOFT_STATE=CONNECTED", NULL };
+        char *soft_connected[2]    = { "HDMI_SOFT_STATE=1", NULL };
 	printk(KERN_WARNING "ns115_hdmi_hot_connect()\n");
         struct ns115_hdmi_data *hdmi = ns115_hdmi_get_pt();
         ns115_hdmi_TxPowerStateD0(hdmi);
-	//kobject_uevent_env(&hdmi->sdev.dev->kobj, KOBJ_CHANGE, soft_connected);
+	kobject_uevent_env(&hdmi->sdev.dev->kobj, KOBJ_CHANGE, soft_connected);
 }
 
 
@@ -752,6 +769,7 @@ static int __exit ns115_hdmi_remove(struct platform_device *pdev)
 	switch_dev_unregister(&hdmi->sdev);
 #endif
 	mutex_destroy(&hdmi->mutex);
+	mutex_destroy(&hdmi->mutex_edid);
 	kfree(hdmi);
 	ns115_hdmi_set_pt(NULL);
 	return 0;
@@ -1428,6 +1446,7 @@ static int __init ns115_hdmi_probe(struct platform_device *pdev)
 #endif
 
 	mutex_init(&hdmi->mutex);
+	mutex_init(&hdmi->mutex_edid);
 	hdmi->dev = &pdev->dev;
 
 	hdmi->page_reg = PAGE_0_HDMI;
@@ -1480,6 +1499,7 @@ static int __init ns115_hdmi_probe(struct platform_device *pdev)
 	return 0;
 err_release:
 	mutex_destroy(&hdmi->mutex);
+	mutex_destroy(&hdmi->mutex_edid);
 err_switch_dev_register:
 	kfree(hdmi);
 	return ret;

@@ -1844,10 +1844,13 @@ unsigned int snd_soc_read(struct snd_soc_codec *codec, unsigned int reg)
 {
 	unsigned int ret;
 
+#ifdef CONFIG_MACH_NS115_STICK
+	ret = 0;
+#else
 	ret = codec->read(codec, reg);
 	dev_dbg(codec->dev, "read %x => %x\n", reg, ret);
 	trace_snd_soc_reg_read(codec, reg, ret);
-
+#endif
 	return ret;
 }
 EXPORT_SYMBOL_GPL(snd_soc_read);
@@ -1855,10 +1858,14 @@ EXPORT_SYMBOL_GPL(snd_soc_read);
 unsigned int snd_soc_write(struct snd_soc_codec *codec,
 			   unsigned int reg, unsigned int val)
 {
+#ifdef CONFIG_MACH_NS115_STICK
+	return 0;
+#else
 	dev_dbg(codec->dev, "write %x = %x\n", reg, val);
 	trace_snd_soc_reg_write(codec, reg, val);
 	msleep(1);
 	return codec->write(codec, reg, val);
+#endif
 }
 EXPORT_SYMBOL_GPL(snd_soc_write);
 

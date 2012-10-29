@@ -448,6 +448,7 @@ struct ns115_hdmi_data {
 	struct device *dev;
 	struct fb_info *info;
 	struct mutex mutex;             /* Protect the info pointer */
+	struct mutex mutex_edid;             /* Protect the info pointer */
 	u32 gpio;
 	struct tasklet_struct tasklet;
 	struct delayed_work     edid_work;

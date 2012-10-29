@@ -533,10 +533,15 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 	
 	if(ts != NULL && !ts->use_irq)
 		return -2;
-	
-	printk(KERN_EMERG "%s suspend %d\n", __func__, on);
+	if(on)
+		printk(KERN_EMERG "%s goodix resume %d\n", __func__, on);
+	else
+		printk(KERN_EMERG "%s goodix suspend %d\n", __func__, on);
 
-	if(on == 0)		//suspend
+	struct touch_panel_platform_data* tP_platform_data = (struct touch_panel_platform_data*)ts->client->dev.platform_data;
+	int reset_gpio = irq_to_gpio(tP_platform_data->irq_reset);
+
+	if(on == 0)//suspend
 	{ 
 		if(ts->green_wake_mode)
 		{
@@ -558,8 +563,10 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 				printk(KERN_INFO"Send suspend cmd\n");
 				break;
 			}
-			printk("Send cmd failed!\n");
-			wakeup_sleep_and_green_mode(ts->gpio);
+			printk(KERN_EMERG "%s: Send suspend cmd failed!\n", __func__);
+			gpio_direction_output(reset_gpio,  0);
+			mdelay(2);
+			gpio_direction_output(reset_gpio,  1);
 			retry++;
 			msleep(10);
 		}
@@ -580,7 +587,10 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 			rd_cfg_buf[1] = 0x00;
 			ret = i2c_read_bytes(ts->client, rd_cfg_buf, 2);
 			if(ret <= 0){
-				wakeup_sleep_and_green_mode(ts->gpio);
+				printk(KERN_EMERG "%s:send  resume cmd failed!\n", __func__);
+				gpio_direction_output(reset_gpio,  0);
+				mdelay(2);
+				gpio_direction_output(reset_gpio,  1);
 				retry++;
 				msleep(10);
 			}
@@ -593,8 +603,10 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 			gpio_direction_input(ts->gpio);
 		}
 		//msleep(260)
-		ret = 0;
-	}	 
+		if(ret >0)
+			ret = 0;
+	}
+
 	return ret;
 }
 
@@ -896,7 +908,7 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	//reset touch panel
 	struct touch_panel_platform_data* tP_platform_data = (struct touch_panel_platform_data*)client->dev.platform_data;
 	int reset_gpio = irq_to_gpio(tP_platform_data->irq_reset);
-	printk("touch panel reset gpio number is %d\n", reset_gpio);
+	printk(KERN_EMERG "touch panel reset gpio number is %d\n", reset_gpio);
 	ret = gpio_request(reset_gpio, "TP_RESET");
 	if(ret < 0){
 		dev_err(&client->dev, "Failed to request GPIO:%d, ERRNO:%d\n", reset_gpio,ret);
