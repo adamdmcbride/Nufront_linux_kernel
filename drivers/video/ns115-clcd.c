@@ -703,7 +703,7 @@ static int nusmartfb_set_par(struct fb_info *fb)
 static int set_resolution_ratio(struct fb_info * fb,struct fb_videomode *find_mode)
 {
 	const struct fb_videomode * m = NULL;
-	struct fb_var_screeninfo var;
+	struct fb_var_screeninfo var = {0,};
 	int retval;
 	struct fb_var_screeninfo stdvar;
 	struct fb_videomode mode;
@@ -711,20 +711,22 @@ static int set_resolution_ratio(struct fb_info * fb,struct fb_videomode *find_mo
 
 	fb_videomode_to_var(&var, find_mode);
 
-	if(var.bits_per_pixel)
+	if(!var.bits_per_pixel)
 		var.bits_per_pixel = 16;
+
+	if(!find_mode->refresh)
+		find_mode->refresh = 60;
 
 	printk(KERN_INFO "set resolution to %ux%u-%u@%d\n", find_mode->xres, find_mode->yres, var.bits_per_pixel, find_mode->refresh);
 
 #ifdef DEBUG
 	display_modelist(&fb->modelist);
 #endif
-
 	m = fb_find_nearest_mode(find_mode, &fb->modelist);
 
 	if ((m && (m->xres != var.xres || m->yres != var.yres))
             || (!m && ((var.xres == 1280 && var.yres == 720) || (var.xres == 1920 && var.yres == 1080)))) {
-		sprintf(mode_option, "%ux%u-%u", var.xres, var.yres, var.bits_per_pixel);
+		sprintf(mode_option, "%ux%u-%u@%u", var.xres, var.yres, var.bits_per_pixel, find_mode->refresh);
 		retval = fb_find_mode(&stdvar, fb, mode_option, NULL, 0,NULL, var.bits_per_pixel);
 		if (retval > 0) {
 			fb_var_to_videomode(&mode, &stdvar);
@@ -1894,12 +1896,14 @@ void fb_select_modes(const struct fb_videomode *mode,
 	struct fb_modelist *modelist;
 	struct fb_videomode *m;
 
+	printk(KERN_INFO "%s : %d\n", __func__, __LINE__);
+
 	list_for_each_safe(pos, n, head) {
 		modelist = list_entry(pos, struct fb_modelist, list);
 		m = &modelist->mode;
 		if (	(((m->xres * m->yres) > (mode->xres * mode->yres)) && (m->xres !=1920 || m->yres != 1080)
 			&& (m->xres !=1280 || m->yres != 1024))
-//		     || (m->refresh < 59)
+		     || (m->refresh > 60)
 		     || (m->vmode & FB_VMODE_INTERLACED))
 		{
 			list_del(pos);

@@ -64,13 +64,23 @@ static unsigned char *fb_do_probe_ddc_edid(struct i2c_adapter *adapter)
 
 	for(read_edid_times = 0;read_edid_times<4;read_edid_times++){
 		p = fb_do_probe_ddc_edid_32(adapter,read_edid_times);
-		memcpy(buf+EDID_LENGTH/4*read_edid_times,p,EDID_LENGTH/4);
+		if(p){
+			memcpy(buf+EDID_LENGTH/4*read_edid_times,p,EDID_LENGTH/4);
+		}else{
+			kfree(buf);
+			return NULL;
+		}
 	}
 
 	if (buf[126]) {
 		for(read_edid_times = 4;read_edid_times<8;read_edid_times++){
 			p = fb_do_probe_ddc_edid_32(adapter,read_edid_times);
-			memcpy(buf+EDID_LENGTH/4*read_edid_times,p,EDID_LENGTH/4);
+			if(p){
+				memcpy(buf+EDID_LENGTH/4*read_edid_times,p,EDID_LENGTH/4);
+			}else{
+				kfree(buf);
+				return NULL;
+			}
 		}
 	}
 
