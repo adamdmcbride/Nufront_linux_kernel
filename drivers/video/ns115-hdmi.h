@@ -400,6 +400,8 @@
 #define AV_MUTE_NORMAL						(0x00)
 #define AV_MUTE_MUTED						(0x08)
 
+#define VIDEO_MODE_REG1                         0x4A
+
 enum EDID_ErrorCodes
 {
 	EDID_OK,

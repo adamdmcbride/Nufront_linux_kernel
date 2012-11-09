@@ -448,6 +448,7 @@ static int ns115_hdmi_dec_fun(struct ns115_hdmi_data *hdmi)
                 ns115_hdmi_configure(hdmi);
                 ns115_hdmi_TxPowerStateD0(hdmi);
                 ns115_hdmi_EnableTMDS(hdmi);
+		WriteIndexedRegister(hdmi,INDEXED_PAGE_0,VIDEO_MODE_REG1,0x10);
         }
         /* HDMI disconnect */
         else if (hdmi->hp_state == HDMI_HOTPLUG_DISCONNECTED)
