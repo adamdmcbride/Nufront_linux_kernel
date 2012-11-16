@@ -470,7 +470,7 @@ static int async_abort(struct evatronix_host *host, struct evatronix_slot *slot)
 
 static void evatronix_tasklet_func(unsigned long private)
 {
-	struct evatronix_host *host = (struct evatronix_slot *)private;
+	struct evatronix_host *host = (struct evatronix_host *)private;
 
 #ifndef	SUPPORT_MULTI_SLOTS
 	host->cur_slot = SLOT_ID;

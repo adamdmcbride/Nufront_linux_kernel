@@ -341,20 +341,20 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 	.slots[0] = {
 		.ctype       	= SD_CARD,
 		.force_rescan	= false,
-		.caps		= (MMC_CAP_4_BIT_DATA|
+		.caps		= (MMC_CAP_4_BIT_DATA/*|
 					MMC_CAP_SD_HIGHSPEED|MMC_CAP_MMC_HIGHSPEED|
-					MMC_CAP_UHS_SDR12|MMC_CAP_UHS_SDR50),
-		.freq 		= 100000000,
+					MMC_CAP_UHS_SDR12|MMC_CAP_UHS_SDR50*/),
+		.freq 		= 25000000,
 		.ocr_avail	= 0xff8000,	//2.6V-3.7V
 
-		.voltage_switch = slot0_voltage_switch,
+		.voltage_switch = NULL,//slot0_voltage_switch,
 	},
 
 	.slots[1] = {
 		.ctype       	= EMMC_CARD,
 		.force_rescan	= true,
 		.caps		= (MMC_CAP_NONREMOVABLE|
-					MMC_CAP_4_BIT_DATA|MMC_CAP_MMC_HIGHSPEED),
+					MMC_CAP_4_BIT_DATA/*|MMC_CAP_MMC_HIGHSPEED*/),
 		.freq 		= 25000000,
 		.ocr_avail	= 0xff8000,
 	},
@@ -362,7 +362,7 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 	.slots[2] = {
 		.ctype       	= SDIO_CARD,
 		.force_rescan	= true,
-		.caps		= (MMC_CAP_4_BIT_DATA|MMC_CAP_SD_HIGHSPEED|
+		.caps		= (MMC_CAP_4_BIT_DATA/*|MMC_CAP_SD_HIGHSPEED*/|
 					MMC_CAP_NONREMOVABLE/*|MMC_CAP_SDIO_IRQ*/),
 		.pm_caps	= (MMC_PM_KEEP_POWER|MMC_PM_IGNORE_PM_NOTIFY),
 		.freq 		= 25000000,

@@ -138,7 +138,6 @@ static int eva_i2s_wait(void)
 	i2s_reg = __raw_readl(eva_i2s_data.base + CTRL);
 	i2s_reg &= ~(TFIFO_RST | RFIFO_RST);
 	__raw_writel(i2s_reg, eva_i2s_data.base + CTRL);
-
 	return 0;
 }
 
@@ -240,7 +239,7 @@ static int eva_i2s_hw_params(struct snd_pcm_substream *substream,
 
 	//CTRL and fifo reg
 	reg = __raw_readl(eva_i2s_data.base + CTRL);
-	reg |= TSYNC_LOOP_BACK | T_MS  | TSYNC_RST | 0x1E << 8;  //chan 0 = ADC, chan 1-4 = DAC
+	reg |= TSYNC_LOOP_BACK | T_MS  | 0x1E << 8;  //chan 0 = ADC, chan 1-4 = DAC
 	__raw_writel(reg, eva_i2s_data.base + CTRL);
 
 	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
@@ -257,7 +256,7 @@ static int eva_i2s_hw_params(struct snd_pcm_substream *substream,
 		__raw_writel(FIFOC(8,24), eva_i2s_data.base + RFIFO_CTRL);
 		//enable chan 1 as receiver
 		reg = __raw_readl(eva_i2s_data.base + CTRL);
-		reg |= RSYNC_LOOP_BACK | RSYNC_RST;
+		reg |= RSYNC_LOOP_BACK;
 		//reg |= RSYNC_RST|LOOPBACK_0_1;
 		__raw_writel(reg, eva_i2s_data.base + CTRL);
 	}
@@ -314,6 +313,10 @@ static int eva_i2s_trigger(struct snd_pcm_substream *substream, int cmd,
 
 			reg = __raw_readl(eva_i2s_data.base + CTRL);
 			reg |= pda->i2s_chan;   //set chan as transmit and enable
+			if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+				reg |= TSYNC_RST;
+			else
+				reg |= RSYNC_RST;
 			__raw_writel(reg, eva_i2s_data.base + CTRL);
 
 			reg = __raw_readl(eva_i2s_data.base + CID_CTRL);
@@ -326,6 +329,10 @@ static int eva_i2s_trigger(struct snd_pcm_substream *substream, int cmd,
 		case SNDRV_PCM_TRIGGER_STOP:
 			reg = __raw_readl(eva_i2s_data.base + CTRL);
 			reg &= ~(pda->i2s_chan);
+			if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+				reg &= ~TSYNC_RST;
+			else
+				reg &= ~RSYNC_RST;
 			__raw_writel(reg, eva_i2s_data.base + CTRL);
 
 			reg = __raw_readl(eva_i2s_data.base + CID_CTRL);

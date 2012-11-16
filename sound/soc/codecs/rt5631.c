@@ -62,6 +62,7 @@ static struct rt5631_init_reg init_list[] = {
 	{RT5631_SPK_MONO_HP_OUT_CTRL	, 0x0000},
 	{RT5631_INT_ST_IRQ_CTRL_2	, 0x0f18},
 	{RT5631_MIC_CTRL_1		, 0x8080},
+	{RT5631_SDP_CTRL		, 0x8010},
 	//johnny-2-7 [s]
 	{RT5631_ADC_REC_MIXER		, 0xa0a0},
 #ifdef ALC_FUNC
@@ -91,6 +92,7 @@ static struct rt5631_init_reg init_list_cache[] = {
 	{RT5631_SPK_MONO_HP_OUT_CTRL	, 0x0000},
 	{RT5631_INT_ST_IRQ_CTRL_2	, 0x0f18},
 	{RT5631_MIC_CTRL_1		, 0x8080},
+	{RT5631_SDP_CTRL		, 0x8010},
 	//johnny-2-7 [s]
 	{RT5631_ADC_REC_MIXER		, 0xa0a0},
 #ifdef ALC_FUNC
