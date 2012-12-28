@@ -216,10 +216,10 @@ int nusmart_ehci_resume(struct platform_device * pdev)
 	ehci_readl(ehci, &ehci->regs->command);	/* unblock posted writes */
 
 	/* here we "know" root ports should always stay powered */
-	ehci_port_power(ehci, 0);
+	//ehci_port_power(ehci, 0);
 	ehci_port_power(ehci, 1);
-	ehci_port_power(ehci, 2);
-	ehci_port_power(ehci, 3);
+	//ehci_port_power(ehci, 2);
+	//ehci_port_power(ehci, 3);
 
 	hcd->state = HC_STATE_SUSPENDED;
 

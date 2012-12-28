@@ -1,7 +1,11 @@
 #ifndef NS115_GPIO_H_
 #define NS115_GPIO_H_
 
+#ifdef CONFIG_MFD_RICOH583
 #define ARCH_NR_GPIOS		(32*4+8+8)
+#else
+#define ARCH_NR_GPIOS		(32*4+8)
+#endif
 #include <asm-generic/gpio.h>
 #include <mach/irqs-ns115.h>
 
@@ -77,17 +81,18 @@
 #define BOARD_GPIO_INTPOLCFG	0xffffffff
 #endif
 
+#if 0
 static inline int is_valid_gpio(unsigned gpio)
 {
 	return gpio<(GPIO_BASE0+GPIO_LINE_MAX);
 }
+#endif
+
 static inline int gpio_to_irq(int gpio)
 {
-	if(gpio < GPIO_BASE1)
-		return GPIO_IRQ_BASE0+gpio-GPIO_BASE0;
-	else
-		return GPIO_IRQ_BASE1+gpio-GPIO_BASE1;
+	return __gpio_to_irq(gpio);
 }
+
 static inline int irq_to_gpio(int irq)
 {
 	if(irq < GPIO_IRQ_BASE1)

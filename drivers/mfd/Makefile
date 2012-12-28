@@ -98,3 +98,4 @@ obj-$(CONFIG_MFD_TPS65910)	+= tps65910.o tps65910-irq.o
 obj-$(CONFIG_MFD_IO373X_I2C)	+= io373x.o io373x_i2c.o io373x_ps2.o io373x-hotkey.o io373x_pw.o io373x-pwnbutton.o
 obj-$(CONFIG_TPS65911_COMPARATOR)	+= tps65911-comparator.o
 obj-$(CONFIG_MFD_RICOH583)	+= ricoh583.o
+obj-$(CONFIG_MFD_TPS80032)	+= tps80032.o tps80032-gpadc.o

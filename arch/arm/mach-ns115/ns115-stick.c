@@ -29,7 +29,7 @@
 #include <linux/delay.h>
 #include <linux/gpio.h>
 #include <linux/clk.h>
-
+#include <linux/wakelock.h>
 
 #include <asm/irq.h>
 #include <asm/leds.h>
@@ -115,7 +115,15 @@ static struct lcdc_platform_data lcdc_data =
 
 // usb hdmi stick not intergated dynamic adjust voltage.
 static struct ns115_cpufreq_config hdmi_stick_freq_cfg = {
-	.max_frequency = 1000000,
+#ifdef CONFIG_CHIP_NORMAL
+       .max_frequency = 1000000,
+#elif defined(CONFIG_CHIP_HIGH)
+       .max_frequency = 1200000,
+#elif defined(CONFIG_CHIP_EFUSE)
+       .max_frequency = 1500000,
+#else
+       .max_frequency = 800000,
+#endif
 };
 
 #ifdef CONFIG_BATTERY_BQ27410_GASGAUGE
@@ -347,7 +355,7 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 		.freq 		= 25000000,
 		.ocr_avail	= 0xff8000,	//2.6V-3.7V
 
-		.voltage_switch = NULL,//slot0_voltage_switch,
+		.voltage_switch = slot0_voltage_switch,
 	},
 
 	.slots[1] = {
@@ -362,7 +370,7 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 	.slots[2] = {
 		.ctype       	= SDIO_CARD,
 		.force_rescan	= true,
-		.caps		= (MMC_CAP_4_BIT_DATA/*|MMC_CAP_SD_HIGHSPEED*/|
+		.caps		= (MMC_CAP_4_BIT_DATA|/*MMC_CAP_SD_HIGHSPEED|*/
 					MMC_CAP_NONREMOVABLE/*|MMC_CAP_SDIO_IRQ*/),
 		.pm_caps	= (MMC_PM_KEEP_POWER|MMC_PM_IGNORE_PM_NOTIFY),
 		.freq 		= 25000000,
@@ -552,6 +560,13 @@ device_initcall(dma_pl330_init);
 
 #endif
 
+static struct wake_lock stick_lock;
+static const *stick_lock_name = "hdmi-stick-system";
+static void ns115_wakelock()
+{
+	wake_lock_init(&stick_lock,WAKE_LOCK_SUSPEND,stick_lock_name);
+	wake_lock(&stick_lock);
+}
 static void __init ns115_stick_init(void)
 {
 	ns115_cpufreq_cfg = &hdmi_stick_freq_cfg;
@@ -579,6 +594,7 @@ static void __init ns115_stick_init(void)
 
 	ext_i2c_register_devices(extend_i2c_devs,ARRAY_SIZE(extend_i2c_devs));
 	ns115_system_pm_init();
+	ns115_wakelock();
 
 	printk("on2_base = 0x%x, on2_size = 0x%x\n lcd_base = 0x%x, \
 			lcd_size = 0x%x\n gpu_size = 0x%x, ump_size = 0x%x\n",\

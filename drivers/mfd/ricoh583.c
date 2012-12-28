@@ -599,13 +599,23 @@ void ricoh583_restart(char str, const char * cmd)
 static int ricoh583_gpio_get(struct gpio_chip *gc, unsigned offset)
 {
 	struct ricoh583 *ricoh583 = container_of(gc, struct ricoh583, gpio);
-	uint8_t val;
+	uint8_t get_addr, val;
 	int ret;
 
-	ret = __ricoh583_read(ricoh583->client, RICOH583_GPIO_MON_IOIN, &val);
-	if (ret < 0)
+	ret = __ricoh583_read(ricoh583->client, RICOH583_GPIO_IOSEL, &val);
+	if (ret < 0){
 		return ret;
-	//printk("%s:%d\n", __func__, val);
+	}
+	if (val >> offset & 0x1){
+		get_addr = RICOH583_GPIO_IOOUT; //output mode
+	}else{
+		get_addr = RICOH583_GPIO_MON_IOIN; //input mode
+	}
+	ret = __ricoh583_read(ricoh583->client, get_addr, &val);
+	if (ret < 0){
+		return ret;
+	}
+	dev_dbg(ricoh583->dev, "%s offset:%d value:0x%x\n", __func__, offset, val);
 
 	return ((val & (0x1 << offset)) != 0);
 }
@@ -620,7 +630,7 @@ static void ricoh583_gpio_set(struct gpio_chip *chip, unsigned offset,
 	else
 		ricoh583_clr_bits(ricoh583->dev, RICOH583_GPIO_IOOUT,
 				1 << offset);
-	//printk("%s offset:%d value:%d\n", __func__, offset, value);
+	dev_dbg(ricoh583->dev, "%s offset:%d value:0x%x\n", __func__, offset, value);
 }
 
 static int ricoh583_gpio_input(struct gpio_chip *chip, unsigned offset)
@@ -1236,7 +1246,7 @@ static ssize_t show_val(struct device *dev, struct device_attribute *attr, char 
 		return ret;
 	}
 
-	return sprintf(buf, "0x%02X\n", val);
+	return sprintf(buf, "addr:0x:%02x val:0x%02x\n", dbg_addr, val);
 }
 
 static ssize_t store_val(struct device *dev, struct device_attribute *attr,

@@ -340,7 +340,39 @@ static ssize_t regulator_state_show(struct device *dev,
 
 	return ret;
 }
-static DEVICE_ATTR(state, 0444, regulator_state_show, NULL);
+
+static int _regulator_enable(struct regulator_dev *rdev);
+
+static ssize_t regulator_state_store(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count)
+{
+	struct regulator_dev *rdev = dev_get_drvdata(dev);
+	struct regulator_dev *supply_rdev = NULL;
+	ssize_t ret = -1;
+
+	mutex_lock(&rdev->mutex);
+	if (strncmp(buf, "enable", 6) == 0){
+		ret = _regulator_enable(rdev);
+	}else if (strncmp(buf, "disable", 7) == 0){
+		ret = _regulator_disable(rdev, &supply_rdev);
+	}else{
+		dev_err(dev, "wrong command: %s! (enable/disable)\n", buf);
+	}
+	mutex_unlock(&rdev->mutex);
+
+	/* decrease our supplies ref count and disable if required */
+	while (supply_rdev != NULL) {
+		rdev = supply_rdev;
+
+		mutex_lock(&rdev->mutex);
+		ret = _regulator_disable(rdev, &supply_rdev);
+		mutex_unlock(&rdev->mutex);
+	}
+
+	return count;
+}
+static DEVICE_ATTR(state, 0644, regulator_state_show, regulator_state_store);
 
 static ssize_t regulator_status_show(struct device *dev,
 				   struct device_attribute *attr, char *buf)

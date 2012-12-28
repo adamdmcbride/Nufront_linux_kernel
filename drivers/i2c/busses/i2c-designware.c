@@ -109,6 +109,7 @@
 #define DW_IC_INTR_DEFAULT_MASK		(DW_IC_INTR_RX_FULL | \
 					 DW_IC_INTR_TX_EMPTY | \
 					 DW_IC_INTR_TX_ABRT | \
+					 DW_IC_INTR_RX_OVER | \
 					 DW_IC_INTR_STOP_DET)
 
 #define DW_IC_STATUS_ACTIVITY	0x1
@@ -729,12 +730,26 @@ static irqreturn_t i2c_dw_isr(int this_irq, void *dev_id)
 		writel(0, dev->base + DW_IC_INTR_MASK);
 		goto tx_aborted;
 	}
-
+	if (stat & DW_IC_INTR_RX_OVER)
+	{
+		dev_err(dev->dev, "i2c fifo overflow rx tl=%d,rxflr=%d,msg len=%d,txflr=%d\n",
+				readl(dev->base + DW_IC_RX_TL),readl(dev->base+DW_IC_RXFLR),dev->msgs[dev->msg_write_idx].len,
+				readl(dev->base + DW_IC_TXFLR));
+		dev->msg_err = -EINVAL;
+		goto tx_aborted;
+	}
 	if (stat & DW_IC_INTR_RX_FULL)
 		i2c_dw_read(dev);
 
 	if (stat & DW_IC_INTR_TX_EMPTY)
 		i2c_dw_xfer_msg(dev);
+	if (stat & DW_IC_INTR_STOP_DET)
+	{
+		if(dev->status !=0){
+			dev_err(dev->dev, "i2c transfer was stopped unexpected\n");
+			dev->msg_err = -EINVAL;
+		}
+	}
 
 	/*
 	 * No need to modify or disable the interrupt mask here.

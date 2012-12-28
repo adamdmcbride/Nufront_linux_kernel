@@ -112,3 +112,4 @@ obj-$(CONFIG_RTC_DRV_WM8350)	+= rtc-wm8350.o
 obj-$(CONFIG_RTC_DRV_X1205)	+= rtc-x1205.o
 obj-$(CONFIG_RTC_DRV_NS2816)	+= rtc-nusmart.o
 obj-$(CONFIG_RTC_DRV_RC5T583)	+= rtc-ricoh583.o
+obj-$(CONFIG_RTC_DRV_TPS80032)	+= rtc-tps80032.o

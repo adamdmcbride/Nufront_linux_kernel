@@ -93,9 +93,11 @@ struct nusmart_par
 	struct fb_info 	*fb;
 	void __iomem	*mmio;
 	u32		ctrl;
+	int		node;
 	int		fbconv;
 	int		mvflag;
 	struct clk *	clk;
+	struct clk *	rgb_clk;
 	int		irq;
 	int		irq_vert;
 	unsigned int	regsave[REG_NUM];

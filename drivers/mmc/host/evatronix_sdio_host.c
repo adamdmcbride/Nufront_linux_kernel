@@ -229,7 +229,7 @@ static void crime_scene(struct evatronix_host *host, int id)
 		err("\t *** length 0x%08x, dma addr 0x%08x", length, sg_dma_address(&sg[i/2]));
 	}
 
-	for(i = 0; i < host->sg_len; i++) { 
+	for(i = 0; i < host->sg_len; i++) {
 		err("\t *** 0x%08x 0x%08x\n", host->desc[i].desc_1, host->desc[i].desc_2);
 	}
 
@@ -360,8 +360,8 @@ static void evatronix_error_recovery(struct evatronix_host *host,
 
 	ENTER();
 	//disable interrupts
-	slot_writel(host, SFR13, id, 0xFFFFFFFF);
-	slot_writel(host, SFR14, id, 0xffffffff);
+	slot_writel(host, SFR13, id, 0);
+	slot_writel(host, SFR14, id, 0);
 	err("slot%u: DISABLE INTERRUPTS", id);
 
 	val = slot_readl(host, SFR12, id);
@@ -416,8 +416,8 @@ reset:
 		}
 
 		//OK, enable interrupts now
-		slot_writel(host, SFR13, id, 0xFFFFFFFF);
-		slot_writel(host, SFR14, id, 0xFFFFFFFF);
+		slot_writel(host, SFR13, id, 0x02ff00cb);
+		slot_writel(host, SFR14, id, 0x02ff00cb);
 	}
 
 	LEAVE();
@@ -653,14 +653,16 @@ static irqreturn_t evatronix_irq_handler_new(int irq, void *dev_id)
 	}
 #endif
 
+	int tmp;
+	tmp = readl(host->virt_base + SDIO_REG_COMM_SFR63);
 	for( i = 0; i < host->nr_slots; i++) {
 		/* reset */
-		cnt = 0;
 
 		slot = host->slots[i];
 		if(!slot)
 			continue;
-		do {
+		else if ((tmp & (0x1 << i)))
+		{
 			pending = slot_readl(host, SFR12, i);
 
 			if(!pending)
@@ -673,7 +675,7 @@ static irqreturn_t evatronix_irq_handler_new(int irq, void *dev_id)
 #ifdef DEBUG
 			if(slot->irq_status == 0 && pending == 0x108000) {
 				err("cur_slot %d #pre_slot %d pre_cmd CMD%d############slot%d CMD%d####### 0x108000\n",
-					host->cur_slot, 
+					host->cur_slot,
 					host->prev_slot, host->prev_cmd,
 					slot->id, slot->mrq ? slot->mrq->cmd->opcode:111111);
 			}
@@ -772,7 +774,7 @@ static irqreturn_t evatronix_irq_handler_new(int irq, void *dev_id)
 					tasklet_schedule(&host->tasklet_cd);
 				}
 			}
-		} while(cnt++ < 3);
+		}
 	}
 
 	LEAVE();
@@ -998,16 +1000,16 @@ static u8 check_dma_desc(struct evatronix_slot *slot, struct mmc_data *data, int
 			printk(KERN_EMERG "%s, desc_addr = 0 <<<<<<<<<<<<< \n", __func__);
 
 		if(log > 0) {
-			printk(KERN_EMERG "check: 0x%08x[0x%08x] 0x%08x[0x%08x]\n", 
+			printk(KERN_EMERG "check: 0x%08x[0x%08x] 0x%08x[0x%08x]\n",
 				Descriptors, pDesc[i], desc_addr, pDesc[i + 1]);
 		}
 		if(Descriptors == pDesc[i] && desc_addr == pDesc[i + 1]) {
 			continue;
 		}
-		pDesc[i] = Descriptors; 
+		pDesc[i] = Descriptors;
 		pDesc[i + 1] = desc_addr;
 		wmb();
-		ret = 0; 
+		ret = 0;
 	}
 	wmb();
 	if(ret == 0) {
@@ -1785,8 +1787,8 @@ static void evatronix_init_slot(struct evatronix_host *host, int id)
 
 	if(slot->ctype == SDIO_CARD) {
 #ifdef	WIFI_OOB
-		slot_writel(host, SFR13, id, 0xFFFFFeFF);
-		slot_writel(host, SFR14, id, 0xFFFFFeFF);
+		slot_writel(host, SFR13, id, 0x02ff00cb);
+		slot_writel(host, SFR14, id, 0x02ff00cb);
 #else
 		slot_writel(host, SFR13, id, 0xFFFFFFFF);
 		slot_writel(host, SFR14, id, 0xFFFFFFFF);
@@ -1794,8 +1796,8 @@ static void evatronix_init_slot(struct evatronix_host *host, int id)
 #endif
 
 	} else {
-		slot_writel(host, SFR13, id, 0xFFFFFeFF);
-		slot_writel(host, SFR14, id, 0xFFFFFeFF);
+		slot_writel(host, SFR13, id, 0x02ff00cb);
+		slot_writel(host, SFR14, id, 0x02ff00cb);
 	}
 
 	VDBG("slot%d: IRQ enable SFR13 0x%08x", id, slot_readl(host, SFR13, id));
@@ -1890,7 +1892,7 @@ static void slot_cleanup(struct evatronix_host *host, struct evatronix_slot *slo
 		}
 
 	} else {
-		err("\t *** slot%u: CD %s slot mrq 0x%x", 
+		err("\t *** slot%u: CD %s slot mrq 0x%x",
 			slot->id, (present ? "insert" : "remove"), slot->mrq);
 	}
 }
@@ -2298,7 +2300,7 @@ static int evatronix_suspend(struct platform_device *pdev, pm_message_t state)
 	}
 
 	host->suspended = 1;
-	err("Leave %s", __func__); 
+	err("Leave %s", __func__);
 	return 0;
 }
 
@@ -2350,7 +2352,7 @@ static int evatronix_resume(struct platform_device *pdev)
 			slot_writel(host, SFR11, i, val);
 			while((2 & slot_readl(host, SFR11, i)) != 2) {
 				udelay(2);
-				cnt++; 
+				cnt++;
 				if(cnt > 100)
 					err("waiting for Internal Clock Stable timeout");
 			}

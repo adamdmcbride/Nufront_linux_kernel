@@ -43,3 +43,6 @@ obj-$(CONFIG_BQ24170_CHARGER)	+= bq24170-charger.o
 obj-$(CONFIG_RICOH583_AC_DETECT)	+= ricoh583_ac_detect.o
 obj-$(CONFIG_FSA880_USB_DETECT)	+= fsa880_usb_detect.o
 obj-$(CONFIG_BATTERY_BQ27410_GASGAUGE) += bq27410_gasgauge.o
+obj-$(CONFIG_BATTERY_TPS80032)	+= tps80032-battery.o
+obj-$(CONFIG_TPS80032_CHARGER)	+= tps80032-charger.o
+obj-$(CONFIG_TPS80032_CHG_CTRL)	+= tps80032-chg-ctrl.o

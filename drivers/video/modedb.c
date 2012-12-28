@@ -283,7 +283,7 @@ static const struct fb_videomode modedb[] = {
 
     }, {
         /* 1920x1080 @ 60 Hz add by zeyuan */
-        NULL, 60, 1920, 1080, 6734, 148, 88, 4, 36, 44, 5,
+        NULL, 60, 1920, 1080, 6734, 148, 88, 36, 4, 44, 5,
         FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
         FB_VMODE_NONINTERLACED
     }, {
@@ -883,13 +883,22 @@ const struct fb_videomode *fb_find_nearest_mode(const struct fb_videomode *mode,
 	u32 diff = -1, diff_refresh = -1;
 
 	list_for_each(pos, head) {
-		u32 d;
+		u32 d, f;
 
 		modelist = list_entry(pos, struct fb_modelist, list);
 		cmode = &modelist->mode;
 
 		d = abs(cmode->xres - mode->xres) +
 			abs(cmode->yres - mode->yres);
+
+		f = abs(cmode->refresh - mode->refresh);
+
+		if((0 ==d) && (0 == f))
+		{
+			best = cmode;
+			break;
+		}
+
 		if (diff > d) {
 			diff = d;
 			best = cmode;

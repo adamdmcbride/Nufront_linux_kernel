@@ -139,6 +139,25 @@ static void ns115_gpio_set(struct gpio_chip *chip, unsigned offset, int value)
 	spin_unlock_irqrestore(lock, flags);
 }
 
+static int ns115_gpio_to_irq(int gpio)
+{
+	if(gpio < GPIO_BASE1){
+		return GPIO_IRQ_BASE0+gpio-GPIO_BASE0;
+	}else{
+		return GPIO_IRQ_BASE1+gpio-GPIO_BASE1;
+	}
+}
+
+static int ns115_gpio0_to_irq(struct gpio_chip *chip, unsigned offset)
+{
+	return GPIO_IRQ_BASE0 + offset;
+}
+
+static int ns115_gpio1_to_irq(struct gpio_chip *chip, unsigned offset)
+{
+	return GPIO_IRQ_BASE1 + offset;
+}
+
 static void __init ns115_gpio0(int enable)
 {
 	void __iomem * regbase = __io_address(NS115_PRCM_BASE);
@@ -207,6 +226,7 @@ static int __init ns115_init_gpio_chip(struct gpio_data * data)
 	c->direction_output = ns115_gpio_direction_output;
 	c->get = ns115_gpio_get;
 	c->set = ns115_gpio_set;
+	c->to_irq = ns115_gpio1_to_irq;
 	/* number of GPIOs on last bank may be less than 32 */
 	c->ngpio = GPIO1_LINE_MAX;
 	if(gpiochip_add(c)<0)
@@ -241,6 +261,7 @@ static int __init ns115_init_gpio_chip(struct gpio_data * data)
 	c->direction_output = ns115_gpio_direction_output;
 	c->get = ns115_gpio_get;
 	c->set = ns115_gpio_set;
+	c->to_irq = ns115_gpio0_to_irq;
 	/* number of GPIOs on last bank may be less than 32 */
 	c->ngpio = GPIO0_LINE_MAX;
 	if(gpiochip_add(c)<0)
@@ -409,7 +430,7 @@ void __init ns115_init_gpio(struct gpio_data * data)
 {
 	struct ns115_gpio_chip *c;
 	int gpio, irq;
-	struct irq_chip *gic_chip = irq_get_chip(gpio_to_irq(0));
+	struct irq_chip *gic_chip = irq_get_chip(ns115_gpio_to_irq(0));
 
 	/* Initialize GPIO chip */
 	ns115_init_gpio_chip(data);
@@ -445,7 +466,7 @@ void __init ns115_init_gpio(struct gpio_data * data)
 #endif
 
 	for (gpio = GPIO_BASE0; gpio < GPIO_BASE0 + INT_GPIO; gpio++) {
-		irq  = gpio_to_irq(gpio);
+		irq  = ns115_gpio_to_irq(gpio);
 		irq_set_chip_and_handler(irq, &ns115_gpio_irq_chip,
 					 handle_simple_irq);
 		set_irq_flags(irq, IRQF_VALID);

@@ -36,6 +36,18 @@
 #define rtc_alarm_y		0xF0
 #define rtc_adjust		0xE7
 
+//#define RTC_DEBUG_EN
+#ifdef RTC_DEBUG_EN
+#define  PDBG(dev, format,...)	\
+	dev_err(dev, format, ##__VA_ARGS__)
+#define  PINFO(dev, format,...)	\
+	dev_err(dev, format, ##__VA_ARGS__)
+#else
+#define  PDBG(dev, format,...)	do{}while(0)
+#define  PINFO(dev, format,...)	\
+	dev_info(dev, format, ##__VA_ARGS__)
+#endif
+
 /*
    linux rtc driver refers 1900 as base year in many calculations.
    (e.g. refer drivers/rtc/rtc-lib.c)
@@ -126,7 +138,7 @@ static void convert_decimal_to_bcd(u8 *buf, u8 len)
 
 static void print_time(struct device *dev, struct rtc_time *tm)
 {
-	dev_info(dev, "rtc-time : %d/%d/%d %d:%d\n",
+	PINFO(dev, "rtc-time : %d/%d/%d %d:%d\n",
 			(tm->tm_mon + 1), tm->tm_mday, (tm->tm_year + os_ref_year),
 			tm->tm_hour, tm->tm_min);
 }
@@ -181,13 +193,21 @@ static int ricoh583_alarm_irq_enable(struct device *dev, unsigned int enabled)
 {
 	struct ricoh583_rtc *rtc = dev_get_drvdata(dev);
 	int ret;
+	u8 buff[5];
 
-	dev_info(dev, "%s: %d\n", __func__, enabled);
+	PINFO(dev, "%s: %d\n", __func__, enabled);
 	if (enabled){
 		rtc->irq_en = true;
 		ret = ricoh583_set_bits(dev->parent, rtc_ctrl1, 1 << 5);
 	}else{
 		rtc->irq_en = false;
+		memset(buff, 0, sizeof(buff));
+		ret = ricoh583_write_regs(dev, rtc_alarm_y, sizeof(buff), buff);
+		if (ret) {
+			dev_err(dev->parent, "unable to set alarm\n");
+			return -EBUSY;
+		}
+
 		ret = ricoh583_clr_bits(dev->parent, rtc_ctrl1, 1 << 5);
 	}
 
@@ -215,7 +235,7 @@ static int ricoh583_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	 */
 	if (seconds - rtc->epoch_start < 60)
 		alrm->time.tm_min += 1;
-	dev_info(dev->parent, "\n setting alarm to requested time::\n");
+	PINFO(dev->parent, "setting alarm to requested time::\n");
 	print_time(dev->parent, &alrm->time);
 
 	if (WARN_ON(alrm->enabled && (seconds < rtc->epoch_start))) {
@@ -277,7 +297,7 @@ static int ricoh583_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	alrm->time.tm_year = buff[4] + rtc_year_offset;
 	alrm->enabled = rtc->irq_en;
 
-	dev_info(dev->parent, "\n getting alarm time::\n");
+	PINFO(dev->parent, "getting alarm time::\n");
 	print_time(dev, &alrm->time);
 
 	return 0;
@@ -324,7 +344,6 @@ static int __devinit ricoh583_rtc_probe(struct platform_device *pdev)
 	u8 reg[2];
 	rtc = kzalloc(sizeof(*rtc), GFP_KERNEL);
 
-	printk("**********%s\n", __func__);
 	if (!rtc)
 		return -ENOMEM;
 
@@ -355,15 +374,6 @@ static int __devinit ricoh583_rtc_probe(struct platform_device *pdev)
 		return -EBUSY;
 	}
 
-	rtc->irq_en = false;
-	reg[0] = 0x00; /* to disable alarm_y */
-	reg[1] = 0x20; /* to enable 24-hour format */
-	err = ricoh583_write_regs(&pdev->dev, rtc_ctrl1, 2, reg);
-	if (err) {
-		dev_err(&pdev->dev, "failed rtc setup\n");
-		return -EBUSY;
-	}
-
 	ricoh583_rtc_read_time(&pdev->dev, &tm);
 	if (ricoh583_rtc_valid_tm(&pdev->dev, &tm)) {
 		if (pdata->time.tm_year < 2000 || pdata->time.tm_year > 2100) {
@@ -387,6 +397,15 @@ static int __devinit ricoh583_rtc_probe(struct platform_device *pdev)
 			enable_irq_wake(rtc->irq);
 		}
 	}
+
+	ricoh583_alarm_irq_enable(&pdev->dev, 0); /* to disable alarm_y */
+	reg[0] = 0x20; /* to enable 24-hour format */
+	err = ricoh583_write_regs(&pdev->dev, rtc_ctrl2, 1, reg);
+	if (err) {
+		dev_err(&pdev->dev, "failed rtc setup\n");
+		return -EBUSY;
+	}
+
 	printk("%s is OK!\n", __func__);
 	return 0;
 

@@ -251,11 +251,29 @@ config BATTERY_RICOH583
 	help
 	  Say Y here to enable support for ricoh583 Battery Interface.
 
+config BATTERY_TPS80032
+	tristate "TPS80032 battery driver"
+	depends on MFD_TPS80032 && NS115_BATTERY
+	help
+	  Say Y here to enable support for tps80032 Battery Interface.
+
+config TPS80032_CHARGER
+	tristate "TPS80032 internal charger driver"
+	depends on MFD_TPS80032 && NS115_BATTERY
+	help
+	  Say Y here to enable support for tps80032 internal charger Interface.
+
 config BQ24170_CHARGER 
 	tristate "charger support for bq24170"
 	depends on NS115_BATTERY
 	help
 	  Say Y here to enable support for bq24170 charger Interface.
+
+config TPS80032_CHG_CTRL
+	tristate "TPS80032 charger controller driver"
+	depends on MFD_TPS80032 && NS115_BATTERY
+	help
+	  Say Y here to enable support for tps80032 charger controller Interface.
 
 config RICOH583_AC_DETECT 
 	tristate "detect the AC charger from ricoh583 PMIC"

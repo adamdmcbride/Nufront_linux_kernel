@@ -167,6 +167,8 @@
 
 #define MCLK_MULTIPLIER                (1 << 4)///001 ¨C 256
 
+#define HDMI_TPI_AVI_INOUT_BASE_REG 0x09
+
 /*CEA-861-E page 76*/
 #define AUDIO_CHANNELS_OF_2            0x01
 #define AUDIO_CHANNELS_OF_3            0x02
@@ -400,7 +402,7 @@
 #define AV_MUTE_NORMAL						(0x00)
 #define AV_MUTE_MUTED						(0x08)
 
-#define VIDEO_MODE_REG1                         0x4A
+#define VIDEO_MODE_REG1				0x4A
 
 enum EDID_ErrorCodes
 {
@@ -474,6 +476,7 @@ struct ns115_hdmi_data {
 	u32 pixel_clk;
 	u32 refresh;
 	bool enabled;
+	struct fb_videomode *mode;
 };
 
 struct ns115_hdmi_lcdc_data {
@@ -482,10 +485,22 @@ struct ns115_hdmi_lcdc_data {
 	u32 pixel_clk;
 	u32 refresh;
 	u8 *pedid;
+	struct fb_videomode *mode;
+};
+
+struct video_code{
+        u32 xres;
+        u32 yres;
+        u32 refresh;
+	u32 xratio;
+	u32 yratio;
+        u32 ratio;
+        u32 id;
 };
 
 static bool StartTPI(struct ns115_hdmi_data *hdmi);
 
+static u32 hdmi_video_id_get(struct ns115_hdmi_data *hdmi);
 static void  DisableInterrupts(struct ns115_hdmi_data *hdmi,unsigned char Interrupt_Pattern);
 static bool GetDDC_Access (struct ns115_hdmi_data *hdmi,u8* SysCtrlRegVal);
 static bool ReleaseDDC(struct ns115_hdmi_data *hdmi,u8 SysCtrlRegVal);

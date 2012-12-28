@@ -331,8 +331,8 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 	.slots[0] = {
 		.ctype       	= SD_CARD,
 		.force_rescan	= false,
-		.caps		= (MMC_CAP_4_BIT_DATA|
-					MMC_CAP_SD_HIGHSPEED|MMC_CAP_MMC_HIGHSPEED/*|
+		.caps		= (MMC_CAP_4_BIT_DATA/*|
+					MMC_CAP_SD_HIGHSPEED|MMC_CAP_MMC_HIGHSPEED|
 					MMC_CAP_UHS_SDR12|MMC_CAP_UHS_SDR50*/),
 		.freq 		= 25000000,
 		.ocr_avail	= 0xff8000,	//2.6V-3.7V
@@ -344,15 +344,15 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 		.ctype       	= EMMC_CARD,
 		.force_rescan	= true,
 		.caps		= (MMC_CAP_NONREMOVABLE|
-					MMC_CAP_8_BIT_DATA|MMC_CAP_MMC_HIGHSPEED),
-		.freq 		= 50000000,
+					MMC_CAP_8_BIT_DATA/*|MMC_CAP_MMC_HIGHSPEED*/),
+		.freq 		= 25000000,
 		.ocr_avail	= 0xff8000,
 	},
 
 	.slots[2] = {
 		.ctype       	= SDIO_CARD,
 		.force_rescan	= true,
-		.caps		= (MMC_CAP_4_BIT_DATA|MMC_CAP_SD_HIGHSPEED|
+		.caps		= (MMC_CAP_4_BIT_DATA|/*MMC_CAP_SD_HIGHSPEED|*/
 					MMC_CAP_NONREMOVABLE/*|MMC_CAP_SDIO_IRQ*/),
 		.pm_caps	= (MMC_PM_KEEP_POWER|MMC_PM_IGNORE_PM_NOTIFY),
 		.freq 		= 25000000,
@@ -462,6 +462,10 @@ static struct extend_i2c_device __initdata extend_i2c_devs[] =
 #ifdef CONFIG_FSA880_USB_DETECT
 	EXT_I2C_DEV(I2C_BUS_1, &fsa880_i2c_dev, NULL, \
 			FSA880_GPIO_IRQ, USE_DEFAULT),
+#endif
+#ifdef CONFIG_MFD_TPS80032
+	EXT_I2C_DEV(I2C_BUS_1, &tps80032_i2c_dev, NULL, \
+			IRQ_NS115_GPIO0_WAKEUP_5, USE_DEFAULT),
 #endif
 	/*check following setting before you enable it*/
 #ifdef CONFIG_MFD_IO373X_I2C

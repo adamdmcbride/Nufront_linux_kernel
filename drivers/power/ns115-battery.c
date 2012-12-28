@@ -49,7 +49,7 @@
 #define NS115_BATT_PRE_CHG_MVOLTS 3100
 #define NS115_BATT_FULL_MVOLTS	 4150
 #define NS115_BATT_TRKL_DROP	20
-#define NS115_MAX_VOLT_BUF		5
+#define NS115_MAX_VOLT_BUF		10
 #define NS115_VOLT_WINDOWS		25
 
 #define NS115_CHG_MAX_EVENTS	16
@@ -287,6 +287,15 @@ static int get_prop_batt_mvolts(void)
 	}
 }
 
+static int get_prop_batt_current(void)
+{
+	if (ns115_batt_gauge && ns115_batt_gauge->get_battery_current)
+		return ns115_batt_gauge->get_battery_current();
+	else {
+		return -1;
+	}
+}
+
 static int get_prop_batt_temp(void)
 {
 	if (ns115_batt_gauge && ns115_batt_gauge->get_battery_temperature)
@@ -402,32 +411,56 @@ static int ns115_get_capacity(int vbat)
 	if (cur == 0){
 		goto no_change;
 	}else if (cur < 0){
-		if (diff_mAh < 0 || last_diff_cc > 0){
+		if (ns115_chg.batt_cc > 90 && last_diff_cc > 0){
+			if (diff_mAh < step_mAh){
+				goto no_change;
+			}else{
+				goto chg_one_step;
+			}
+		}else if (diff_mAh < 0 || last_diff_cc > 0){
 			goto no_change;
 		}
 	}else if (cur > 0){
-		if (diff_mAh > 0 || last_diff_cc < 0){
+		if (cc == 0){
+			if (-diff_mAh > step_mAh / 4){
+				goto chg_one_step;
+			}else{
+				goto no_change;
+			}
+		}
+		if (ns115_chg.batt_cc > 90 && last_diff_cc > 0){
+			if (diff_mAh > -step_mAh){
+				goto no_change;
+			}else{
+				goto chg_one_step;
+			}
+		}else if (diff_mAh > 0 || last_diff_cc < 0){
 			goto no_change;
 		}
 	}
 	last_diff_cc = abs(last_diff_cc);
 	diff_mAh = abs(diff_mAh);
 	if (diff_mAh < step_mAh){
-		if (last_diff_cc <= step_cc){
+		if (last_diff_cc <= 5){
+			goto no_change;
+		}else if (last_diff_cc > 5 && last_diff_cc <= 10
+				&& diff_mAh > step_mAh / 3 * 2){
+			goto chg_one_step;
+		}else if (last_diff_cc > 10 && last_diff_cc <= 15
+				&& diff_mAh > step_mAh / 2){
+			goto chg_one_step;
+		}else if (last_diff_cc > 15 && diff_mAh > step_mAh / 3){
+			goto chg_one_step;
+		}else{
 			goto no_change;
 		}
-		if (last_diff_cc >= 2 * step_cc && diff_mAh > step_mAh / 3 * 2){
-			goto chg_one_step;
-		}
-		goto no_change;
 	}else{
-		if (last_diff_cc < step_cc){
+		if (last_diff_cc == 0){
 			if (diff_mAh >= step_mAh + step_mAh / 4){
 				goto chg_one_step;
+			}else{
+				goto no_change;
 			}
-			goto no_change;
-		}else if (last_diff_cc >= step_cc && last_diff_cc < 2 * step_cc){
-			goto normal;
 		}else{
 			goto chg_one_step;
 		}
@@ -439,8 +472,6 @@ chg_one_step:
 	}else{
 		cc = ns115_chg.batt_cc + step_cc;
 	}
-normal:
-	PDBG("normal change one step\n");
 	cur_mAh = ns115_batt_gauge->max_mAh * cc / 100;
 	ns115_chg.init_mAh= cur_mAh;
 	cur_time = ns115_get_seconds();
@@ -598,6 +629,35 @@ static int get_prop_batt_status(void)
 	return status;
 }
 
+#ifdef CONFIG_BATTERY_TPS80032
+static int calib_gauge_start_chg(void)
+{
+	if (ns115_batt_gauge && ns115_batt_gauge->calib_gauge_start_chg) {
+		return ns115_batt_gauge->calib_gauge_start_chg();
+	}
+
+	return -1;
+}
+
+static int calib_gauge_stop_chg(void)
+{
+	if (ns115_batt_gauge && ns115_batt_gauge->calib_gauge_stop_chg) {
+		return ns115_batt_gauge->calib_gauge_stop_chg();
+	}
+
+	return -1;
+}
+
+static int calib_gauge_chg_done(void)
+{
+	if (ns115_batt_gauge && ns115_batt_gauge->calib_gauge_chg_done) {
+		return ns115_batt_gauge->calib_gauge_chg_done();
+	}
+
+	return -1;
+}
+#endif
+
 static enum power_supply_property ns115_power_props[] = {
 	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_ONLINE,
@@ -643,6 +703,7 @@ static enum power_supply_property ns115_batt_power_props[] = {
 	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
+	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CAPACITY,
 	POWER_SUPPLY_PROP_TEMP,
 };
@@ -672,6 +733,9 @@ static int ns115_batt_power_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		val->intval = get_prop_batt_mvolts();
+		break;
+	case POWER_SUPPLY_PROP_CURRENT_NOW:
+		val->intval = get_prop_batt_current();
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
 		val->intval = get_prop_batt_capacity();
@@ -724,6 +788,9 @@ static int ns115_stop_charging(struct ns115_charger_priv *priv)
 	int ret;
 
 	ret = priv->hw_chg->stop_charging(priv->hw_chg);
+#ifdef CONFIG_BATTERY_TPS80032
+	calib_gauge_stop_chg();
+#endif
 #ifdef CHARGING_ALWAYS_WAKE
 	if (!ret)
 		wake_unlock(&ns115_chg.wl);
@@ -784,6 +851,9 @@ static int ns115_start_charging(void)
 		}
 		priv->hw_chg_state = CHG_CHARGING_STATE;
 		ns115_chg.batt_status = battery_stat;
+#ifdef CONFIG_BATTERY_TPS80032
+		calib_gauge_start_chg();
+#endif
 	}
 #ifdef VOLTAGE_DEBOUCE
 	ns115_chg.charger_power_on = 0;
@@ -807,6 +877,9 @@ static void handle_charging_done(struct ns115_charger_priv *priv)
 		}
 		ns115_chg.current_chg_priv->hw_chg_state = CHG_DONE_STATE;
 
+#ifdef CONFIG_BATTERY_TPS80032
+		calib_gauge_chg_done();
+#endif
 		ns115_chg.batt_status = BATT_STATUS_CHARGING_DONE;
 		dev_info(ns115_chg.dev, "%s: stopping safety timer work\n",
 				__func__);
@@ -997,6 +1070,14 @@ static void handle_event(int event)
 		case CHG_DONE_EVENT:
 			handle_charging_done(cur_priv);
 			break;
+		case CHG_ERROR_EVENT:
+			if (ns115_stop_charging(cur_priv)) {
+				dev_err(ns115_chg.dev, "%s couldnt stop chg\n", cur_priv->hw_chg->name);
+			}else{
+			    ns115_chg.batt_status = BATT_STATUS_ABSENT;
+		        ns115_chg.current_chg_priv->hw_chg_state = CHG_READY_STATE;
+			}
+			break;
 		case CHG_BATT_BEGIN_PRE_CHARGING:
 			cur_priv->hw_chg->start_charging(cur_priv->hw_chg, CHGING_TYPE_PRE);
 			ns115_chg.batt_status = BATT_STATUS_PRE_CHARGING;
@@ -1019,6 +1100,14 @@ static void handle_event(int event)
 			    ns115_chg.batt_status = BATT_STATUS_FAST_CHARGING;
 		        cur_priv->hw_chg_state = CHG_CHARGING_STATE;
             }
+			break;
+		case CHG_BATT_REMOVED:
+			if (ns115_stop_charging(cur_priv)) {
+				dev_err(ns115_chg.dev, "%s couldnt stop chg\n", cur_priv->hw_chg->name);
+			}else{
+			    ns115_chg.batt_status = BATT_STATUS_ABSENT;
+		        ns115_chg.current_chg_priv->hw_chg_state = CHG_READY_STATE;
+			}
 			break;
 		case CHG_BATT_STATUS_CHANGED:
 			power_supply_changed(&ns115_psy_batt);

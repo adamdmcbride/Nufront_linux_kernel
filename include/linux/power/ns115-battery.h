@@ -18,10 +18,12 @@ enum ns115_battery_event {
 	CHG_PLUG_EVENT,
 	CHG_UNPLUG_EVENT,
 	CHG_DONE_EVENT,
+	CHG_ERROR_EVENT,
 	CHG_BATT_BEGIN_PRE_CHARGING,
 	CHG_BATT_BEGIN_FAST_CHARGING,
 	CHG_BATT_TEMP_OUTOFRANGE,
 	CHG_BATT_TEMP_INRANGE,
+	CHG_BATT_REMOVED,
 	CHG_BATT_STATUS_CHANGED,
 };
 
@@ -55,10 +57,16 @@ struct ns115_charger {
 
 struct ns115_battery_gauge {
 	int (*get_battery_mvolts) (void);
+	int (*get_battery_current) (void);
 	int (*get_battery_temperature) (void);
 	int (*get_battery_status)(void);
 	int (*get_battery_capacity) (int mvolts);
 	int (*is_batt_temp_out_of_range) (void);
+#ifdef CONFIG_BATTERY_TPS80032
+	int (*calib_gauge_start_chg)(void);
+	int (*calib_gauge_stop_chg)(void);
+	int (*calib_gauge_chg_done)(void);
+#endif
 	int resistor_mohm;
 	int normal_pwr;
 	int early_pwr;

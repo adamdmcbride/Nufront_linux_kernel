@@ -28,6 +28,9 @@
 #include <linux/mfd/ricoh583.h>
 #include <linux/regulator/ricoh583-regulator.h>
 #endif
+#ifdef CONFIG_MFD_TPS80032
+#include <linux/mfd/tps80032.h>
+#endif
 
 #include <linux/i2c.h>
 
@@ -258,6 +261,7 @@ static struct regulator_consumer_supply ricoh583_dc1_supply_0[] = {
 };
 
 static struct regulator_consumer_supply ricoh583_dc0_supply_0[] = {
+#if 0
 	REGULATOR_SUPPLY("vdd_main", NULL),
 	REGULATOR_SUPPLY("vdd_2d", NULL),
 	REGULATOR_SUPPLY("vdd_core", NULL),
@@ -267,6 +271,7 @@ static struct regulator_consumer_supply ricoh583_dc0_supply_0[] = {
 	REGULATOR_SUPPLY("vdd_enc", NULL),
 	REGULATOR_SUPPLY("vdd_dec", NULL),
 	REGULATOR_SUPPLY("vdd_zsp", NULL),
+#endif
 };
 
 static struct regulator_consumer_supply ricoh583_dc2_supply_0[] = {
@@ -274,7 +279,6 @@ static struct regulator_consumer_supply ricoh583_dc2_supply_0[] = {
 	REGULATOR_SUPPLY("vdd_tp_io", NULL),
 	REGULATOR_SUPPLY("vdd_aud_io_1v8", NULL),
 	REGULATOR_SUPPLY("vdd_emmc_1v8", NULL),
-	REGULATOR_SUPPLY("vdd_gps_1v8", NULL),
 	REGULATOR_SUPPLY("vdd_cps_1v8", NULL),
 	REGULATOR_SUPPLY("vdd_sensor", NULL),
 	REGULATOR_SUPPLY("vdd_lsen_1v8", NULL),
@@ -364,7 +368,7 @@ static struct ricoh583_regulator_platform_data pdata_##_name##_##_sname = \
 	.ext_pwr_req = _ext_contol,				\
 }
 
-RICOH_PDATA_INIT(dc0, 0,         700,  1500, 0, 1, 1, 0, -1, 0, 0, 0, 0, 0);
+RICOH_PDATA_INIT(dc0, 0,         700,  1500, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0);
 RICOH_PDATA_INIT(dc1, 0,         750,  1500, 0, 1, 1, 0, -1, 0, 0, 0, 1, 7);
 RICOH_PDATA_INIT(dc2, 0,         900,  2400, 0, 1, 1, 0, -1, 0, 0, 0, 1, 5);
 RICOH_PDATA_INIT(dc3, 0,         900,  2400, 0, 1, 1, 0, -1, 0, 0, 0, 0, 0);
@@ -379,7 +383,7 @@ RICOH_PDATA_INIT(ldo5, 0,        1000, 3300, 0, 1, 1, 0, -1, 0, 0, 0, 0, 0);
 
 RICOH_PDATA_INIT(ldo6, 0,        1200, 1200, 0, 1, 1, 0, -1, 0, 0, 0, 1, 4);
 RICOH_PDATA_INIT(ldo7, 0,        1200, 1200, 0, 0, 0, 0, -1, 0, 0, 0, 1, 5);
-RICOH_PDATA_INIT(ldo8, 0,        900,  3400, 0, 1, 1, 0, 1800, 1, 1, 0, 0, 0);
+RICOH_PDATA_INIT(ldo8, 0,        900,  3400, 0, 0, 0, 0, 1800, 1, 1, 0, 0, 0);
 RICOH_PDATA_INIT(ldo9, 0,        900,  3400, 0, 1, 1, 0, -1, 0, 0, 0, 1, 4);
 
 #define RICOH583_IRQ_BASE   (IRQ_NS115_ZSP2CPU + 1)
@@ -447,25 +451,105 @@ static struct ricoh583_pwrkey_platform_data ricoh583_pwrkey_data = {
 #ifdef CONFIG_BATTERY_RICOH583
 static int ricoh583_capacity[][2] = {
 	{100, 4160},
-	{95, 4100},
+	{99, 4144},
+	{98, 4128},
+	{97, 4112},
+	{96, 4096},
+	{95, 4080},
+	{94, 4064},
+	{93, 4048},
+	{92, 4032},
+	{91, 4016},
 	{90, 4000},
-	{85, 3981},
-	{80, 3960},
-	{75, 3953},
+	{89, 3996},
+	{88, 3992},
+	{87, 3988},
+	{86, 3984},
+	{85, 3980},
+	{84, 3976},
+	{83, 3972},
+	{82, 3968},
+	{81, 3964},
+	{80, 3962},
+	{79, 3959},
+	{78, 3956},
+	{77, 3954},
+	{76, 3952},
+	{75, 3950},
+	{74, 3948},
+	{73, 3946},
+	{72, 3944},
+	{71, 3942},
 	{70, 3940},
+	{79, 3936},
+	{68, 3932},
+	{67, 3928},
+	{66, 3924},
 	{65, 3920},
+	{64, 3916},
+	{63, 3912},
+	{62, 3908},
+	{61, 3904},
 	{60, 3900},
-	{55, 3876},
+	{59, 3894},
+	{58, 3888},
+	{57, 3882},
+	{56, 3876},
+	{55, 3870},
+	{54, 3864},
+	{53, 3858},
+	{52, 3852},
+	{51, 3846},
 	{50, 3840},
-	{45, 3816},
+	{49, 3835},
+	{48, 3830},
+	{47, 3825},
+	{46, 3820},
+	{45, 3815},
+	{44, 3810},
+	{43, 3805},
+	{42, 3800},
+	{41, 3795},
 	{40, 3790},
-	{35, 3756},
+	{39, 3783},
+	{38, 3776},
+	{37, 3769},
+	{36, 3762},
+	{35, 3755},
+	{34, 3748},
+	{33, 3741},
+	{32, 3734},
+	{31, 3727},
 	{30, 3720},
+	{29, 3716},
+	{28, 3712},
+	{27, 3708},
+	{26, 3704},
 	{25, 3700},
+	{24, 3696},
+	{23, 3692},
+	{22, 3688},
+	{21, 3684},
 	{20, 3680},
+	{19, 3676},
+	{18, 3672},
+	{17, 3668},
+	{16, 3664},
 	{15, 3660},
+	{14, 3656},
+	{13, 3652},
+	{12, 3648},
+	{11, 3644},
 	{10, 3640},
+	{9, 3636},
+	{8, 3632},
+	{7, 3628},
+	{6, 3624},
 	{5, 3620},
+	{4, 3616},
+	{3, 3612},
+	{2, 3608},
+	{1, 3604},
 	{0, 3600},
 };
 
@@ -485,7 +569,7 @@ static struct ricoh583_battery_platform_data ricoh583_battery_data = {
 	.max_mAh = 4000,
 	.capacity_table = &ricoh583_capacity,
 	.table_size = sizeof(ricoh583_capacity) / (sizeof(int) * 2),
-	.table_step = 5,
+	.table_step = 1,
 };
 #define RICOH583_BATTERY_REG    \
 {       \
@@ -538,7 +622,7 @@ struct ricoh583_gpio_init_data ricoh_gpio_data[] = {
 	RICOH_GPIO_INIT(false, false, false, 0, 1, 0),  //GPIO1
 	RICOH_GPIO_INIT(false, false, false, 0, 1, 6),  //GPIO2
 	RICOH_GPIO_INIT(false, false, false, 0, 1, 5),  //GPIO3
-	RICOH_GPIO_INIT(false, false, false, 0, 0, 0),  //GPIO4
+	RICOH_GPIO_INIT(false, true,  false, 1, 0, 0),  //GPIO4
 	RICOH_GPIO_INIT(true, true, true, 1, 0, 0),  //GPIO5
 	RICOH_GPIO_INIT(false, false, false, 0, 1, 6),  //GPIO6
 	RICOH_GPIO_INIT(false, false, false, 0, 0, 0),  //GPIO7
@@ -561,3 +645,359 @@ struct i2c_board_info __initdata ricoh583_i2c_dev = {
 	.platform_data	= &ricoh_platform,
 };
 #endif //CONFIG_MFD_RICOH583
+
+#ifdef CONFIG_MFD_TPS80032
+
+#ifdef CONFIG_REGULATOR_TPS80032
+static struct regulator_consumer_supply tps80032_smps1_supply[] = {
+	REGULATOR_SUPPLY("smps1", NULL),
+};
+static struct regulator_consumer_supply tps80032_smps2_supply[] = {
+	REGULATOR_SUPPLY("smps2", NULL),
+};
+static struct regulator_consumer_supply tps80032_smps3_supply[] = {
+	REGULATOR_SUPPLY("smps3", NULL),
+};
+static struct regulator_consumer_supply tps80032_smps4_supply[] = {
+	REGULATOR_SUPPLY("smps4", NULL),
+};
+static struct regulator_consumer_supply tps80032_smps5_supply[] = {
+	REGULATOR_SUPPLY("smps5", NULL),
+};
+static struct regulator_consumer_supply tps80032_ldoln_supply[] = {
+	REGULATOR_SUPPLY("ldoln", NULL),
+};
+static struct regulator_consumer_supply tps80032_ldo1_supply[] = {
+	REGULATOR_SUPPLY("ldo1", NULL),
+};
+static struct regulator_consumer_supply tps80032_ldo2_supply[] = {
+	REGULATOR_SUPPLY("ldo2", NULL),
+};
+static struct regulator_consumer_supply tps80032_ldo3_supply[] = {
+	REGULATOR_SUPPLY("ldo3", NULL),
+};
+static struct regulator_consumer_supply tps80032_ldo4_supply[] = {
+	REGULATOR_SUPPLY("ldo4", NULL),
+};
+static struct regulator_consumer_supply tps80032_ldo5_supply[] = {
+	REGULATOR_SUPPLY("ldo5", NULL),
+};
+static struct regulator_consumer_supply tps80032_ldo6_supply[] = {
+	REGULATOR_SUPPLY("ldo6", NULL),
+};
+static struct regulator_consumer_supply tps80032_ldo7_supply[] = {
+	REGULATOR_SUPPLY("ldo7", NULL),
+};
+static struct regulator_consumer_supply tps80032_ldousb_supply[] = {
+	REGULATOR_SUPPLY("ldousb", NULL),
+};
+
+#define TPS80032_PDATA_INIT(_name, _minmv, _maxmv, _always_on, \
+		_boot_on, _apply_uv, _init_mV, _init_enable, _init_apply,      \
+		_sleep_apply, _sleep_en) \
+static struct tps80032_regulator_platform_data pdata_##_name = 	\
+{								\
+	.regulator = {						\
+		.constraints = {				\
+			.min_uV = (_minmv)*1000,		\
+			.max_uV = (_maxmv)*1000,		\
+			.valid_modes_mask = (REGULATOR_MODE_NORMAL |  \
+					REGULATOR_MODE_STANDBY), \
+			.valid_ops_mask = (REGULATOR_CHANGE_MODE |    \
+					REGULATOR_CHANGE_STATUS |  \
+					REGULATOR_CHANGE_VOLTAGE), \
+			.always_on = _always_on,		\
+			.boot_on = _boot_on,			\
+			.apply_uV = _apply_uv,			\
+		},						\
+		.num_consumer_supplies =			\
+		ARRAY_SIZE(tps80032_##_name##_supply),	\
+		.consumer_supplies = tps80032_##_name##_supply, \
+	},							\
+	.init_uV =  _init_mV * 1000,				\
+	.init_enable = _init_enable,				\
+	.init_apply = _init_apply,				\
+	.sleep_apply= _sleep_apply,				\
+	.sleep_enable = _sleep_en,				\
+}
+
+//_name, _minmv, _maxmv, _always_on, _boot_on, _apply_uv, 
+//_init_mV, _init_enable, _init_apply,_sleep_apply, _sleep_en
+
+TPS80032_PDATA_INIT(smps1, 600,  2100, 0, 1, 0, 0, 0, 0, 1, 0);
+TPS80032_PDATA_INIT(smps2, 600,  2100, 0, 1, 0, 0, 0, 0, 1, 0);
+TPS80032_PDATA_INIT(smps3, 600,  2100, 0, 1, 0, 0, 0, 0, 0, 0);
+TPS80032_PDATA_INIT(smps4, 600,  2100, 0, 1, 0, 0, 0, 0, 1, 0);
+TPS80032_PDATA_INIT(smps5, 600,  2100, 0, 1, 0, 0, 0, 0, 1, 0);
+TPS80032_PDATA_INIT(ldoln, 1000,  3300, 0, 1, 0, 0, 0, 0, 1, 0);
+TPS80032_PDATA_INIT(ldo1,  1000,  3300, 0, 1, 0, 0, 0, 0, 0, 0);
+TPS80032_PDATA_INIT(ldo2,  1000,  3300, 0, 1, 0, 0, 0, 0, 0, 0);
+TPS80032_PDATA_INIT(ldo3,  1000,  3300, 0, 1, 0, 0, 0, 0, 0, 0);
+TPS80032_PDATA_INIT(ldo4,  1000,  3300, 0, 1, 0, 0, 0, 0, 0, 0);
+TPS80032_PDATA_INIT(ldo5,  1000,  3300, 0, 1, 0, 3300, 1, 1, 0, 0);
+TPS80032_PDATA_INIT(ldo6,  1000,  3300, 0, 1, 0, 0, 0, 0, 1, 0);
+TPS80032_PDATA_INIT(ldo7,  1000,  3300, 0, 1, 0, 0, 0, 0, 0, 0);
+TPS80032_PDATA_INIT(ldousb,1000,  3300, 0, 1, 0, 0, 0, 0, 1, 0);
+
+#define TPS80032_REG(_id, _name)			\
+{							\
+	.id	= TPS80032_ID_##_id,			\
+	.name	= "tps80032-regulator",			\
+	.platform_data	= &pdata_##_name,	\
+}
+
+#define TPS80032_DEV_REG    \
+TPS80032_REG(SMPS1, smps1),			\
+TPS80032_REG(SMPS2, smps2),			\
+TPS80032_REG(SMPS3, smps3),			\
+TPS80032_REG(SMPS4, smps4),			\
+TPS80032_REG(SMPS5, smps5),			\
+TPS80032_REG(LDOLN, ldoln),			\
+TPS80032_REG(LDO1, ldo1),			\
+TPS80032_REG(LDO2, ldo2),			\
+TPS80032_REG(LDO3, ldo3),			\
+TPS80032_REG(LDO4, ldo4),			\
+TPS80032_REG(LDO5, ldo5),			\
+TPS80032_REG(LDO6, ldo6),			\
+TPS80032_REG(LDO7, ldo7),			\
+TPS80032_REG(LDOUSB, ldousb)
+
+#endif //CONFIG_REGULATOR_TPS80032
+
+#define TPS80032_IRQ_BASE   (IRQ_NS115_ZSP2CPU + 1)
+#define TPS80032_GPIO_IRQ   IRQ_NS115_GPIO0_WAKEUP_5
+
+#ifdef CONFIG_INPUT_TPS80032_PWRKEY
+static struct tps80032_pwrkey_platform_data tps80032_pwrkey_data = {
+	.irq = TPS80032_IRQ_BASE + TPS80032_IRQ_PWRON,
+};
+
+#define TPS80032_PWRKEY_REG     \
+{       \
+	.id = -1,    \
+	.name = "tps80032-pwrkey",    \
+	.platform_data = &tps80032_pwrkey_data,     \
+}
+#endif
+
+#ifdef CONFIG_RTC_DRV_TPS80032
+static struct tps80032_rtc_platform_data tps80032_rtc_data = {
+	.irq = TPS80032_IRQ_BASE + TPS80032_IRQ_RTC_ALARM,
+};
+
+#define TPS80032_RTC_REG				\
+{						\
+	.id	= -1,				\
+	.name	= "rtc-tps80032",		\
+	.platform_data = &tps80032_rtc_data,		\
+}
+#endif
+
+static struct tps80032_adc_platform_data tps80032_adc_data = {
+	.sw2_irq = TPS80032_IRQ_BASE + TPS80032_IRQ_GPADC_SW2_EOC,
+};
+#define TPS80032_ADC_REG	\
+{	\
+	.id = -1,	\
+	.name = "tps80032-adc",	\
+	.platform_data = &tps80032_adc_data,	\
+}
+
+#ifdef CONFIG_BATTERY_TPS80032
+static int tps80032_capacity_table[][2] = {  
+	{100, 4160},
+	{99, 4142}, 
+	{98, 4125}, 
+	{97, 4110}, 
+	{96, 4102},
+	{95, 4095}, 
+	{94, 4088}, 
+	{93, 4081}, 
+	{92, 4070},
+	{91, 4060}, 
+	{90, 4053}, 
+	{89, 4044}, 
+	{88, 4038},
+	{87, 4033}, 
+	{86, 4028}, 
+	{85, 4023}, 
+	{84, 4017},
+	{83, 4012},
+	{82, 4003},
+	{81, 3996},
+	{80, 3990},
+	{79, 3983},
+	{78, 3978},
+	{77, 3971},
+	{76, 3965},
+	{75, 3959},
+	{74, 3952},
+	{73, 3945},
+	{72, 3940},
+	{71, 3934},
+	{70, 3928},
+	{69, 3922},
+	{68, 3915},
+	{67, 3910},
+	{66, 3904},
+	{65, 3898},
+	{64, 3893},
+	{63, 3886},
+	{62, 3880},
+	{61, 3874},
+	{60, 3866},
+	{59, 3858},
+	{58, 3849},
+	{57, 3841},
+	{56, 3835},
+	{55, 3828},
+	{54, 3823},
+	{53, 3819},
+	{52, 3815},
+	{51, 3812},
+	{50, 3807},
+	{49, 3805},
+	{48, 3802},
+	{47, 3799},
+	{46, 3796},
+	{45, 3793},
+	{44, 3791},
+	{43, 3788},
+	{42, 3786},
+	{41, 3784},
+	{40, 3781},
+	{39, 3779},
+	{38, 3778},
+	{37, 3776},
+	{36, 3775},
+	{35, 3773},
+	{34, 3772},
+	{33, 3771},
+	{32, 3770},
+	{31, 3768},
+	{30, 3767},
+	{29, 3764},
+	{28, 3761},
+	{27, 3758},
+	{26, 3755},
+	{25, 3752},
+	{24, 3748},
+	{23, 3745},
+	{22, 3740},
+	{21, 3737},
+	{20, 3735},
+	{19, 3730},
+	{18, 3726},
+	{17, 3721},
+	{16, 3715},
+	{15, 3710},
+	{14, 3704},
+	{13, 3696},
+	{12, 3688},
+	{11, 3683},
+	{10, 3681},
+	{9, 3679}, 
+	{8, 3678}, 
+	{7, 3674}, 
+	{6, 3670}, 
+	{5, 3656}, 
+	{4, 3623}, 
+	{3, 3577}, 
+	{2, 3517}, 
+	{1, 3432}, 
+	{0, 3350}
+};
+static struct tps80032_battery_platform_data tps80032_batt_data = {
+	.autocal_irq = TPS80032_IRQ_BASE + TPS80032_IRQ_CC_AUTOCAL,
+	.max_capacity = 1200,//mAh
+	.resistor = 75,//mohm
+	.alarm_mvolts = 3600,  
+	.power_off_mvolts = 3400,  
+	.max_mAh = 1200,
+	.capacity_table = &tps80032_capacity_table,
+	.table_size = sizeof(tps80032_capacity_table) / (sizeof(int) * 2),
+};
+#define TPS80032_BATTERY_REG	\
+{	\
+	.id = -1,	\
+	.name = "tps80032-battery",	\
+	.platform_data = &tps80032_batt_data,	\
+}
+#endif
+
+#ifdef CONFIG_TPS80032_CHG_CTRL
+static struct tps80032_chg_ctrl_platform_data tps80032_chg_ctrl_data = {
+	.irq = TPS80032_IRQ_BASE + TPS80032_IRQ_CHRG_CTRL,
+};
+#define TPS80032_CHG_CTRL_REG	\
+{	\
+	.id = -1,	\
+	.name = "tps80032-chg-ctrl",	\
+	.platform_data = &tps80032_chg_ctrl_data,	\
+}
+#endif
+
+#ifdef CONFIG_TPS80032_CHARGER
+static struct tps80032_charger_platform_data tps80032_charger_data = {
+	.irq = TPS80032_IRQ_BASE + TPS80032_IRQ_INT_CHRG,
+};
+#define TPS80032_CHARGER_REG	\
+{	\
+	.id = -1,	\
+	.name = "tps80032-charger",	\
+	.platform_data = &tps80032_charger_data,	\
+}
+#endif
+
+#ifdef CONFIG_LEDS_TPS80032
+static struct tps80032_leds_platform_data tps80032_leds_data = {
+	.name = "tps80032-chg-led",
+	.cur = TPS80032_LEDS_2_5MA,
+	.source = TPS80032_LEDS_EXTPIN,
+	.mode = TPS80032_LEDS_HW,
+};
+#define TPS80032_LEDS_REG	\
+{	\
+	.id = -1,	\
+	.name = "leds-tps80032",	\
+	.platform_data = &tps80032_leds_data,	\
+}
+#endif
+
+static struct tps80032_subdev_info tps80032_subdevs[] = {
+	TPS80032_ADC_REG,
+#ifdef CONFIG_REGULATOR_TPS80032
+	TPS80032_DEV_REG,
+#endif
+#ifdef CONFIG_INPUT_TPS80032_PWRKEY
+	TPS80032_PWRKEY_REG,
+#endif
+#ifdef CONFIG_RTC_DRV_TPS80032
+	TPS80032_RTC_REG,
+#endif
+#ifdef CONFIG_BATTERY_TPS80032
+	TPS80032_BATTERY_REG,
+#endif
+#ifdef CONFIG_TPS80032_CHG_CTRL
+	TPS80032_CHG_CTRL_REG,
+#endif
+#ifdef CONFIG_TPS80032_CHARGER
+	TPS80032_CHARGER_REG,
+#endif
+#ifdef CONFIG_LEDS_TPS80032
+	TPS80032_LEDS_REG,
+#endif
+};
+
+static struct tps80032_platform_data tps80032_platform = {
+	.num_subdevs = ARRAY_SIZE(tps80032_subdevs),
+	.subdevs = tps80032_subdevs,
+	.irq_base	= TPS80032_IRQ_BASE,
+};
+
+struct i2c_board_info __initdata tps80032_i2c_dev = {
+	I2C_BOARD_INFO("tps80032", 0x48),
+	.irq		= TPS80032_GPIO_IRQ,
+	.platform_data	= &tps80032_platform,
+};
+#endif //CONFIG_MFD_TPS80032

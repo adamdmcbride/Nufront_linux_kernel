@@ -753,6 +753,17 @@ config MFD_RICOH583
 	  additional drivers must be enabled in order to use the
 	  functionality of the device.
 
+config MFD_TPS80032
+	bool "TI TPS80032 Power Management system device"
+	select MFD_CORE
+	default n
+	help
+	  If you say yes here you get support for the TPS80032 Power
+	  Management system device.
+	  This driver provides common support for accessing the device,
+	  additional drivers must be enabled in order to use the
+	  functionality of the device.
+
 config TPS65911_COMPARATOR
 	tristate
 

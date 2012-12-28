@@ -310,5 +310,25 @@ config REGULATOR_RICOH583
 	help
 	  This driver supports regulator driver for RICOH583 PMIC.
 
+config REGULATOR_TPS80032
+	tristate "TPS80032 Power regulators"
+	depends on MFD_TPS80032
+	default n
+	help
+	  This driver supports regulator driver for TPS80032 PMIC.
+
+config REGULATOR_GPIO
+	tristate "External LDO or DCDC control by GPIO"
+	default n
+	help
+	  This driver supports regulator driver for external LDO or DCDC.
+
+config REGULATOR_NS115
+	tristate "internal power switch of ns115 SOC"
+	depends on ARCH_NS115
+	default n
+	help
+	  This driver supports internal power switch of ns115 SOC.
+
 endif
 

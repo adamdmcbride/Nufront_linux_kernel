@@ -62,6 +62,12 @@
 #ifdef CONFIG_BQ24170_CHARGER
 #include <linux/power/bq24170-charger.h>
 #endif
+#ifdef CONFIG_REGULATOR_GPIO
+#include <linux/regulator/gpio-regulator.h>
+#endif
+#ifdef CONFIG_REGULATOR_NS115
+#include <linux/regulator/ns115-regulator.h>
+#endif
 
 #ifdef CONFIG_NS115_EFUSE_SUPPORT
 #include <mach/efuse.h>
@@ -337,7 +343,7 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 		.freq 		= 25000000,
 		.ocr_avail	= 0xff8000,	//2.6V-3.7V
 
-		.voltage_switch = NULL,//slot0_voltage_switch,
+		.voltage_switch = NULL, //slot0_voltage_switch,
 	},
 
 	.slots[1] = {
@@ -352,7 +358,7 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 	.slots[2] = {
 		.ctype       	= SDIO_CARD,
 		.force_rescan	= true,
-		.caps		= (MMC_CAP_4_BIT_DATA/*|MMC_CAP_SD_HIGHSPEED*/|
+		.caps		= (MMC_CAP_4_BIT_DATA|/*MMC_CAP_SD_HIGHSPEED|*/
 					MMC_CAP_NONREMOVABLE/*|MMC_CAP_SDIO_IRQ*/),
 		.pm_caps	= (MMC_PM_KEEP_POWER|MMC_PM_IGNORE_PM_NOTIFY),
 		.freq 		= 25000000,
@@ -404,6 +410,228 @@ static struct wake_timer_data wake_data = {
 	.wake_ms = 2000,
 };
 
+#ifdef CONFIG_REGULATOR_GPIO
+static struct regulator_consumer_supply gpio_142_supply[] = {
+	REGULATOR_SUPPLY("vdd_mali", NULL),
+	REGULATOR_SUPPLY("vdd_2d", NULL),
+	REGULATOR_SUPPLY("vdd_core", NULL),
+	REGULATOR_SUPPLY("vdd_cpu_ram", NULL),
+	REGULATOR_SUPPLY("vddl_usb", NULL),
+	REGULATOR_SUPPLY("vdd_isp", NULL),
+	REGULATOR_SUPPLY("vdd_enc", NULL),
+	REGULATOR_SUPPLY("vdd_dec", NULL),
+	REGULATOR_SUPPLY("vdd_zsp", NULL),
+};
+
+static struct regulator_consumer_supply gpio_8_supply[] = {
+	REGULATOR_SUPPLY("vdd_sd_2v8", NULL),
+	REGULATOR_SUPPLY("dvdd_lcd", NULL),
+	REGULATOR_SUPPLY("avdd_lcd", NULL),
+	REGULATOR_SUPPLY("vdd_tp", NULL),
+	REGULATOR_SUPPLY("avdd_cps_2v8", NULL),
+	REGULATOR_SUPPLY("avdd_sensor", NULL),
+	REGULATOR_SUPPLY("avdd_lsen_2v8", NULL),
+	REGULATOR_SUPPLY("avdd_aud_2v8", NULL),
+};
+
+static struct regulator_consumer_supply gpio_58_supply[] = {
+	REGULATOR_SUPPLY("vdd_cam_flash", NULL),
+};
+
+static struct regulator_consumer_supply gpio_94_supply[] = {
+	REGULATOR_SUPPLY("vdd_cam_vcm_2v8", NULL),
+	REGULATOR_SUPPLY("vdd_fcam_2v8", NULL),
+};
+
+static struct regulator_consumer_supply gpio_140_supply[] = {
+	REGULATOR_SUPPLY("3g_vdd", NULL),
+};
+
+static struct regulator_consumer_supply gpio_136_supply[] = {
+	REGULATOR_SUPPLY("vdd_gps_1v8", NULL),
+};
+
+#define GPIO_REG_PDATA_INIT(_gpio,  _voltage, _supply_reg, _always_on, \
+		_boot_on, _apply_uv, _init_enable, _init_apply)      \
+static struct gpio_regulator_platform_data gpio_reg_pdata_##_gpio = \
+{								\
+	.regulator = {						\
+		.constraints = {				\
+			.min_uV = (_voltage)*1000,		\
+			.max_uV = (_voltage)*1000,		\
+			.valid_modes_mask = (REGULATOR_MODE_NORMAL |  \
+					REGULATOR_MODE_STANDBY), \
+			.valid_ops_mask = (REGULATOR_CHANGE_MODE |    \
+					REGULATOR_CHANGE_STATUS |  \
+					REGULATOR_CHANGE_VOLTAGE), \
+			.always_on = _always_on,		\
+			.boot_on = _boot_on,			\
+			.apply_uV = _apply_uv,			\
+		},						\
+		.num_consumer_supplies =			\
+		ARRAY_SIZE(gpio_##_gpio##_supply),	\
+		.consumer_supplies = gpio_##_gpio##_supply, \
+		.supply_regulator = _supply_reg,		\
+	},							\
+	.gpio = _gpio,				\
+	.init_enable = _init_enable,				\
+	.init_apply = _init_apply,				\
+};	\
+static struct platform_device gpio_reg_pdev_##_gpio = {	\
+	.id = _gpio,	\
+	.name = "gpio-regulator",	\
+}
+
+GPIO_REG_PDATA_INIT(142, 1100, NULL, 0, 0, 0, 0, 0);
+GPIO_REG_PDATA_INIT(8,   3300, NULL, 0, 0, 0, 0, 0);
+GPIO_REG_PDATA_INIT(58,  3000, NULL, 0, 0, 0, 0, 0);
+GPIO_REG_PDATA_INIT(94,  2800, NULL, 0, 0, 0, 0, 0);
+GPIO_REG_PDATA_INIT(140, 3300, NULL, 0, 0, 0, 0, 0);
+GPIO_REG_PDATA_INIT(136, 1800, NULL, 0, 0, 0, 0, 0);
+
+#define GPIO_REG_PLAT_DEV(_gpio)	\
+	SOC_PLAT_DEV(&gpio_reg_pdev_##_gpio, &gpio_reg_pdata_##_gpio)
+
+#define GPIO_REG_PLAT_DEV_REG	\
+	GPIO_REG_PLAT_DEV(142),	\
+	GPIO_REG_PLAT_DEV(8),	\
+	GPIO_REG_PLAT_DEV(58),	\
+	GPIO_REG_PLAT_DEV(94),	\
+	GPIO_REG_PLAT_DEV(140),	\
+	GPIO_REG_PLAT_DEV(136)	\
+
+#endif //CONFIG_REGULATOR_GPIO
+
+#ifdef CONFIG_REGULATOR_NS115
+static struct regulator_consumer_supply ns115_mali_gp_supply[] = {
+	REGULATOR_SUPPLY("soc_mali_gp", NULL),
+};
+
+static struct regulator_consumer_supply ns115_mali_l2c_supply[] = {
+	REGULATOR_SUPPLY("soc_mali_l2c", NULL),
+};
+
+static struct regulator_consumer_supply ns115_mali_pp0_supply[] = {
+	REGULATOR_SUPPLY("soc_mali_pp0", NULL),
+};
+
+static struct regulator_consumer_supply ns115_gc300_supply[] = {
+	REGULATOR_SUPPLY("soc_gc300", NULL),
+};
+
+static struct regulator_consumer_supply ns115_vpu_g1_supply[] = {
+	REGULATOR_SUPPLY("soc_vpu_g1", NULL),
+};
+
+static struct regulator_consumer_supply ns115_vpu_h1_supply[] = {
+	REGULATOR_SUPPLY("soc_vpu_h1", NULL),
+};
+
+static struct regulator_consumer_supply ns115_isp_supply[] = {
+	REGULATOR_SUPPLY("soc_isp", NULL),
+};
+
+static struct regulator_consumer_supply ns115_zsp_supply[] = {
+	REGULATOR_SUPPLY("soc_zsp", NULL),
+};
+
+static struct regulator_consumer_supply ns115_pll0_supply[] = {
+	REGULATOR_SUPPLY("soc_pll0", NULL),
+};
+
+static struct regulator_consumer_supply ns115_pll1_supply[] = {
+	REGULATOR_SUPPLY("soc_pll1", NULL),
+};
+
+static struct regulator_consumer_supply ns115_pll2_supply[] = {
+	REGULATOR_SUPPLY("soc_pll2", NULL),
+};
+
+static struct regulator_consumer_supply ns115_pll3_supply[] = {
+	REGULATOR_SUPPLY("soc_pll3", NULL),
+};
+
+static struct regulator_consumer_supply ns115_pll4_supply[] = {
+	REGULATOR_SUPPLY("soc_pll4", NULL),
+};
+
+static struct regulator_consumer_supply ns115_pll5_supply[] = {
+	REGULATOR_SUPPLY("soc_pll5", NULL),
+};
+
+static struct regulator_consumer_supply ns115_pll6_supply[] = {
+	REGULATOR_SUPPLY("soc_pll6", NULL),
+};
+
+#define NS115_REG_PDATA_INIT(_id, _name, _voltage, _supply_reg, _always_on, \
+		_boot_on, _apply_uv, _init_enable, _init_apply)      \
+static struct ns115_regulator_platform_data ns115_reg_pdata_##_name= \
+{								\
+	.regulator = {						\
+		.constraints = {				\
+			.min_uV = (_voltage)*1000,		\
+			.max_uV = (_voltage)*1000,		\
+			.valid_modes_mask = (REGULATOR_MODE_NORMAL |  \
+					REGULATOR_MODE_STANDBY), \
+			.valid_ops_mask = (REGULATOR_CHANGE_MODE |    \
+					REGULATOR_CHANGE_STATUS |  \
+					REGULATOR_CHANGE_VOLTAGE), \
+			.always_on = _always_on,		\
+			.boot_on = _boot_on,			\
+			.apply_uV = _apply_uv,			\
+		},						\
+		.num_consumer_supplies =			\
+		ARRAY_SIZE(ns115_##_name##_supply),	\
+		.consumer_supplies = ns115_##_name##_supply, \
+		.supply_regulator = _supply_reg,		\
+	},							\
+	.id = NS115_PWR_##_id,				\
+	.init_enable = _init_enable,				\
+	.init_apply = _init_apply,				\
+};	\
+static struct platform_device ns115_reg_pdev_##_name = {	\
+	.id = NS115_PWR_##_id,	\
+	.name = "ns115-regulator",	\
+}
+
+NS115_REG_PDATA_INIT(MALI_GP, mali_gp, 1100, "GPIO_142", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(MALI_L2C, mali_l2c, 1100, "GPIO_142", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(MALI_PP0, mali_pp0, 1100, "GPIO_142", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(GC300, gc300, 1100, "GPIO_142", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(VPU_G1, vpu_g1, 1100, "GPIO_142", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(VPU_H1, vpu_h1, 1100, "GPIO_142", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(ISP, isp, 1100, "GPIO_142", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(ZSP, zsp, 1100, "GPIO_142", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(PLL0, pll0, 1100, "RICOH583_LDO0", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(PLL1, pll1, 1100, "RICOH583_LDO0", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(PLL2, pll2, 1100, "RICOH583_LDO0", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(PLL3, pll3, 1100, "RICOH583_LDO0", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(PLL4, pll4, 1100, "RICOH583_LDO0", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(PLL5, pll5, 1100, "RICOH583_LDO0", 0, 0, 0, 0, 0);
+NS115_REG_PDATA_INIT(PLL6, pll6, 1100, "RICOH583_LDO0", 0, 0, 0, 0, 0);
+
+#define NS115_REG_PLAT_DEV(_name)	\
+	SOC_PLAT_DEV(&ns115_reg_pdev_##_name, &ns115_reg_pdata_##_name)
+
+#define NS115_REG_PLAT_DEV_REG	\
+	NS115_REG_PLAT_DEV(mali_gp),	\
+	NS115_REG_PLAT_DEV(mali_l2c),	\
+	NS115_REG_PLAT_DEV(mali_pp0),	\
+	NS115_REG_PLAT_DEV(gc300),	\
+	NS115_REG_PLAT_DEV(vpu_g1),	\
+	NS115_REG_PLAT_DEV(vpu_h1),	\
+	NS115_REG_PLAT_DEV(isp),	\
+	NS115_REG_PLAT_DEV(zsp),	\
+	NS115_REG_PLAT_DEV(pll0),	\
+	NS115_REG_PLAT_DEV(pll1),	\
+	NS115_REG_PLAT_DEV(pll2),	\
+	NS115_REG_PLAT_DEV(pll3),	\
+	NS115_REG_PLAT_DEV(pll4),	\
+	NS115_REG_PLAT_DEV(pll5),	\
+	NS115_REG_PLAT_DEV(pll6)
+
+#endif //CONFIG_REGULATOR_NS115
+
 static struct soc_plat_dev plat_devs[] =
 {
 	SOC_PLAT_DEV(&ns115_serial_device, 	NULL),
@@ -444,6 +672,12 @@ static struct soc_plat_dev plat_devs[] =
 #endif
 #ifdef CONFIG_BQ24170_CHARGER
 	SOC_PLAT_DEV(&bq24170_charger_device, &bq24170_charger_pdata),
+#endif
+#ifdef CONFIG_REGULATOR_GPIO
+	GPIO_REG_PLAT_DEV_REG,
+#endif
+#ifdef CONFIG_REGULATOR_NS115
+	NS115_REG_PLAT_DEV_REG,
 #endif
 };
 

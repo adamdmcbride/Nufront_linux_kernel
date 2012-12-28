@@ -59,6 +59,12 @@
 #define SND_NOTIFIER_HDMI_SUPPORT
 #endif
 
+
+#define HDMI_MAJOR                    240
+#define HDMI_IOCTL_MAGIC_T 'h'
+#define HDMI_IOCTL_GET_COLOR_STATE _IOR(HDMI_IOCTL_MAGIC_T, 1, int *)
+#define HDMI_IOCTL_SET_COLOR_STATE _IOW(HDMI_IOCTL_MAGIC_T, 2, int *)
+
 const static u8 str_hdmi_plug[] = "1";
 const static u8 str_hdmi_unplug[] = "0";
 static struct ns115_hdmi_data *hdmi_pt = NULL;
@@ -76,6 +82,7 @@ void hdmi_notifier(int flag);
 
 static void ns115_hdmi_hot_connect();
 static void ns115_hdmi_hot_disconnect();
+
 
 /*
 DByte1:
@@ -103,6 +110,107 @@ static unsigned char avi_info_frame_data[] = {
 	0x00///14
 };
 
+#define VIDEO_CODE_COUNT 35
+
+static struct video_code ns115_hdmi_video_code[VIDEO_CODE_COUNT]={
+        {640,480,60,1,1,13,1},
+        {720,480,60,8,9,13,2},
+        {1280,720,60,1,1,17,4},
+        {720,240,60,4,9,13,8},
+        {2880,240,60,1,9,13,12},
+        {1440,480,60,4,9,13,14},
+        {1440,480,60,16,27,17,15},
+        {1920,1080,60,1,1,17,16},
+        {720,576,50,16,15,13,17},
+        {720,576,50,64,45,17,18},
+        {1280,720,50,1,1,17,19},
+        {720,288,50,8,15,13,23},
+        {720,288,50,32,45,17,24},
+        {2880,288,50,1,15,13,27},
+        {2880,288,50,8,45,17,28},
+	{1440,576,50,8,15,13,29},
+	{1440,576,50,32,45,17,30},
+        {1920,1080,50,1,1,17,31},
+        {1920,1080,24,1,1,17,32},
+        {1920,1080,25,1,1,17,33},
+        {1920,1080,30,1,1,17,34},
+        {2880,480,60,13,2,9,35},
+        {2880,480,60,13,8,27,36},
+        {2880,576,50,4,15,13,37},
+        {2880,576,50,16,45,17,38},
+        {1280,720,100,1,1,17,41},
+        {720,576,100,16,15,13,42},
+        {720,576,100,64,45,17,43},
+        {1280,720,120,1,1,13,47},
+        {720,480,120,8,9,13,48},
+        {720,480,120,32,27,17,49},
+        {720,576,200,16,15,13,52},
+        {720,576,200,64,45,17,52},
+        {720,480,240,8,9,13,56},
+        {720,480,240,32,27,17,56}
+};
+
+static BLOCKING_NOTIFIER_HEAD(new_resolution_notifier_list);
+
+static int hdmi_new_resolution(struct notifier_block *this, unsigned long event, void *ptr)
+{
+	const struct fb_videomode * m = ptr;
+	struct ns115_hdmi_data *hdmi = ns115_hdmi_get_pt();
+	hdmi->pixel_clk = m->pixclock;
+	hdmi->refresh = m->refresh;
+	hdmi->horizontal_res = m->xres;
+	hdmi->vertical_res = m->yres;
+	hdmi->mode = m;
+	ns115_hdmi_video_config(hdmi);
+	WriteByteHDMI(hdmi,TPI_SYSTEM_CONTROL_DATA_REG, BIT_0);
+       return 1;
+}
+
+static struct notifier_block hdmi_new_resolution_notify = {
+        .notifier_call = hdmi_new_resolution,
+};
+
+int register_new_resolution_notifier(struct notifier_block *nb)
+{
+        return blocking_notifier_chain_register(&new_resolution_notifier_list, nb);
+}
+
+int unregister_new_resolution_notifier(struct notifier_block *nb)
+{
+        return blocking_notifier_chain_unregister(&new_resolution_notifier_list, nb);
+}
+
+int send_new_resolution_event(unsigned long val, void *v)
+{
+        return  blocking_notifier_call_chain(&new_resolution_notifier_list, val, v);
+}
+
+EXPORT_SYMBOL(send_new_resolution_event);
+
+//struct video_code ns115_video_code;
+
+static u32 hdmi_video_id_get(struct ns115_hdmi_data *hdmi)
+{
+	u32 i;
+	for(i=0;i<VIDEO_CODE_COUNT;i++)
+	{
+		if(hdmi->horizontal_res == ns115_hdmi_video_code[i].xres)
+		{
+			if(hdmi->vertical_res == ns115_hdmi_video_code[i].yres)
+			{
+				if(hdmi->refresh == ns115_hdmi_video_code[i].refresh)
+				{
+					if(((hdmi->horizontal_res*ns115_hdmi_video_code[i].xratio*10)/(hdmi->vertical_res*ns115_hdmi_video_code[i].yratio)) == ns115_hdmi_video_code[i].ratio)
+						return ns115_hdmi_video_code[i].id;
+				}
+			}
+		}
+
+	}
+	return 4;
+
+}
+
 static ssize_t hdmi_test_show(struct device *pdev, struct device_attribute *attr, char *buf)
 {
         struct ns115_hdmi_data *hdmi = dev_get_drvdata(pdev);
@@ -129,8 +237,9 @@ static ssize_t hdmi_test_store(struct device *pdev, struct device_attribute *att
 
 }
 
+
 static DEVICE_ATTR(hdmi_test, S_IRUGO | S_IWUSR, hdmi_test_show, hdmi_test_store);
-static struct class *hdmi_class;
+
 static struct device_attribute *hdmi_attributes[] = {
         &dev_attr_hdmi_test,
         NULL
@@ -433,6 +542,7 @@ static int ns115_hdmi_dec_fun(struct ns115_hdmi_data *hdmi)
                 ret = send_hdmi_hotplug_event(1, &ns115_hdmi_lcdc);
                 if (ret)
                 {
+			hdmi->hp_state == HDMI_HOTPLUG_DISCONNECTED;
                         printk(KERN_WARNING "notifier_call_chain error\n");
                 }
                 else
@@ -441,6 +551,7 @@ static int ns115_hdmi_dec_fun(struct ns115_hdmi_data *hdmi)
                         hdmi->vertical_res = ns115_hdmi_lcdc.vertical_res;
                         hdmi->pixel_clk = ns115_hdmi_lcdc.pixel_clk;
                         hdmi->refresh = ns115_hdmi_lcdc.refresh;
+			hdmi->mode = ns115_hdmi_lcdc.mode;
                         printk(KERN_INFO "hdmi %dx%d@%dHZ, pclk = %d\n",hdmi->horizontal_res,hdmi->vertical_res,hdmi->refresh,hdmi->pixel_clk);
                 }
 #endif
@@ -448,7 +559,6 @@ static int ns115_hdmi_dec_fun(struct ns115_hdmi_data *hdmi)
                 ns115_hdmi_configure(hdmi);
                 ns115_hdmi_TxPowerStateD0(hdmi);
                 ns115_hdmi_EnableTMDS(hdmi);
-		WriteIndexedRegister(hdmi,INDEXED_PAGE_0,VIDEO_MODE_REG1,0x10);
         }
         /* HDMI disconnect */
         else if (hdmi->hp_state == HDMI_HOTPLUG_DISCONNECTED)
@@ -769,6 +879,7 @@ static int __exit ns115_hdmi_remove(struct platform_device *pdev)
 #if defined(HDMI_SWITCH_CLASS)
 	switch_dev_unregister(&hdmi->sdev);
 #endif
+	unregister_new_resolution_notifier(&hdmi_new_resolution_notify);
 	mutex_destroy(&hdmi->mutex);
 	mutex_destroy(&hdmi->mutex_edid);
 	kfree(hdmi);
@@ -870,7 +981,6 @@ static void ns115_hdmi_video_config(struct ns115_hdmi_data *hdmi)
 	unsigned short horizontal_res;
 	unsigned short vertical_res;
 	unsigned short pixel_clk;
-
 	memset(vals, 0, sizeof(vals));
 
 	// Fill the TPI Video Mode Data structure
@@ -914,6 +1024,24 @@ static void ns115_hdmi_video_config(struct ns115_hdmi_data *hdmi)
 	// Write out the TPI AVI InfoFrame Data (all defaults)
 	// Compute CRC
 	val = 0x82 + 0x02 + 13;
+	if((hdmi->horizontal_res)/(hdmi->vertical_res) == 13){
+		avi_info_frame_data[2] = 0x98;
+	}
+	else{
+		avi_info_frame_data[2] = 0xA8;
+	}
+
+	avi_info_frame_data[4] = hdmi_video_id_get(hdmi);
+	avi_info_frame_data[6] = (hdmi->mode->upper_margin)&0xFF;
+	avi_info_frame_data[7] = ((hdmi->mode->upper_margin)&0xFF00)>>8;
+	avi_info_frame_data[8] = (hdmi->mode->upper_margin + hdmi->vertical_res)&0xFF;
+	avi_info_frame_data[9] = ((hdmi->mode->upper_margin + hdmi->vertical_res)&0xFF00)>>8;
+
+	avi_info_frame_data[10] = (hdmi->mode->left_margin)&0xFF;
+	avi_info_frame_data[11] = ((hdmi->mode->left_margin)&0xFF00)>>8;
+	avi_info_frame_data[12] = (hdmi->mode->left_margin + hdmi->horizontal_res)&0xFF;
+	avi_info_frame_data[13] = ((hdmi->mode->left_margin + hdmi->horizontal_res)&0xFF00)>>8;
+
 	for (i = 1; i < sizeof(avi_info_frame_data); i++) {
 		val += avi_info_frame_data[i];
 	}
@@ -922,6 +1050,7 @@ static void ns115_hdmi_video_config(struct ns115_hdmi_data *hdmi)
 	for (i = 0; i < sizeof(avi_info_frame_data); i ++) {
 		WriteByteHDMI(hdmi,HDMI_TPI_AVI_DBYTE_BASE_REG + i, avi_info_frame_data[i]);
 	}
+
 #endif
 }
 
@@ -1409,6 +1538,74 @@ static void  DisableInterrupts(struct ns115_hdmi_data *hdmi,unsigned char Interr
 	ReadClearWriteTPI(hdmi,TPI_INTERRUPT_ENABLE_REG, Interrupt_Pattern);
 }
 
+static long hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+
+        int ret = 0, flags = 0, val_color = 0;
+	struct ns115_hdmi_data *hdmi = ns115_hdmi_get_pt();
+
+
+        switch (cmd)
+        {
+                case HDMI_IOCTL_GET_COLOR_STATE:
+			val_color = ReadIndexedRegister(hdmi,INDEXED_PAGE_0,VIDEO_MODE_REG1);
+			if((val_color & 0x10) == 0x10)
+                        {
+                                flags = 1;
+                        }
+                        if((val_color & 0x10) == 0)
+                        {
+                                flags = 0;
+                        }
+                        if(copy_to_user((void *)arg, &flags, sizeof(int))) {
+                                ret = -EFAULT;
+                        }
+			break;
+
+                case HDMI_IOCTL_SET_COLOR_STATE:
+                        copy_from_user(&flags, (void*)arg, sizeof(short));
+                        if(flags == 1)
+                        {
+				WriteIndexedRegister(hdmi,INDEXED_PAGE_0,VIDEO_MODE_REG1,0x10);
+                        }
+			if(flags == 0)
+			{
+				WriteIndexedRegister(hdmi,INDEXED_PAGE_0,VIDEO_MODE_REG1,0x00);
+			}
+
+                        break;
+                default:
+                        return (-EINVAL);
+                        break;
+
+        }
+
+        return ret;
+}
+
+static int hdmi_open(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "libenqi hdmi open\n");
+
+        return 0;
+}
+
+static int hdmi_release(struct inode *inode, struct file *file)
+{
+        printk(KERN_INFO "libenqi hdmi release\n");
+
+        return 0;
+}
+
+
+static struct file_operations hdmi_fops =
+{
+        .owner = THIS_MODULE,
+	.open = hdmi_open,
+        .release = hdmi_release,
+        .unlocked_ioctl = hdmi_ioctl,
+};
+
 static int __init ns115_hdmi_probe(struct platform_device *pdev)
 {
 #if defined(NS115_HDMI_INTERRUPT_GPIO_EDGE) || defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL)
@@ -1420,6 +1617,7 @@ static int __init ns115_hdmi_probe(struct platform_device *pdev)
 	int ret;
 	struct ns115_hdmi_data *hdmi;
 	int err;
+	struct class *hdmi_class;
 
 	if (irq < 0)
 		return -ENODEV;
@@ -1445,6 +1643,18 @@ static int __init ns115_hdmi_probe(struct platform_device *pdev)
 	if (ret < 0)
 		goto err_switch_dev_register;
 #endif
+
+	register_new_resolution_notifier(&hdmi_new_resolution_notify);
+
+	ret = register_chrdev(HDMI_MAJOR,"hdmi",&hdmi_fops);
+        if(ret < 0) {
+                printk(KERN_CRIT "libenqi register %s char dev error\n", "hdmi");
+        }
+
+        //////////  create device file /dev //////////
+        hdmi_class = class_create(THIS_MODULE, "hdmi_class");
+        device_create(hdmi_class, NULL, MKDEV(HDMI_MAJOR, 0), "hdmi", "hdmi");
+
 
 	mutex_init(&hdmi->mutex);
 	mutex_init(&hdmi->mutex_edid);
@@ -1489,10 +1699,7 @@ static int __init ns115_hdmi_probe(struct platform_device *pdev)
 #if !(defined(NS115_HDMI_INTERRUPT_GPIO_EDGE) || defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL))
 	EnableInterrupts(hdmi,HOT_PLUG_EVENT | RX_SENSE_EVENT);
 #endif
-	ns115_hdmi_TxPowerStateD2(hdmi);	
-	ns115_hdmi_hotplug(irq,hdmi);
-	// ns115_hdmi_dec_fun(hdmi);
-
+	ns115_hdmi_TxPowerStateD2(hdmi);
 #ifdef CONFIG_EARLYSUSPEND
 	register_early_suspend(&es);
 #endif
@@ -1505,6 +1712,8 @@ err_switch_dev_register:
 	kfree(hdmi);
 	return ret;
 }
+
+
 static int __init ns115_hdmi_init(void)
 {
 	return platform_driver_probe(&ns115_hdmi_driver, ns115_hdmi_probe);

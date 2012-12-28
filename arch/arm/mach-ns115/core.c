@@ -38,6 +38,9 @@
 #ifdef CONFIG_MFD_RICOH583
 #include <linux/mfd/ricoh583.h>
 #endif
+#ifdef CONFIG_MFD_TPS80032
+#include <linux/mfd/tps80032.h>
+#endif
 
 #include <linux/power/power_switch.h>
 
@@ -380,6 +383,9 @@ static void ns115_power_off(void)
 #ifdef CONFIG_MFD_RICOH583
 	ricoh583_power_off();
 #endif
+#ifdef CONFIG_MFD_TPS80032
+	tps80032_power_off();
+#endif
 	prcm_glb_soft_power_off();
 }
 
@@ -407,6 +413,8 @@ void arch_reset(char mode, const char *cmd)
 {
 #ifdef CONFIG_MFD_RICOH583
 	ricoh583_restart(mode, cmd);
+#elif defined(CONFIG_MFD_TPS80032)
+	tps80032_restart(mode, cmd);
 #else
 	if (__ns115_reset)
 		__ns115_reset(mode);

@@ -36,6 +36,7 @@ extern struct i2c_board_info __initdata ns115_tp_zt2083;
 extern struct i2c_board_info __initdata ns115_tp_ilitek;
 extern struct i2c_board_info __initdata ns115_cs_ami30x;
 extern struct i2c_board_info __initdata ricoh583_i2c_dev;
+extern struct i2c_board_info __initdata tps80032_i2c_dev;
 
 extern int __init ext_i2c_register_devices(struct extend_i2c_device * devs,
 		int size);

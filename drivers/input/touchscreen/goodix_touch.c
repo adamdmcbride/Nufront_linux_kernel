@@ -83,6 +83,7 @@ static int i2c_read_bytes(struct i2c_client *client, uint8_t *buf, int len)
 		ret=i2c_transfer(client->adapter,msgs, 2);
 		if(ret == 2)break;
 		retries++;
+		udelay(10);
 	}
 	return ret;
 }
@@ -116,6 +117,7 @@ static int i2c_write_bytes(struct i2c_client *client,uint8_t *data,int len)
 		ret=i2c_transfer(client->adapter,&msg, 1);
 		if(ret == 1)break;
 		retries++;
+		udelay(10);
 	}
 	return ret;
 }
@@ -555,15 +557,15 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 			enable_irq(ts->client->irq);
 		}
 
-		while(retry<5)
+		while(retry < 5)
 		{
 			ret = i2c_write_bytes(ts->client, i2c_control_buf, 2);
 			if(ret == 1)
 			{
-				printk(KERN_INFO"Send suspend cmd\n");
+				printk(KERN_INFO "Send suspend cmd succeeded\n");
 				break;
 			}
-			printk(KERN_EMERG "%s: Send suspend cmd failed!\n", __func__);
+			printk(KERN_EMERG "[ERROR]%s: Send suspend cmd failed!\n", __func__);
 			gpio_direction_output(reset_gpio,  0);
 			mdelay(2);
 			gpio_direction_output(reset_gpio,  1);
@@ -587,7 +589,7 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 			rd_cfg_buf[1] = 0x00;
 			ret = i2c_read_bytes(ts->client, rd_cfg_buf, 2);
 			if(ret <= 0){
-				printk(KERN_EMERG "%s:send  resume cmd failed!\n", __func__);
+				printk(KERN_EMERG "[ERROR]%s:send resume cmd failed!\n", __func__);
 				gpio_direction_output(reset_gpio,  0);
 				mdelay(2);
 				gpio_direction_output(reset_gpio,  1);
@@ -595,6 +597,7 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 				msleep(10);
 			}
 			else{
+				printk(KERN_INFO "%s:send resume cmd succeeded!\n", __func__);
 				break;
 			}
 

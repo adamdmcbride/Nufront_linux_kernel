@@ -114,17 +114,17 @@ const static struct fvs fvs_table[] =
 	{500000, 1070},
 	{600000, 1070},
 */
-	{200000, 1130},
-	{300000, 1130},
-	{400000, 1130},
-	{500000, 1130},
-	{600000, 1130},
-	{700000, 1130},
-	{800000, 1130},
-	{900000, 1220},
-	{1000000, 1220},
-	{1200000, 1220},
-	{1500000, 1250},
+	{200000, 1230},
+	{300000, 1230},
+	{400000, 1230},
+	{500000, 1230},
+	{600000, 1230},
+	{700000, 1230},
+	{800000, 1230},
+	{900000, 1230},
+	{1000000, 1230},
+	{1200000, 1230},
+	{1500000, 1230},
 };
 
 int ns115_verify_speed(struct cpufreq_policy *policy)
@@ -245,6 +245,7 @@ static unsigned long ns115_cpu_highest_speed(void)
 		else {
 			rate = min(rate, (unsigned long)DEFAULT_VOL_FREQ);
 		}
+		cpufreq_debug("max_freq: %d", ns115_cpufreq_cfg->max_frequency);
 	}
 	return rate;
 }
