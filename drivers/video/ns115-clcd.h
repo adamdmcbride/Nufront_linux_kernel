@@ -118,11 +118,109 @@ struct clcd_regs {
 	u32			hvsize;
 	u32			cfg_axi;
 };
+
+static inline __u32 lcd_max(__u32 a, __u32 b, __u32 c)
+{
+	__u32 d = b>c? b:c;
+
+	return a>d? a:d;
+}
+
+static inline __u32 lcd_min(__u32 a, __u32 b, __u32 c)
+{
+	__u32 d = b<c? b:c;
+
+	return a<d? a:d;
+}
+
+static inline void check_timing(struct fb_var_screeninfo *var)
+{
+	u32 min = 0, move = 0;
+	int flag = 0;
+
+	if( (var->right_margin > 511 ) || ( var->left_margin > 511) || (var->hsync_len >511) )
+	{
+		flag = 1;
+		printk(KERN_WARNING "LCD timing exceed 511 rm %d lm %d hsync %d",
+			var->right_margin, var->left_margin, var->hsync_len);
+
+		min = lcd_min(var->right_margin, var->left_margin, var->hsync_len);
+		if(var->right_margin > 511)
+		{
+			move += (var->right_margin - 511);
+			var->right_margin = 511;
+		}
+
+		if(var->left_margin > 511)
+		{
+			move += (var->left_margin - 511);
+			var->left_margin = 511;
+		}
+
+		if(var->hsync_len > 511){
+			move += (var->hsync_len - 511);
+			var->hsync_len = 511;
+		}
+
+		if(var->right_margin == min){
+			var->right_margin += move;
+		}else if(var->left_margin == min){
+			var->left_margin += move;
+		}else if(var->hsync_len == min){
+			var->hsync_len += move;
+		}
+	}
+
+
+	move = 0;
+	if( (var->lower_margin > 511 ) || ( var->upper_margin > 511) || (var->vsync_len >511) )
+	{
+		flag = 1;
+		printk(KERN_WARNING "LCD timing exceed 511 rm %d lm %d hsync %d",
+			var->lower_margin, var->upper_margin, var->vsync_len);
+
+		min = lcd_min(var->lower_margin, var->upper_margin, var->vsync_len);
+		if(var->lower_margin > 511)
+		{
+			move = (var->lower_margin - 511);
+			var->lower_margin = 511;
+		}
+
+		if(var->upper_margin > 511)
+		{
+			move += (var->upper_margin - 511);
+			var->upper_margin = 511;
+		}
+
+		if(var->vsync_len > 511){
+			move += (var->vsync_len - 511);
+			var->vsync_len = 511;
+		}
+
+		if(var->lower_margin == min){
+			var->lower_margin += move;
+		}else if(var->upper_margin == min){
+			var->upper_margin += move;
+		}else if(var->vsync_len == min){
+			var->vsync_len += move;
+		}
+	}
+
+	if(flag){
+		printk(KERN_INFO "%s: after re-number timing, the parameter values as follow\n"
+		" xres %d,yres %d,pixclk %d, leftm %d,rm %d,um %d,lowm %d, hsync %d,vsync %d",
+				__func__, var->xres,var->yres,var->pixclock,
+				var->left_margin,var->right_margin,var->upper_margin,var->lower_margin,
+				var->hsync_len,var->vsync_len);
+	}
+}
+
 /**/
 static inline void nusmart_clcd_var_decode(struct fb_var_screeninfo * var, struct clcd_regs * regs)
 {
 	u32 val=NUSMART_LCDC_ENABLE | NUSMART_LCDC_INTM_ERR;
 
+	check_timing(var);
 	regs->hintv = INTV(var->right_margin, var->left_margin, var->hsync_len);
 
 	regs->vintv = INTV(var->lower_margin, var->upper_margin, var->vsync_len);
@@ -165,6 +263,7 @@ static inline void nusmart_clcd_decode(struct fb_info *fb, struct clcd_regs *reg
 	/*
 	 * Program the CLCD controller registers and start the CLCD
 	 */
+	check_timing(&fb->var);
 	regs->hintv = INTV(fb->var.right_margin, fb->var.left_margin, fb->var.hsync_len);
 
 	regs->vintv = INTV(fb->var.lower_margin, fb->var.upper_margin, fb->var.vsync_len);
