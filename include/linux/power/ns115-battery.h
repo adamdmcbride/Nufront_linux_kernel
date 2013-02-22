@@ -50,7 +50,6 @@ struct ns115_charger {
 	const char *name;
 	int (*start_charging) (struct ns115_charger *hw_chg, enum ns115_charging_type type);
 	int (*stop_charging) (struct ns115_charger *hw_chg);
-	int (*get_charging_stat) (enum ns115_charger_state *hw_stat);
 
 	void *charger_private;	/* used by the ns115_battery.c */
 };
@@ -72,7 +71,7 @@ struct ns115_battery_gauge {
 	int early_pwr;
 	int suspend_pwr;
 	int pre_chg_mvolts;
-	int full_mvolts;
+	int power_off_mvolts;
 	int max_mAh;
 	int (*capacity_table)[][2];
 	int table_size;

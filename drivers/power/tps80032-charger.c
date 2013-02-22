@@ -45,14 +45,23 @@
 #define STAT_CHARGERUSB_THMERG	(1 << 1)
 #define STAT_CHARGERUSB_FAULT	1
 #define INT1_TMERG		(1 << 7)
-#define INT1_SLP_MODE	(1 << 1)
+#define INT1_NO_BAT		(1 << 6)
+#define INT1_TH_SHUTD		(1 << 4)
+#define INT1_BAT_OVP		(1 << 3)
+#define INT1_POOR_SRC		(1 << 2)
+#define INT1_SLP_MODE		(1 << 1)
+#define INT1_VBUS_OVP		(1)
+
 #define INT2_CHARGER_DONE	(1 << 1)
+#define INT2_CURRENT_TERM	(1 << 2)
 #define CTRL_EN_LINCH		(1 << 5)
+#define CTRL_EN_CHARGER		(1 << 4)
 #define MCHARGERUSB_FAULT	1
 #define MCHARGERUSB_THMERG	(1 << 1)
 #define MCHARGERUSB_STAT	(1 << 2)
 #define MCURRENT_TERM	(1 << 3)
-#define MEN_LINCH		(1<< 4)
+#define MEN_LINCH	(1<< 4)
+#define END_OF_CHARGE	(1 << 5)
 
 #define LIMIT_VOL_MASK	0x3F
 #define LIMIT_VOL_MIN	3500	
@@ -90,6 +99,7 @@
 #define MAX_CHG_CURRENT	1500
 #define MAX_CHG_VOLTAGE	4210
 #define WATCHDOG_TIME	60
+#define WTCHDOG_DELAY	msecs_to_jiffies(WATCHDOG_TIME / 2 * 1000)
 
 struct tps80032_charger_info {
 	struct device *dev;
@@ -127,22 +137,25 @@ static int tps80032_start_fastcharge(struct tps80032_charger_info *info, int chg
 		dev_err(info->dev, "set charge current failed: %d!\n", ret);
 		goto err;
 	}
+	PDBG(info->dev, "charge current: %dmA\n", chg_current);
+
 	vol_val = ((FULL_VOLTAGE - CHG_VOL_MIN) / CHG_VOL_STEP) & CHG_VOL_MASK;
 	ret = tps80032_write(TPS80032_CHARGERUSB_VOREG, vol_val);
 	if (ret < 0){
 		dev_err(info->dev, "set charge voltage failed: %d!\n", ret);
 		goto err;
 	}
-	dev_dbg(info->dev, "charge voltage: %dmV\n",
+	PDBG(info->dev, "charge voltage: %dmV\n",
 			vol_val * CHG_VOL_STEP + CHG_VOL_MIN);
-	term_cur = (((CHG_TERM_CUR - TERM_CUR_MIN) / TERM_CUR_STEP) 
+
+	term_cur = (((chg_current / 10 - TERM_CUR_MIN) / TERM_CUR_STEP)
 			<< TERM_CUR_POS) & TERM_CUR_MASK;
 	ret = tps80032_write(TPS80032_CHARGERUSB_CTRL2, term_cur);
 	if (ret < 0){
 		dev_err(info->dev, "set charge termination current failed: %d\n", ret);
 		goto err;
 	}
-	dev_dbg(info->dev, "charge termination current: %dmA\n",
+	PDBG(info->dev, "charge termination current: %dmA\n",
 			(term_cur >> TERM_CUR_POS) * TERM_CUR_STEP + TERM_CUR_MIN);
 
 	ret = tps80032_set_bits(TPS80032_CHARGERUSB_CTRL1, TERM);
@@ -153,7 +166,8 @@ static int tps80032_start_fastcharge(struct tps80032_charger_info *info, int chg
 		ret |= tps80032_write(TPS80032_CHARGERUSB_CINLIMIT, CIN_LIMIT_1800MA);
 	}
 	ret |= tps80032_set_bits(TPS80032_ANTICOLLAPSE_CTRL1, BUCK_VTH_4440V | ANTICOLL_ANA);
-	ret |= tps80032_set_bits(TPS80032_CONTROLLER_CTRL1, CTRL_EN_LINCH);
+	ret |= tps80032_reg_update(TPS80032_CONTROLLER_CTRL1, CTRL_EN_CHARGER | CTRL_EN_LINCH,
+			CTRL_EN_CHARGER | CTRL_EN_LINCH);
 	if (ret < 0){
 		dev_err(info->dev, "set charger failed!\n");
 		goto err;
@@ -163,8 +177,8 @@ static int tps80032_start_fastcharge(struct tps80032_charger_info *info, int chg
 		dev_err(info->dev, "watchdog init failed!\n");
 		goto err;
 	}
-	queue_delayed_work(info->queue, &info->wdg_work, WATCHDOG_TIME - 2);
-	dev_info(info->dev, "start charging! charge current: %dmA\n", chg_current);
+	queue_delayed_work(info->queue, &info->wdg_work, WTCHDOG_DELAY);
+	PINFO(info->dev, "start charging! charge current: %dmA\n", chg_current);
 
 	return ret;
 err:
@@ -211,8 +225,9 @@ static int tps80032_stop_chg(struct ns115_charger * hw_chg)
 		return -1;
 	}
 	cancel_delayed_work(&g_info->wdg_work);
-	ret = tps80032_set_bits(TPS80032_CONTROLLER_CTRL1, CTRL_EN_LINCH);
-	dev_info(info->dev, "stop charging!\n");
+	ret = tps80032_reg_update(TPS80032_CONTROLLER_CTRL1, 0,
+			CTRL_EN_CHARGER | CTRL_EN_LINCH);
+	PINFO(info->dev, "stop charging!\n");
 
 	return ret;
 }
@@ -222,13 +237,20 @@ static void tps80032_charger_wdg(struct work_struct * work)
 	struct tps80032_charger_info *info = 
 		container_of(work, struct tps80032_charger_info, wdg_work.work);
 	int ret;
+	u8 val;
 
 	ret = tps80032_chg_watchdog_reset();
 	if (ret < 0){
 		dev_err(info->dev, "reset watchdog failed!\n");
 		return;
 	}
-	queue_delayed_work(info->queue, &info->wdg_work, WATCHDOG_TIME - 2);
+	ret = tps80032_read(TPS80032_LINEAR_CHRG_STS, &val);
+	if (val & END_OF_CHARGE){
+		PINFO(info->dev, "charge done!\n");
+		ns115_battery_notify_event(CHG_DONE_EVENT);
+	}
+
+	queue_delayed_work(info->queue, &info->wdg_work, WTCHDOG_DELAY);
 }
 
 static void tps80032_charger_work(struct work_struct * work)
@@ -239,23 +261,29 @@ static void tps80032_charger_work(struct work_struct * work)
 	u8 val;
 
 	ret = tps80032_read(TPS80032_CHARGERUSB_INT_STS, &val);
-	dev_info(info->dev, "int status(0xE4): 0x%x\n", val);
+	PINFO(info->dev, "int status(0xE4): 0x%x\n", val);
 	if (ret < 0){
 		dev_err(info->dev, "read int status failed: %d!", ret);
 		return;
 	}
-	if (val & STAT_CHARGERUSB_FAULT){
-		tps80032_read(TPS80032_CHARGERUSB_STS_INT1, &val);
-		if (val & ~(INT1_TMERG | INT1_SLP_MODE)){
-			dev_err(info->dev, "charger error: int1(0xE6): 0x%x\n", val);
-			ns115_battery_notify_event(CHG_ERROR_EVENT);
-			return;
-		}
-	}
 	if (val & STAT_CHARGERUSB_STAT){
 		tps80032_read(TPS80032_CHARGERUSB_STS_INT2, &val);
-		if (val & INT2_CHARGER_DONE){
+		PINFO(info->dev, "charger stat: int2(0xE7): 0x%x\n", val);
+		if (val & (INT2_CHARGER_DONE | INT2_CURRENT_TERM)){
+			PINFO(info->dev, "charging done!\n");
 			ns115_battery_notify_event(CHG_DONE_EVENT);
+		}
+	}
+	if (val & (STAT_CHARGERUSB_FAULT)){
+		tps80032_read(TPS80032_CHARGERUSB_STS_INT1, &val);
+		PINFO(info->dev, "charger error: int1(0xE6): 0x%x\n", val);
+		if (val & INT1_NO_BAT){
+			dev_err(info->dev, "battery is removed!\n");
+			ns115_battery_notify_event(CHG_BATT_REMOVED);
+		}
+		if (val & (INT1_TH_SHUTD | INT1_BAT_OVP | INT1_POOR_SRC | INT1_VBUS_OVP)){
+			dev_err(info->dev, "charger error: int1(0xE6): 0x%x\n", val);
+			ns115_battery_notify_event(CHG_ERROR_EVENT);
 		}
 	}
 
@@ -295,8 +323,7 @@ static int tps80032_charger_init(struct tps80032_charger_info * info)
 		goto err;
 	}
 	ret = tps80032_set_bits(TPS80032_CHARGERUSB_CTRLLIMIT2, LOCK_LIMIT);
-	ret |= tps80032_write(TPS80032_CHARGERUSB_INT_MASK,
-			(MEN_LINCH | MCURRENT_TERM | MCHARGERUSB_THMERG));
+	ret |= tps80032_write(TPS80032_CHARGERUSB_INT_MASK, 0);
 
 	return ret;
 err:
@@ -363,7 +390,7 @@ static __devinit int tps80032_charger_probe(struct platform_device *pdev)
 		goto irq;
 	}
 
-	dev_info(info->dev, "%s is OK!\n", __func__);
+	PINFO(info->dev, "%s is OK!\n", __func__);
 
 	return 0;
 

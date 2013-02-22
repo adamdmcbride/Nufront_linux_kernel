@@ -391,11 +391,11 @@ static int tps80032_adc_channel_value(struct tps80032_adc_info * info,
 		obj = "voltage";
 		unit = "mV";
 	}
-	dev_info(info->dev, "adc channel:%d GPCH0_LSB(0x3b): 0x%x\n",
+	dev_dbg(info->dev, "adc channel:%d GPCH0_LSB(0x3b): 0x%x\n",
 			chan_data->channel, adc_data[0]);
-	dev_info(info->dev, "adc channel:%d GPCH0_MSB(0x3c): 0x%x\n",
+	dev_dbg(info->dev, "adc channel:%d GPCH0_MSB(0x3c): 0x%x\n",
 			chan_data->channel, adc_data[1]);
-	dev_info(info->dev, "channel:%d %s: %d%s\n",
+	dev_dbg(info->dev, "channel:%d %s: %d%s\n",
 			chan_data->channel, obj, data, unit);
 
 	info->tmp_value = data;

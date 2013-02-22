@@ -38,7 +38,7 @@
 
 #define RICOH583_MIN_MVOLTS 3600
 #define RICOH583_MAX_MVOLTS 4160
-#define RICOH583_ADC_TIMEOUT (1 * HZ)
+#define RICOH583_ADC_TIMEOUT (2 * HZ)
 
 #define ADRQ_MASK	0x30
 #define ADRQ_POS	4
@@ -137,8 +137,9 @@ static int ricoh583_get_mvolts(void)
 	uint8_t adc_reg = RICOH583_REG_VBATDATAH + info->adc_channel * 2;
 	int ret, data;
 
-	ricoh583_adc_mode_set(info, ADC_MODE_SINGLE);
 	mutex_lock(&info->lock);
+	ricoh583_update(info->dev->parent, RICOH583_REG_ADCCNT3,
+			ADC_MODE_SINGLE << ADRQ_POS, ADRQ_MASK);
 
 	init_completion(&info->adc_comp);
 	ret = wait_for_completion_interruptible_timeout(&info->adc_comp, RICOH583_ADC_TIMEOUT);
@@ -250,11 +251,11 @@ static __devinit int ricoh583_battery_probe(struct platform_device *pdev)
 	ricoh583_battery_gauge.early_pwr = pdata->early_pwr;
 	ricoh583_battery_gauge.suspend_pwr = pdata->suspend_pwr;
 	ricoh583_battery_gauge.pre_chg_mvolts = pdata->pre_chg_mvolts;
-	ricoh583_battery_gauge.full_mvolts = pdata->full_mvolts;
 	ricoh583_battery_gauge.max_mAh = pdata->max_mAh;
 	ricoh583_battery_gauge.capacity_table = pdata->capacity_table;
 	ricoh583_battery_gauge.table_size = pdata->table_size;
 	ricoh583_battery_gauge.table_step = pdata->table_step;
+	ricoh583_battery_gauge.power_off_mvolts = pdata->power_off_mvolts;
 
 	ret = ns115_battery_gauge_register(&ricoh583_battery_gauge);
 	if (ret){

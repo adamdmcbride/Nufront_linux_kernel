@@ -68,6 +68,10 @@
 #ifdef CONFIG_REGULATOR_NS115
 #include <linux/regulator/ns115-regulator.h>
 #endif
+#ifdef CONFIG_MFD_RICOH583
+#include <linux/mfd/ricoh583.h>
+#include <linux/regulator/ricoh583-regulator.h>
+#endif
 
 #ifdef CONFIG_NS115_EFUSE_SUPPORT
 #include <mach/efuse.h>
@@ -373,7 +377,7 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 
 #ifdef CONFIG_NS115_BATTERY
 static struct ns115_battery_platform_data ns115_batt_pdata = {
-	.update_time = 10,//seconds
+	.update_time = 5,//seconds
 	.safety_time = 60 * 10,//minute
 };
 
@@ -632,6 +636,398 @@ NS115_REG_PDATA_INIT(PLL6, pll6, 1100, "RICOH583_LDO0", 0, 0, 0, 0, 0);
 
 #endif //CONFIG_REGULATOR_NS115
 
+#ifdef CONFIG_MFD_RICOH583
+#define RICOH583_IRQ_BASE   (IRQ_NS115_ZSP2CPU + 1)
+#define RICOH583_GPIO_BASE   136
+#define RICOH583_GPIO_IRQ   IRQ_NS115_GPIO0_WAKEUP_5
+
+#ifdef CONFIG_REGULATOR_RICOH583
+static struct regulator_consumer_supply ricoh583_dc1_supply_0[] = {
+	REGULATOR_SUPPLY("vdd_cpu", NULL),
+};
+
+static struct regulator_consumer_supply ricoh583_dc0_supply_0[] = {
+#if 0
+	REGULATOR_SUPPLY("vdd_main", NULL),
+	REGULATOR_SUPPLY("vdd_2d", NULL),
+	REGULATOR_SUPPLY("vdd_core", NULL),
+	REGULATOR_SUPPLY("vdd_cpu_ram", NULL),
+	REGULATOR_SUPPLY("vddl_usb", NULL),
+	REGULATOR_SUPPLY("vdd_isp", NULL),
+	REGULATOR_SUPPLY("vdd_enc", NULL),
+	REGULATOR_SUPPLY("vdd_dec", NULL),
+	REGULATOR_SUPPLY("vdd_zsp", NULL),
+#endif
+};
+
+static struct regulator_consumer_supply ricoh583_dc2_supply_0[] = {
+	REGULATOR_SUPPLY("vddio_gpio", NULL),
+	REGULATOR_SUPPLY("vdd_tp_io", NULL),
+	REGULATOR_SUPPLY("vdd_aud_io_1v8", NULL),
+	REGULATOR_SUPPLY("vdd_emmc_1v8", NULL),
+	REGULATOR_SUPPLY("vdd_cps_1v8", NULL),
+	REGULATOR_SUPPLY("vdd_sensor", NULL),
+	REGULATOR_SUPPLY("vdd_lsen_1v8", NULL),
+	REGULATOR_SUPPLY("vddio_lcd", NULL),
+};
+
+static struct regulator_consumer_supply ricoh583_dc3_supply_0[] = {
+	REGULATOR_SUPPLY("vdd_ddr", NULL),
+};
+static struct regulator_consumer_supply ricoh583_ldo0_supply_0[] = {
+	REGULATOR_SUPPLY("avdd_pll0", NULL),
+	REGULATOR_SUPPLY("avdd_pll1", NULL),
+	REGULATOR_SUPPLY("avdd_pll2", NULL),
+	REGULATOR_SUPPLY("avdd_pll3", NULL),
+	REGULATOR_SUPPLY("avdd_pll4", NULL),
+	REGULATOR_SUPPLY("avdd_pll5", NULL),
+	REGULATOR_SUPPLY("avdd_pll6", NULL),
+};
+
+static struct regulator_consumer_supply ricoh583_ldo1_supply_0[] = {
+	REGULATOR_SUPPLY("vddio_gpio2", NULL),
+};
+
+static struct regulator_consumer_supply ricoh583_ldo2_supply_0[] = {
+	REGULATOR_SUPPLY("vddio_gpio3", NULL),
+};
+
+static struct regulator_consumer_supply ricoh583_ldo3_supply_0[] = {
+	REGULATOR_SUPPLY("avdd_emmc_2v8", NULL),
+};
+
+static struct regulator_consumer_supply ricoh583_ldo4_supply_0[] = {
+	REGULATOR_SUPPLY("vdd_wakeup", NULL),
+};
+
+static struct regulator_consumer_supply ricoh583_ldo5_supply_0[] = {
+	REGULATOR_SUPPLY("vddio_wakeup", NULL),
+	REGULATOR_SUPPLY("vdd_ddr1", NULL),
+	REGULATOR_SUPPLY("vddio_wakeup33", NULL),
+};
+
+static struct regulator_consumer_supply ricoh583_ldo6_supply_0[] = {
+	REGULATOR_SUPPLY("avdd_hdmi", NULL),
+};
+static struct regulator_consumer_supply ricoh583_ldo7_supply_0[] = {
+	REGULATOR_SUPPLY("vddio_isp", NULL),
+	REGULATOR_SUPPLY("vdd_cam0_io_1v8", "soc-camera-pdrv.0"),
+	REGULATOR_SUPPLY("vdd_cam1_io_1v8", "soc-camera-pdrv.1"),
+};
+
+static struct regulator_consumer_supply ricoh583_ldo8_supply_0[] = {
+	REGULATOR_SUPPLY("vdd_wifi_1v8", NULL),
+};
+
+static struct regulator_consumer_supply ricoh583_ldo9_supply_0[] = {
+	REGULATOR_SUPPLY("avdd_usb", NULL),
+};
+
+#define RICOH_PDATA_INIT(_name, _sname, _minmv, _maxmv, _supply_reg, _always_on, \
+		_boot_on, _apply_uv, _init_mV, _init_enable, _init_apply, _flags,      \
+		_ext_contol, _ds_slots) \
+static struct ricoh583_regulator_platform_data pdata_##_name##_##_sname = \
+{								\
+	.regulator = {						\
+		.constraints = {				\
+			.min_uV = (_minmv)*1000,		\
+			.max_uV = (_maxmv)*1000,		\
+			.valid_modes_mask = (REGULATOR_MODE_NORMAL |  \
+					REGULATOR_MODE_STANDBY), \
+			.valid_ops_mask = (REGULATOR_CHANGE_MODE |    \
+					REGULATOR_CHANGE_STATUS |  \
+					REGULATOR_CHANGE_VOLTAGE), \
+			.always_on = _always_on,		\
+			.boot_on = _boot_on,			\
+			.apply_uV = _apply_uv,			\
+		},						\
+		.num_consumer_supplies =			\
+		ARRAY_SIZE(ricoh583_##_name##_supply_##_sname),	\
+		.consumer_supplies = ricoh583_##_name##_supply_##_sname, \
+		.supply_regulator = _supply_reg,		\
+	},							\
+	.init_uV =  _init_mV * 1000,				\
+	.init_enable = _init_enable,				\
+	.init_apply = _init_apply,				\
+	.deepsleep_slots = _ds_slots,				\
+	.flags = _flags,					\
+	.ext_pwr_req = _ext_contol,				\
+}
+
+RICOH_PDATA_INIT(dc0, 0,         700,  1500, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0);
+RICOH_PDATA_INIT(dc1, 0,         750,  1500, 0, 1, 1, 0, -1, 0, 0, 0, 1, 7);
+RICOH_PDATA_INIT(dc2, 0,         900,  2400, 0, 1, 1, 0, -1, 0, 0, 0, 1, 5);
+RICOH_PDATA_INIT(dc3, 0,         900,  2400, 0, 1, 1, 0, -1, 0, 0, 0, 0, 0);
+
+RICOH_PDATA_INIT(ldo0, 0,        1000, 3300, 0, 1, 1, 0, -1, 0, 0, 0, 1, 4);
+RICOH_PDATA_INIT(ldo1, 0,        1000, 3300, 0, 1, 1, 0, -1, 0, 0, 0, 1, 5);
+RICOH_PDATA_INIT(ldo2, 0,        1050, 1050, 0, 1, 1, 0, -1, 0, 0, 0, 1, 5);
+
+RICOH_PDATA_INIT(ldo3, 0,        1000, 3300, 0, 1, 1, 0, -1, 0, 0, 0, 1, 5);
+RICOH_PDATA_INIT(ldo4, 0,        750,  1500, 0, 1, 1, 0, -1, 0, 0, 0, 0, 0);
+RICOH_PDATA_INIT(ldo5, 0,        1000, 3300, 0, 1, 1, 0, -1, 0, 0, 0, 0, 0);
+
+RICOH_PDATA_INIT(ldo6, 0,        1200, 1200, 0, 1, 1, 0, -1, 0, 0, 0, 1, 4);
+RICOH_PDATA_INIT(ldo7, 0,        1200, 1200, 0, 0, 0, 0, -1, 0, 0, 0, 1, 5);
+RICOH_PDATA_INIT(ldo8, 0,        900,  3400, 0, 0, 0, 0, 1800, 1, 1, 0, 1, 5);
+RICOH_PDATA_INIT(ldo9, 0,        900,  3400, 0, 1, 1, 0, -1, 0, 0, 0, 1, 4);
+
+#define RICOH_REG(_id, _name, _sname)			\
+{							\
+	.id	= RICOH583_ID_##_id,			\
+	.name	= "ricoh583-regulator",			\
+	.platform_data	= &pdata_##_name##_##_sname,	\
+}
+
+#define RICOH583_DEV_REG    \
+	RICOH_REG(DC0, dc0, 0),			\
+RICOH_REG(DC1, dc1, 0),		\
+RICOH_REG(DC2, dc2, 0),		\
+RICOH_REG(DC3, dc3, 0),		\
+RICOH_REG(LDO0, ldo0, 0),		\
+RICOH_REG(LDO1, ldo1, 0),		\
+RICOH_REG(LDO2, ldo2, 0),		\
+RICOH_REG(LDO3, ldo3, 0),		\
+RICOH_REG(LDO4, ldo4, 0),		\
+RICOH_REG(LDO5, ldo5, 0),		\
+RICOH_REG(LDO6, ldo6, 0),		\
+RICOH_REG(LDO7, ldo7, 0),		\
+RICOH_REG(LDO8, ldo8, 0),		\
+RICOH_REG(LDO9, ldo9, 0)
+#endif
+
+#ifdef CONFIG_RTC_DRV_RC5T583
+static struct ricoh583_rtc_platform_data ricoh583_rtc_data = {
+	.irq = RICOH583_IRQ_BASE + RICOH583_IRQ_YALE,
+	.time = {
+		.tm_year = 2012,
+		.tm_mon = 0,
+		.tm_mday = 1,
+		.tm_hour = 0,
+		.tm_min = 0,
+		.tm_sec = 0,
+	},
+};
+
+#define RICOH583_RTC_REG				\
+{						\
+	.id	= -1,				\
+	.name	= "rtc_ricoh583",		\
+	.platform_data = &ricoh583_rtc_data,		\
+}
+#endif
+
+#ifdef CONFIG_INPUT_RICOH583_PWRKEY
+static struct ricoh583_pwrkey_platform_data ricoh583_pwrkey_data = {
+	.irq = RICOH583_IRQ_BASE + RICOH583_IRQ_ONKEY,
+	.delay_ms = 20,
+};
+
+#define RICOH583_PWRKEY_REG     \
+{       \
+	.id = -1,    \
+	.name = "ricoh583-pwrkey",    \
+	.platform_data = &ricoh583_pwrkey_data,     \
+}
+#endif
+
+#ifdef CONFIG_BATTERY_RICOH583
+static int ricoh583_capacity[][2] = {
+	{100, 4160},
+	{99, 4144},
+	{98, 4128},
+	{97, 4112},
+	{96, 4096},
+	{95, 4080},
+	{94, 4064},
+	{93, 4048},
+	{92, 4032},
+	{91, 4016},
+	{90, 4000},
+	{89, 3996},
+	{88, 3992},
+	{87, 3988},
+	{86, 3984},
+	{85, 3980},
+	{84, 3976},
+	{83, 3972},
+	{82, 3968},
+	{81, 3964},
+	{80, 3962},
+	{79, 3959},
+	{78, 3956},
+	{77, 3954},
+	{76, 3952},
+	{75, 3950},
+	{74, 3948},
+	{73, 3946},
+	{72, 3944},
+	{71, 3942},
+	{70, 3940},
+	{79, 3936},
+	{68, 3932},
+	{67, 3928},
+	{66, 3924},
+	{65, 3920},
+	{64, 3916},
+	{63, 3912},
+	{62, 3908},
+	{61, 3904},
+	{60, 3900},
+	{59, 3894},
+	{58, 3888},
+	{57, 3882},
+	{56, 3876},
+	{55, 3870},
+	{54, 3864},
+	{53, 3858},
+	{52, 3852},
+	{51, 3846},
+	{50, 3840},
+	{49, 3835},
+	{48, 3830},
+	{47, 3825},
+	{46, 3820},
+	{45, 3815},
+	{44, 3810},
+	{43, 3805},
+	{42, 3800},
+	{41, 3795},
+	{40, 3790},
+	{39, 3783},
+	{38, 3776},
+	{37, 3769},
+	{36, 3762},
+	{35, 3755},
+	{34, 3748},
+	{33, 3741},
+	{32, 3734},
+	{31, 3727},
+	{30, 3720},
+	{29, 3716},
+	{28, 3712},
+	{27, 3708},
+	{26, 3704},
+	{25, 3700},
+	{24, 3696},
+	{23, 3692},
+	{22, 3688},
+	{21, 3684},
+	{20, 3680},
+	{19, 3676},
+	{18, 3672},
+	{17, 3668},
+	{16, 3664},
+	{15, 3660},
+	{14, 3656},
+	{13, 3652},
+	{12, 3648},
+	{11, 3644},
+	{10, 3640},
+	{9, 3636},
+	{8, 3632},
+	{7, 3628},
+	{6, 3624},
+	{5, 3620},
+	{4, 3616},
+	{3, 3612},
+	{2, 3608},
+	{1, 3604},
+	{0, 3600},
+};
+
+static struct ricoh583_battery_platform_data ricoh583_battery_data = {
+	.irq_base = RICOH583_IRQ_BASE,
+	.adc_channel = RICOH583_ADC_CHANNEL_AIN1,
+	.multiple = 300,    //300%
+	.alarm_mvolts = 3660,  //15%
+	.power_off_mvolts = 3400,
+	.adc_vdd_mvolts = 2800,
+	.pre_chg_mvolts = 3100,
+	.normal_pwr = 4000,//mW, average value
+	.early_pwr = 895,//mW
+	.suspend_pwr = 25,//mW
+	.resistor_mohm = 95,
+	.max_mAh = 4000,
+	.capacity_table = &ricoh583_capacity,
+	.table_size = sizeof(ricoh583_capacity) / (sizeof(int) * 2),
+};
+#define RICOH583_BATTERY_REG    \
+{       \
+	.id = -1,    \
+	.name = "ricoh583-battery",     \
+	.platform_data = &ricoh583_battery_data,    \
+}
+#endif
+
+#ifdef CONFIG_RICOH583_AC_DETECT
+static struct ricoh583_ac_detect_platform_data ricoh583_ac_detect_data = {
+	.irq = RICOH583_IRQ_BASE + RICOH583_IRQ_ACOK,
+	.usb_gpio = 6,
+	.usb_effect = 0, /*low effective when usb plug*/
+};
+#define RICOH583_AC_DETECT_REG	\
+{	\
+	.id = -1,	\
+	.name = "ricoh583_ac_detect",	\
+	.platform_data = &ricoh583_ac_detect_data,	\
+}
+#endif
+
+static struct ricoh583_subdev_info ricoh_devs_dcdc[] = {
+	RICOH583_DEV_REG,
+#ifdef CONFIG_RTC_DRV_RC5T583
+	RICOH583_RTC_REG,
+#endif
+#ifdef CONFIG_INPUT_RICOH583_PWRKEY
+	RICOH583_PWRKEY_REG,
+#endif
+#ifdef CONFIG_BATTERY_RICOH583
+	RICOH583_BATTERY_REG,
+#endif
+#ifdef CONFIG_RICOH583_AC_DETECT
+	RICOH583_AC_DETECT_REG,
+#endif
+};
+
+#define RICOH_GPIO_INIT(_init_apply, _pulldn, _output_mode, _output_val, _ext_contol, _ds_slots) \
+{					\
+	.pulldn_en = _pulldn,		\
+	.output_mode_en = _output_mode,	\
+	.output_val = _output_val,	\
+	.init_apply = _init_apply,	\
+	.ext_pwr_req = _ext_contol,				\
+	.deepsleep_slots = _ds_slots,				\
+}
+struct ricoh583_gpio_init_data ricoh_gpio_data[] = {
+	RICOH_GPIO_INIT(false, false, false, 0, 0, 0),  //GPIO0
+	RICOH_GPIO_INIT(false, false, false, 0, 1, 0),  //GPIO1
+	RICOH_GPIO_INIT(false, false, false, 0, 1, 6),  //GPIO2
+	RICOH_GPIO_INIT(false, false, false, 0, 1, 5),  //GPIO3
+	RICOH_GPIO_INIT(false, true,  false, 1, 0, 0),  //GPIO4
+	RICOH_GPIO_INIT(true, true, true, 1, 0, 0),  //GPIO5
+	RICOH_GPIO_INIT(false, false, false, 0, 1, 6),  //GPIO6
+	RICOH_GPIO_INIT(false, false, false, 0, 0, 0),  //GPIO7
+};
+
+
+static struct ricoh583_platform_data ricoh_platform = {
+	.num_subdevs = ARRAY_SIZE(ricoh_devs_dcdc),
+	.subdevs = ricoh_devs_dcdc,
+	.irq_base	= RICOH583_IRQ_BASE,
+	.gpio_base	= RICOH583_GPIO_BASE,
+	.gpio_init_data = ricoh_gpio_data,
+	.num_gpioinit_data = ARRAY_SIZE(ricoh_gpio_data),
+	.enable_shutdown_pin = true,
+};
+
+struct i2c_board_info __initdata ricoh583_i2c_dev = {
+	I2C_BOARD_INFO("ricoh583", 0x34),
+	.irq		= RICOH583_GPIO_IRQ,
+	.platform_data	= &ricoh_platform,
+};
+#endif //CONFIG_MFD_RICOH583
+
 static struct soc_plat_dev plat_devs[] =
 {
 	SOC_PLAT_DEV(&ns115_serial_device, 	NULL),
@@ -656,7 +1052,7 @@ static struct soc_plat_dev plat_devs[] =
 	SOC_PLAT_DEV(&nusmart_gpio_keys_device, NULL),
     SOC_PLAT_DEV(&ns115_vibrator_device,   NULL),
 #ifdef CONFIG_SND_SOC_ALC5631
-    SOC_PLAT_DEV(&ns115ref_rt5631_jd_device, NULL),
+	SOC_PLAT_DEV(&ns115_jd_device, NULL),
 #endif
 	/*check following setting before you enable it*/
 #ifdef CONFIG_SOC_CAMERA_OV5640

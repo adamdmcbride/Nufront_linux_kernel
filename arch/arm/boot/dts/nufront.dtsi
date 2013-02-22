@@ -1,0 +1,71 @@
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	interrupt-parent = <&intc>;
+
+	intc: interrupt-controller{
+		compatible = "nufront,ns115-gic";
+		interrupt-controller;
+		#interrupt-cells = <1>;
+		reg = <0x05041000 0x1000 >;
+	};
+	memory@0 {
+		device_type = "memory";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		reg = <0x80000000 0x40000000>;
+	};
+	i2c@06100000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "nufront,designware-i2c";
+		reg = <0x06100000 0x10000>;
+		interrupts = < 59 >;
+		type = "i2c";
+		id = <0>;
+	};
+
+	i2c@06110000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "nufront,designware-i2c";
+		reg = <0x06110000 0x10000>;
+		interrupts = < 60 >;
+		type = "i2c";
+		id = <1>;
+	};
+
+	i2c@06120000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "nufront,designware-i2c";
+		reg = <0x06120000 0x10000>;
+		interrupts = < 61 >;
+		type = "i2c";
+		id = <2>;
+	};
+
+	i2c@06130000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "nufront,designware-i2c";
+		reg = <0x06130000 0x10000>;
+		interrupts = < 62 >;
+		type = "i2c";
+		id = <3>;
+	};
+
+	sdmmc@0x05070000 {
+		#address-cells 	= <1>;
+		#size-cells 	= <0>;
+		compatible 	= "nufront,ns115-sdmmc";
+		reg 		= <0x05070000 0x10000>;
+		interrupts 	= < 64 >;
+		ref_clk 	= <100000000>;
+		nr_slots 	= <3>;
+		gpio		= <57>;
+		detect_delay_ms = <2000>;
+
+	};
+};

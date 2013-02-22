@@ -29,6 +29,27 @@
 
 static DEFINE_SPINLOCK(clocks_lock);
 
+/*test func, only support i2c1 clk*/
+void clk_reset_assert(struct clk *clk)
+{
+       unsigned long flags;
+
+       spin_lock_irqsave(&clocks_lock, flags);
+       clk->reset(clk, true);
+       spin_unlock_irqrestore(&clocks_lock, flags);
+}
+EXPORT_SYMBOL(clk_reset_assert);
+
+void clk_reset_desert(struct clk *clk)
+{
+       unsigned long flags;
+
+       spin_lock_irqsave(&clocks_lock, flags);
+       clk->reset(clk, false);
+       spin_unlock_irqrestore(&clocks_lock, flags);
+}
+EXPORT_SYMBOL(clk_reset_desert);
+
 int clk_enable(struct clk *clk)
 {
 	int ret = 0;

@@ -1863,7 +1863,7 @@ unsigned int snd_soc_write(struct snd_soc_codec *codec,
 #else
 	dev_dbg(codec->dev, "write %x = %x\n", reg, val);
 	trace_snd_soc_reg_write(codec, reg, val);
-	msleep(1);
+	//msleep(1);
 	return codec->write(codec, reg, val);
 #endif
 }

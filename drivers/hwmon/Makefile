@@ -121,8 +121,10 @@ obj-$(CONFIG_SENSORS_WM8350)	+= wm8350-hwmon.o
 obj-$(CONFIG_SENSORS_CM3212)   += cm3212.o
 obj-$(CONFIG_SENSORS_KXUD9)     += kxud9.o
 obj-$(CONFIG_INPUT_KXTJ9) += kxtj9.o
+obj-$(CONFIG_SENSORS_BMA250)	    += bma250.o
+obj-$(CONFIG_SENSORS_DMARD06)   += dmt050607.o
 obj-$(CONFIG_SENSORS_AMI30X)    += ami30x.o
- 
+obj-$(CONFIG_SENSORS_TMD27713)  += taos.o
 # PMBus drivers
 obj-$(CONFIG_PMBUS)		+= pmbus_core.o
 obj-$(CONFIG_SENSORS_PMBUS)	+= pmbus.o
@@ -132,6 +134,7 @@ obj-$(CONFIG_SENSORS_MAX34440)	+= max34440.o
 obj-$(CONFIG_SENSORS_MAX8688)	+= max8688.o
 obj-$(CONFIG_SENSORS_UCD9000)	+= ucd9000.o
 obj-$(CONFIG_SENSORS_UCD9200)	+= ucd9200.o
+obj-y                           += mpu3050c/
 
 ccflags-$(CONFIG_HWMON_DEBUG_CHIP) := -DDEBUG
 

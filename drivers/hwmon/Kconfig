@@ -55,6 +55,14 @@ config SENSORS_ABITUGURU
 	  This driver can also be built as a module.  If so, the module
 	  will be called abituguru.
 
+config SENSORS_TMD27713
+        tristate "ALS/PROXI SENSOR"
+	depends on I2C
+	help
+	  The options enables TMD27713  ALS/PROXI sensors on board
+
+
+
 config SENSORS_ABITUGURU3
 	tristate "Abit uGuru (rev 3)"
 	depends on X86 && DMI && EXPERIMENTAL
@@ -1379,6 +1387,19 @@ config SENSORS_KXUD9
                 If you say yes here you get support for the Kionix KXUD9 digital tri-axis. accelerometer.
                 This driver can also be built as a module. If so, the module will be called kxud9.
 
+config SENSORS_BMA250
+        tristate "BMA250 GSENSOR support"
+        depends on I2C=y
+        ---help---
+              If you say yes here you get support for accelemeter sensor BMA250.
+
+config SENSORS_DMARD06
+       tristate "DMARD06 GSENSOR support"
+       default y
+       depends on I2C=y
+       ---help---
+             If you say yes here you get support for accelemeter sensor DMARD06.
+
 config SENSORS_AMI30X
         tristate "AMI30X"
         depends on I2C && SYSFS
@@ -1423,4 +1444,22 @@ config SENSORS_ATK0110
 
 endif # ACPI
 
+menuconfig SENSORS
+       bool "Sensors support"
+       help
+         Say Y to enalbe sensors support.
+
+if SENSORS
+
+
+config SENSORS_MPU3050
+       tristate "9-AXIS SENSORS INVENSENSE Support"
+       help
+         The options enables MPU3050 with 9-axis sensors on board.
+
+if SENSORS_MPU3050
+source "drivers/hwmon/mpu3050c/Kconfig"
+endif
+
+endif  # SENSORS
 endif # HWMON

@@ -303,6 +303,7 @@ static struct clk i2c0_clk = {
 	.disable  = ns115_i2c0_clk_disable,
 	.set_rate = ns115_i2c_fs_clk_set_rate,
 	.get_rate = clk_get_rate, 
+	.reset	  = ns115_i2c0_clk_reset,
 };
 
 static struct clk i2c1_clk = {
@@ -312,6 +313,7 @@ static struct clk i2c1_clk = {
 	.disable  = ns115_i2c1_clk_disable,
 	.set_rate = ns115_i2c_fs_clk_set_rate,
 	.get_rate = clk_get_rate, 
+	.reset    = ns115_i2c1_clk_reset,
 };
 
 static struct clk i2c2_clk = {
@@ -321,6 +323,7 @@ static struct clk i2c2_clk = {
 	.disable  = ns115_i2c2_clk_disable,
 	.set_rate = ns115_i2c_fs_clk_set_rate,
 	.get_rate = clk_get_rate, 
+	.reset	  = ns115_i2c2_clk_reset,
 };
 
 static struct clk i2c3_clk = {
@@ -329,7 +332,8 @@ static struct clk i2c3_clk = {
 	.enable   = ns115_i2c3_clk_enable,
 	.disable  = ns115_i2c3_clk_disable,
 	.set_rate = ns115_i2c_hs_clk_set_rate,
-	.get_rate = clk_get_rate, 
+	.get_rate = clk_get_rate,
+	.reset	  = ns115_i2c3_clk_reset,
 };
 
 static struct clk uart0_clk = {
@@ -2353,6 +2357,24 @@ int ns115_i2c0_clk_disable(struct clk *clk)
 	return 0;
 }
 
+int ns115_i2c0_clk_reset(struct clk *clk, bool flag)
+{
+       unsigned int reg_value;
+       void __iomem *i2c_clk_ctrl = __io_address(PRCM_I2C_CLK_CTRL);
+
+       reg_value = PRCM_I2C_CLK_CTRL_I2C0_RSTN;
+
+       if (true == flag) {
+               reg_clr_bits(i2c_clk_ctrl, reg_value);//low active reset assert
+       } else {
+
+               reg_set_bits(i2c_clk_ctrl, reg_value);//high active reset desert
+       }
+
+       printk(KERN_ERR "i2c0 clock reset.\n");
+       return 0;
+}
+
 int ns115_i2c_fs_clk_set_rate(struct clk *c, unsigned long rate, unsigned int nouse)
 {
 	void __iomem *i2c_clk_ctrl = __io_address(PRCM_I2C_CLK_CTRL);
@@ -2401,6 +2423,24 @@ int ns115_i2c1_clk_disable(struct clk *clk)
 	return 0;
 }
 
+int ns115_i2c1_clk_reset(struct clk *clk, bool flag)
+{
+	unsigned int reg_value;
+	void __iomem *i2c_clk_ctrl = __io_address(PRCM_I2C_CLK_CTRL);
+
+	reg_value = PRCM_I2C_CLK_CTRL_I2C1_RSTN;
+
+	if (true == flag) {
+		reg_clr_bits(i2c_clk_ctrl, reg_value);//low active reset assert
+	} else {
+
+	       reg_set_bits(i2c_clk_ctrl, reg_value);//high active reset desert
+	}
+
+	printk(KERN_ERR "i2c1 clock reset.\n");
+	return 0;
+}
+
 // I2C2 clock control function/tasks
 int ns115_i2c2_clk_enable(struct clk *clk)
 {
@@ -2428,6 +2468,21 @@ int ns115_i2c2_clk_disable(struct clk *clk)
 	return 0;
 }
 
+int ns115_i2c2_clk_reset(struct clk *clk, bool flag)
+{
+	unsigned int reg_value;
+	void __iomem *i2c_clk_ctrl = __io_address(PRCM_I2C_CLK_CTRL);
+
+	reg_value = PRCM_I2C_CLK_CTRL_I2C2_RSTN;
+	if (true == flag) {
+		reg_clr_bits(i2c_clk_ctrl, reg_value);//low active reset assert
+	} else {
+		reg_set_bits(i2c_clk_ctrl, reg_value);//high active reset desert
+	}
+	printk(KERN_ERR "i2c2 clock reset.\n");
+	return 0;
+}
+
 // I2C3 clock control function/tasks
 int ns115_i2c3_clk_enable(struct clk *clk)
 {
@@ -2452,6 +2507,32 @@ int ns115_i2c3_clk_disable(struct clk *clk)
 	reg_clr_bits(i2c_clk_ctrl, reg_value);
 
 	printk(KERN_NOTICE "i2c3 clock disabled.\n");
+	return 0;
+}
+
+int ns115_i2c3_clk_reset(struct clk *clk, bool flag)
+{
+	unsigned int reg_value;
+	void __iomem *i2c_clk_ctrl = __io_address(PRCM_I2C_CLK_CTRL);
+
+	reg_value = PRCM_I2C_CLK_CTRL_I2C3_RSTN;
+	if (true == flag) {
+		reg_clr_bits(i2c_clk_ctrl, reg_value);//low active reset assert
+	} else {
+		reg_set_bits(i2c_clk_ctrl, reg_value);//high active reset desert
+	}
+	printk(KERN_ERR "i2c3 clock reset.\n");
+	return 0;
+}
+
+int ns115_i2c3_clk_reset_desert(struct clk *clk)
+{
+	unsigned int reg_value;
+	void __iomem *i2c_clk_ctrl = __io_address(PRCM_I2C_CLK_CTRL);
+
+	reg_value = PRCM_I2C_CLK_CTRL_I2C3_RSTN;
+	reg_set_bits(i2c_clk_ctrl, reg_value);//low active
+	printk(KERN_ERR "i2c3 clock reset desert.\n");
 	return 0;
 }
 
@@ -2879,8 +2960,7 @@ int ns115_i2s0_clk_enable(struct clk *clk)
 	void __iomem *i2s_clk_ctrl = __io_address(PRCM_I2S_CLK_CTRL);
 
 	reg_value = PRCM_I2S_CLK_CTRL_I2S0_CLKEN |
-		PRCM_I2S_CLK_CTRL_I2S0_PCLKEN|
-		PRCM_I2S_CLK_CTRL_MCLKEN;
+		PRCM_I2S_CLK_CTRL_I2S0_PCLKEN;
 	reg_set_bits(i2s_clk_ctrl, reg_value);
 
 	printk(KERN_NOTICE "i2s0 clock enabled.\n");
@@ -2893,8 +2973,7 @@ int ns115_i2s0_clk_disable(struct clk *clk)
 	void __iomem *i2s_clk_ctrl = __io_address(PRCM_I2S_CLK_CTRL);
 
 	reg_value = PRCM_I2S_CLK_CTRL_I2S0_CLKEN |
-		PRCM_I2S_CLK_CTRL_I2S0_PCLKEN|
-		PRCM_I2S_CLK_CTRL_MCLKEN;
+		PRCM_I2S_CLK_CTRL_I2S0_PCLKEN;
 	reg_clr_bits(i2s_clk_ctrl, reg_value);
 
 	printk(KERN_NOTICE "i2s0 clock disabled.\n");

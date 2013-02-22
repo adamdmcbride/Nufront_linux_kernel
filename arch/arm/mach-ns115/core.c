@@ -70,7 +70,9 @@
 #include <mach/camera.h>
 #include <mach/system.h>
 #include <mach/ns115-cpufreq.h>
-
+#ifdef CONFIG_BT_NW53
+#include <mach/bluetooth.h>
+#endif
 #ifdef CONFIG_GENERIC_GPIO
 #include <mach/gpio.h>
 #endif
@@ -542,6 +544,37 @@ static void cam_priority_set(int flag)
    };
  */
 
+
+/*
+ *bluetooth
+ */
+#ifdef CONFIG_BT_NW53
+static struct resource bluetooth_resources[] = {
+	{
+		.name	= "bt_int",
+		.start	= IRQ_NS115_GPIO0_WAKEUP_6,
+		.end	= IRQ_NS115_GPIO0_WAKEUP_6,
+		.flags	= IORESOURCE_IO,
+	},
+};
+
+static struct nw53_bt_platform_data bluetooth_info = {
+	.reset		= 13+32+8,
+	.bt_wake	= 14+32+8,
+	.int_gpio	= 6,
+	.bt_enable	= 23+32+8,
+};
+
+struct platform_device nw53_bluesleep_device = {
+	.name = "bluetooth_power",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(bluetooth_resources),
+	.resource	= bluetooth_resources,
+	.dev		= {
+		.platform_data = &bluetooth_info,
+	},
+};
+#endif
 /*##############################################################*/
 /*		NS115 SD/MMC controller device			*/
 /*##############################################################*/
@@ -642,7 +675,7 @@ static struct resource ns115_i2c3_resource[] = {
 	},
 };
 
-static struct nusmart_i2c_platform_data nusmart_i2c_data[] = {
+struct nusmart_i2c_platform_data nusmart_i2c_data[] = {
 	{
 		.speed = I2C_SPEED_STD,
 		.clk_id = "ns115_i2c0", 
@@ -956,6 +989,32 @@ struct platform_device ns115_clcd_device[] = {
 };
 
 /*##############################################################*/
+/*       		NS115 DSI device			*/
+/*##############################################################*/
+static struct resource ns115_dsi_resources[] = {
+	[0] = {
+		.start = NS115_DSI_BASE,
+		.end   = NS115_DSI_BASE + SZ_4K - 1,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = IRQ_NS115_DSI_ERR,
+		.end   = IRQ_NS115_DSI_INT,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+struct platform_device ns115_dsi_device = {
+	.name = "nusmart_dsi",
+	.id = 0,
+	.dev = {
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	},
+	.resource = ns115_dsi_resources,
+	.num_resources = 2,
+};
+
+/*##############################################################*/
 /*		NS115 wakeup timer device			*/
 /*##############################################################*/
 #define WAKEUP_TIMER_NAME "ns115_wk_timer"
@@ -1019,7 +1078,17 @@ struct platform_device gc0329_camera_device = {
 	.id   = 0,
 };
 
+struct platform_device gc0308_camera_device = {
+	.name = "soc-camera-pdrv",
+	.id   = 0,
+};
+
 struct platform_device ov5640_camera_device = {
+	.name = "soc-camera-pdrv",
+	.id   = 1,
+};
+
+struct platform_device gt2005_camera_device = {
 	.name = "soc-camera-pdrv",
 	.id   = 1,
 };
@@ -1222,7 +1291,11 @@ struct platform_device nusmart_gpio_keys_device = {
 struct rfkill_gpio_platform_data ns115ref_bt_rfkill_data = {
 	.name = "bcm_rfkill",
 	.reset_gpio = 8 + 32 + 13,
+#ifdef CONFIG_MACH_NS115_PHONE_TEST
+	.shutdown_gpio = 8 + 32 + 23,
+#else
 	.shutdown_gpio = 8 + 32 + 25,
+#endif
 	.power_clk_name = NULL,
 	.type = RFKILL_TYPE_BLUETOOTH, 
 };
@@ -1235,19 +1308,19 @@ struct platform_device ns115ref_bt_rfkill_device = {
 	},
 }; 
 
-#ifdef CONFIG_SND_SOC_ALC5631
-struct  ns115ref_rt5631_jd_platform_data {
+#if defined(CONFIG_SND_SOC_ALC5631) || defined(CONFIG_SND_SOC_ALC3261)
+struct  ns115_jd_platform_data {
     unsigned int irq;
 };
 
-struct ns115ref_rt5631_jd_platform_data ns115ref_rt5631_jd_data = {
+struct ns115_jd_platform_data ns115_jd_data = {
     .irq = IRQ_NS115_GPIO0_WAKEUP_2,
 };
 
-struct platform_device ns115ref_rt5631_jd_device = {
-    .name = "rt5631-jd",
+struct platform_device ns115_jd_device = {
+    .name = "ns115-jd",
     .dev            = {
-        .platform_data =  &ns115ref_rt5631_jd_data,
+        .platform_data =  &ns115_jd_data,
     },
 };
 #endif
@@ -1445,4 +1518,9 @@ struct platform_device ns115_vibrator_device = {
 	.dev            = {
 		.platform_data = &ns115_vibrator_pdata,
 	},
+};
+
+struct platform_device mu600_gpio_device = {
+	.id = -1,
+	.name = "mu600_gpio",
 };

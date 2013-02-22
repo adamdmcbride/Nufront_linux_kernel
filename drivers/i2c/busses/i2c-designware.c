@@ -38,7 +38,7 @@
 #include <linux/io.h>
 #include <linux/slab.h>
 #include <mach/i2c.h>
-
+#include <linux/of_i2c.h>
 #define TR0(fmt, args...) printk(KERN_CRIT "i2c_designware: " fmt, ##args)
 
 #define DEBUG 0
@@ -425,7 +425,7 @@ static void i2c_dw_xfer_init(struct dw_i2c_dev *dev)
 	for(i=0;i<dev->msgs_num;i++){
 		if(msgs[i].flags & I2C_M_RD){
 			if(msgs[i].len > dev->rx_fifo_depth)
-				writel(get_max_divisor(msgs[i].len, dev->rx_fifo_depth) - 1, dev->base + DW_IC_RX_TL);
+				writel(get_max_divisor(msgs[i].len, dev->rx_fifo_depth - 2) - 1, dev->base + DW_IC_RX_TL);
 			else
 				writel(msgs[i].len - 1, dev->base + DW_IC_RX_TL);
 		}
@@ -577,6 +577,19 @@ static int i2c_dw_handle_tx_abort(struct dw_i2c_dev *dev)
 		return -EIO;
 }
 
+static void i2c_reset(struct clk *clk)
+{
+	clk_disable(clk);
+	udelay(200);
+	clk_reset_assert(clk);
+	udelay(200);
+	clk_reset_desert(clk);
+	udelay(200);
+	clk_enable(clk);
+	udelay(200);
+}
+
+
 /*
  * Prepare controller for a transaction and call i2c_dw_xfer_msg
  */
@@ -611,6 +624,7 @@ i2c_dw_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	/* wait for tx to complete */
 	ret = wait_for_completion_timeout(&dev->cmd_complete, HZ);
 	if (ret == 0) {
+		i2c_reset(dev->clk);
 		i2c_dw_init(dev);
 		dev_err(dev->dev, "controller timed out, addr = %x\n", msgs[0].addr);
 		ret = -ETIMEDOUT;
@@ -745,7 +759,10 @@ static irqreturn_t i2c_dw_isr(int this_irq, void *dev_id)
 		i2c_dw_xfer_msg(dev);
 	if (stat & DW_IC_INTR_STOP_DET)
 	{
-		if(dev->status !=0){
+		if (dev->status & STATUS_READ_IN_PROGRESS)
+			i2c_dw_read(dev);
+
+		if (dev->status !=0) {
 			dev_err(dev->dev, "i2c transfer was stopped unexpected\n");
 			dev->msg_err = -EINVAL;
 		}
@@ -775,6 +792,7 @@ static int __devinit dw_i2c_probe(struct platform_device *pdev)
 	struct i2c_adapter *adap;
 	struct resource *mem, *ioarea;
 	int irq, r;
+	const u32 *id = NULL;
 
 	/* NOTE: driver uses the static register mapping */
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -810,7 +828,7 @@ static int __devinit dw_i2c_probe(struct platform_device *pdev)
 
 	struct nusmart_i2c_platform_data* i2c_bus_data = (struct nusmart_i2c_platform_data*)dev->dev->platform_data;
 	dev->clk = clk_get(&pdev->dev, i2c_bus_data->clk_id);
-	printk("i2c clock id is %s\n", i2c_bus_data->clk_id);
+	TR1("i2c clock id is %s\n", i2c_bus_data->clk_id);
 	if (IS_ERR(dev->clk)) {
 		r = -ENODEV;
 		printk("get i2c clock failed\n");
@@ -850,14 +868,27 @@ static int __devinit dw_i2c_probe(struct platform_device *pdev)
 			sizeof(adap->name));
 	adap->algo = &i2c_dw_algo;
 	adap->dev.parent = &pdev->dev;
-
+#ifdef CONFIG_USE_OF
+	adap->dev.of_node = pdev->dev.of_node;
+	id = of_get_property(pdev->dev.of_node,"id",NULL);
+	if(id)
+		pdev->id = be32_to_cpup(id);
+	else
+	{
+		dev_err(&pdev->dev,"error i2c id \n");
+		goto err_free_irq;
+	}
+#endif
 	adap->nr = pdev->id;
 	r = i2c_add_numbered_adapter(adap);
 	if (r) {
 		dev_err(&pdev->dev, "failure adding adapter\n");
 		goto err_free_irq;
 	}
-	printk("i2c designware driver register success\n");
+#ifdef CONFIG_USE_OF
+	of_i2c_register_devices(adap);
+#endif
+	TR1("i2c designware driver register success\n");
 	return 0;
 
 err_free_irq:
@@ -877,7 +908,7 @@ err_free_mem:
 err_release_region:
 	release_mem_region(mem->start, resource_size(mem));
 
-	printk("i2c designware driver register fail\n");
+	TR1("i2c designware driver register fail\n");
 	return r;
 }
 
@@ -1039,6 +1070,16 @@ EXPORT_SYMBOL(dw_i2c_master_init);
 EXPORT_SYMBOL(dw_i2c_send_bytes);
 EXPORT_SYMBOL(dw_i2c_smbus_read);
 
+#if defined(CONFIG_OF)
+/* Match table for of_platform binding */
+static const struct of_device_id designware_i2c_of_match[] __devinitconst = {
+	{ .compatible = "nufront,designware-i2c", },
+	{},
+};
+MODULE_DEVICE_TABLE(of, designware_i2c_of_match);
+#else
+#define designware_i2c_of_match NULL
+#endif
 
 static struct platform_driver dw_i2c_driver = {
         .remove		= __devexit_p(dw_i2c_remove),
@@ -1047,6 +1088,7 @@ static struct platform_driver dw_i2c_driver = {
         .driver		= {
                 .name	= "i2c_designware",
                 .owner	= THIS_MODULE,
+		.of_match_table = designware_i2c_of_match,
         },
 };
 

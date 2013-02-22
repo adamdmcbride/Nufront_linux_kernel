@@ -36,7 +36,7 @@
 #define DBG_PRINT(fmt, args...)
 #endif
 
-#define ALC_FUNC 1 
+#define ALC_FUNC 1
 #define EQ_FUNC 1
 
 struct rt5631_init_reg {
@@ -48,88 +48,92 @@ static int is_spk_on;
 static int is_hp_on;
 
 static struct rt5631_init_reg init_list[] = {
-	{RT5631_SPK_OUT_VOL		, 0xc3c3},
-	{RT5631_HP_OUT_VOL		, 0xc0c0},
-	{RT5631_STEREO_DAC_VOL_2	, 0x2121},
-	{RT5631_MONO_AXO_1_2_VOL	, 0xa080},
-	{RT5631_ADC_REC_MIXER		, 0xb0b0},
-	{RT5631_MIC_CTRL_2		, 0x7700},
-	{RT5631_OUTMIXER_L_CTRL		, 0xdfC0},
-	{RT5631_OUTMIXER_R_CTRL		, 0xdfC0},
-	{RT5631_SPK_MIXER_CTRL		, 0xe8e8},
-	{RT5631_SPK_MONO_OUT_CTRL	, 0x6c00},
-	{RT5631_GEN_PUR_CTRL_REG	, 0x1e00},
-	{RT5631_SPK_MONO_HP_OUT_CTRL	, 0x0000},
-	{RT5631_INT_ST_IRQ_CTRL_2	, 0x0f18},
-	{RT5631_MIC_CTRL_1		, 0x8080},
-	{RT5631_SDP_CTRL		, 0x8010},
+	{RT5631_SPK_OUT_VOL, 0xc3c3},
+	{RT5631_HP_OUT_VOL, 0xc0c0},
+	{RT5631_STEREO_DAC_VOL_2, 0x2121},
+	{RT5631_MONO_AXO_1_2_VOL, 0xa080},
+	{RT5631_ADC_REC_MIXER, 0xb0b0},
+	{RT5631_MIC_CTRL_2, 0x7700},
+	{RT5631_OUTMIXER_L_CTRL, 0xdfC0},
+	{RT5631_OUTMIXER_R_CTRL, 0xdfC0},
+	{RT5631_SPK_MIXER_CTRL, 0xe8e8},
+	{RT5631_SPK_MONO_OUT_CTRL, 0x6c00},
+	{RT5631_GEN_PUR_CTRL_REG, 0x1e00},
+	{RT5631_SPK_MONO_HP_OUT_CTRL, 0x0000},
+	{RT5631_INT_ST_IRQ_CTRL_2, 0x0f18},
+	{RT5631_MIC_CTRL_1, 0x8080},
+	{RT5631_SDP_CTRL, 0x8010},
 	//johnny-2-7 [s]
-	{RT5631_ADC_REC_MIXER		, 0xa0a0},
+	{RT5631_ADC_REC_MIXER, 0xa0a0},
 #ifdef ALC_FUNC
-	{RT5631_INDEX_ADD		, RT5631_AVC_REG1},	//LPF coef is 2^-6; slow bound thrd is 0.75dB; Noise thrd low/high level is 4.5dB
-	{RT5631_INDEX_DATA		, 0x5C00},
-	{RT5631_INDEX_ADD		, RT5631_AVC_REG2},	//ALC recovery rate is 1.33ms
-	{RT5631_INDEX_DATA		, 0xA480},
-	{RT5631_INDEX_ADD		, RT5631_ALC_REG3},	//Set upper/lower recovery windows
-	{RT5631_INDEX_DATA		, 0x0A08},
-	{RT5631_ADC_CTRL_1		, 0x0005},		//Digital Preboost 7.5db
-	{RT5631_ALC_CTRL_3		, 0xa302},		//Target level -4.5db; noise gate thd 39db
-#endif//ALC_FUNC
+	{RT5631_INDEX_ADD, RT5631_AVC_REG1},	//LPF coef is 2^-6; slow bound thrd is 0.75dB; Noise thrd low/high level is 4.5dB
+	{RT5631_INDEX_DATA, 0x5C00},
+	{RT5631_INDEX_ADD, RT5631_AVC_REG2},	//ALC recovery rate is 1.33ms
+	{RT5631_INDEX_DATA, 0xA480},
+	{RT5631_INDEX_ADD, RT5631_ALC_REG3},	//Set upper/lower recovery windows
+	{RT5631_INDEX_DATA, 0x0A08},
+	{RT5631_ADC_CTRL_1, 0x0005},	//Digital Preboost 7.5db
+	{RT5631_ALC_CTRL_3, 0xa302},	//Target level -4.5db; noise gate thd 39db
+#endif //ALC_FUNC
 	//johnny-2-7 [e]
 };
+
 static struct rt5631_init_reg init_list_cache[] = {
-	{RT5631_SPK_OUT_VOL		, 0x4343},
-	{RT5631_HP_OUT_VOL		, 0xc0c0},
-	{RT5631_STEREO_DAC_VOL_2	, 0x2121},
-	{RT5631_MONO_AXO_1_2_VOL	, 0xa080},
-	{RT5631_ADC_REC_MIXER		, 0xb0b0},
-	{RT5631_MIC_CTRL_2		, 0x7700},
-	{RT5631_OUTMIXER_L_CTRL		, 0xdfC0},
-	{RT5631_OUTMIXER_R_CTRL		, 0xdfC0},
-	{RT5631_SPK_MIXER_CTRL		, 0xe8e8},
-	{RT5631_SPK_MONO_OUT_CTRL	, 0x6c00},
-	{RT5631_GEN_PUR_CTRL_REG	, 0x1e00},
-	{RT5631_SPK_MONO_HP_OUT_CTRL	, 0x0000},
-	{RT5631_INT_ST_IRQ_CTRL_2	, 0x0f18},
-	{RT5631_MIC_CTRL_1		, 0x8080},
-	{RT5631_SDP_CTRL		, 0x8010},
+	{RT5631_SPK_OUT_VOL, 0x4343},
+	{RT5631_HP_OUT_VOL, 0xc0c0},
+	{RT5631_STEREO_DAC_VOL_2, 0x2121},
+	{RT5631_MONO_AXO_1_2_VOL, 0xa080},
+	{RT5631_ADC_REC_MIXER, 0xb0b0},
+	{RT5631_MIC_CTRL_2, 0x7700},
+	{RT5631_OUTMIXER_L_CTRL, 0xdfC0},
+	{RT5631_OUTMIXER_R_CTRL, 0xdfC0},
+	{RT5631_SPK_MIXER_CTRL, 0xe8e8},
+	{RT5631_SPK_MONO_OUT_CTRL, 0x6c00},
+	{RT5631_GEN_PUR_CTRL_REG, 0x1e00},
+	{RT5631_SPK_MONO_HP_OUT_CTRL, 0x0000},
+	{RT5631_INT_ST_IRQ_CTRL_2, 0x0f18},
+	{RT5631_MIC_CTRL_1, 0x8080},
+	{RT5631_SDP_CTRL, 0x8010},
 	//johnny-2-7 [s]
-	{RT5631_ADC_REC_MIXER		, 0xa0a0},
+	{RT5631_ADC_REC_MIXER, 0xa0a0},
 #ifdef ALC_FUNC
-	{RT5631_INDEX_ADD		, RT5631_AVC_REG1},	//LPF coef is 2^-6; slow bound thrd is 0.75dB; Noise thrd low/high level is 4.5dB
-	{RT5631_INDEX_DATA		, 0x5C00},
-	{RT5631_INDEX_ADD		, RT5631_AVC_REG2},	//ALC recovery rate is 1.33ms
-	{RT5631_INDEX_DATA		, 0xA480},
-	{RT5631_INDEX_ADD		, RT5631_ALC_REG3},	//Set upper/lower recovery windows
-	{RT5631_INDEX_DATA		, 0x0A08},
-	{RT5631_ADC_CTRL_1		, 0x0005},		//Digital Preboost 7.5db
-	{RT5631_ALC_CTRL_3		, 0xa302},		//Target level -4.5db; noise gate thd 39db
-#endif//ALC_FUNC
+	{RT5631_INDEX_ADD, RT5631_AVC_REG1},	//LPF coef is 2^-6; slow bound thrd is 0.75dB; Noise thrd low/high level is 4.5dB
+	{RT5631_INDEX_DATA, 0x5C00},
+	{RT5631_INDEX_ADD, RT5631_AVC_REG2},	//ALC recovery rate is 1.33ms
+	{RT5631_INDEX_DATA, 0xA480},
+	{RT5631_INDEX_ADD, RT5631_ALC_REG3},	//Set upper/lower recovery windows
+	{RT5631_INDEX_DATA, 0x0A08},
+	{RT5631_ADC_CTRL_1, 0x0005},	//Digital Preboost 7.5db
+	{RT5631_ALC_CTRL_3, 0xa302},	//Target level -4.5db; noise gate thd 39db
+#endif //ALC_FUNC
 	//johnny-2-7 [e]
 };
+
 #define RT5631_INIT_REG_LEN ARRAY_SIZE(init_list)
 #define RT5631_INIT_REG_CACHE_LEN ARRAY_SIZE(init_list)
 static int rt5631_reg_cache_read(struct snd_soc_codec *codec)
 {
 	int i;
 
-	for (i = 0; i < RT5631_INIT_REG_CACHE_LEN; i++)
-	{
-		init_list_cache[i].val = snd_soc_read(codec, init_list_cache[i].reg);
+	for (i = 0; i < RT5631_INIT_REG_CACHE_LEN; i++) {
+		init_list_cache[i].val =
+		    snd_soc_read(codec, init_list_cache[i].reg);
 	}
 	return 0;
 }
+
 static int rt5631_reg_cache_write(struct snd_soc_codec *codec)
 {
 	int i;
 
-	for (i = 0; i < RT5631_INIT_REG_CACHE_LEN; i++)
-	{
-		snd_soc_write(codec, init_list_cache[i].reg, init_list_cache[i].val);
+	for (i = 0; i < RT5631_INIT_REG_CACHE_LEN; i++) {
+		snd_soc_write(codec, init_list_cache[i].reg,
+			      init_list_cache[i].val);
 	}
 
 	return 0;
 }
+
 static int rt5631_reg_init(struct snd_soc_codec *codec)
 {
 	int i;
@@ -141,30 +145,28 @@ static int rt5631_reg_init(struct snd_soc_codec *codec)
 }
 
 int nusmart_rt5631_event_spk(struct snd_soc_dapm_widget *w,
-		struct snd_kcontrol *k, int event)
+			     struct snd_kcontrol *k, int event)
 {
 	struct snd_soc_codec *codec = w->codec;
 
-	if (SND_SOC_DAPM_EVENT_ON(event))
-	{
+	if (SND_SOC_DAPM_EVENT_ON(event)) {
 		msleep(100);
-		if(is_spk_on == 1) {
+		if (is_spk_on == 1) {
 			snd_soc_update_bits(codec, RT5631_SPK_OUT_VOL,
-					RT5631_L_MUTE | RT5631_R_MUTE, 0);
-		}else {
+					    RT5631_L_MUTE | RT5631_R_MUTE, 0);
+		} else {
 			snd_soc_update_bits(codec, RT5631_SPK_OUT_VOL,
-					RT5631_L_MUTE | RT5631_R_MUTE,
-					RT5631_L_MUTE | RT5631_R_MUTE);
+					    RT5631_L_MUTE | RT5631_R_MUTE,
+					    RT5631_L_MUTE | RT5631_R_MUTE);
 		}
-	}
-	else
-	{
+	} else {
 		snd_soc_update_bits(codec, RT5631_SPK_OUT_VOL,
-				RT5631_L_MUTE | RT5631_R_MUTE,
-				RT5631_L_MUTE | RT5631_R_MUTE);
+				    RT5631_L_MUTE | RT5631_R_MUTE,
+				    RT5631_L_MUTE | RT5631_R_MUTE);
 	}
 	return 0;
 }
+
 EXPORT_SYMBOL(nusmart_rt5631_event_spk);
 
 static int rt5631_index_sync(struct snd_soc_codec *codec)
@@ -173,9 +175,9 @@ static int rt5631_index_sync(struct snd_soc_codec *codec)
 
 	for (i = 0; i < RT5631_INIT_REG_LEN; i++)
 		if (RT5631_INDEX_ADD == init_list[i].reg ||
-				RT5631_INDEX_DATA == init_list[i].reg)
+		    RT5631_INDEX_DATA == init_list[i].reg)
 			snd_soc_write(codec, init_list[i].reg,
-					init_list[i].val);
+				      init_list[i].val);
 
 	return 0;
 }
@@ -234,7 +236,7 @@ static const u16 rt5631_reg[RT5631_VENDOR_ID2 + 1] = {
  * Returns 0 for success or negative error code.
  */
 static int rt5631_index_write(struct snd_soc_codec *codec,
-		unsigned int reg, unsigned int value)
+			      unsigned int reg, unsigned int value)
 {
 	int ret;
 
@@ -264,8 +266,8 @@ err:
  *
  * Returns private register value or negative error code.
  */
-static unsigned int rt5631_index_read(
-		struct snd_soc_codec *codec, unsigned int reg)
+static unsigned int rt5631_index_read(struct snd_soc_codec *codec,
+				      unsigned int reg)
 {
 	int ret;
 
@@ -289,7 +291,8 @@ static unsigned int rt5631_index_read(
  * Returns 1 for change, 0 for no change, or negative error code.
  */
 static int rt5631_index_update_bits(struct snd_soc_codec *codec,
-		unsigned int reg, unsigned int mask, unsigned int value)
+				    unsigned int reg, unsigned int mask,
+				    unsigned int value)
 {
 	unsigned int old, new;
 	int change, ret;
@@ -307,7 +310,7 @@ static int rt5631_index_update_bits(struct snd_soc_codec *codec,
 		ret = rt5631_index_write(codec, reg, new);
 		if (ret < 0) {
 			dev_err(codec->dev,
-					"Failed to write private reg: %d\n", ret);
+				"Failed to write private reg: %d\n", ret);
 			goto err;
 		}
 	}
@@ -323,77 +326,77 @@ static int rt5631_reset(struct snd_soc_codec *codec)
 }
 
 static int rt5631_volatile_register(struct snd_soc_codec *codec,
-		unsigned int reg)
+				    unsigned int reg)
 {
 	switch (reg) {
-		case RT5631_RESET:
-		case RT5631_INT_ST_IRQ_CTRL_2:
-		case RT5631_INDEX_ADD:
-		case RT5631_INDEX_DATA:
-		case RT5631_EQ_CTRL:
-			return 1;
-		default:
-			return 1;
+	case RT5631_RESET:
+	case RT5631_INT_ST_IRQ_CTRL_2:
+	case RT5631_INDEX_ADD:
+	case RT5631_INDEX_DATA:
+	case RT5631_EQ_CTRL:
+		return 1;
+	default:
+		return 1;
 	}
 }
 
 static int rt5631_readable_register(struct snd_soc_codec *codec,
-		unsigned int reg)
+				    unsigned int reg)
 {
 	switch (reg) {
-		case RT5631_RESET:
-		case RT5631_SPK_OUT_VOL:
-		case RT5631_HP_OUT_VOL:
-		case RT5631_MONO_AXO_1_2_VOL:
-		case RT5631_AUX_IN_VOL:
-		case RT5631_STEREO_DAC_VOL_1:
-		case RT5631_MIC_CTRL_1:
-		case RT5631_STEREO_DAC_VOL_2:
-		case RT5631_ADC_CTRL_1:
-		case RT5631_ADC_REC_MIXER:
-		case RT5631_ADC_CTRL_2:
-		case RT5631_VDAC_DIG_VOL:
-		case RT5631_OUTMIXER_L_CTRL:
-		case RT5631_OUTMIXER_R_CTRL:
-		case RT5631_AXO1MIXER_CTRL:
-		case RT5631_AXO2MIXER_CTRL:
-		case RT5631_MIC_CTRL_2:
-		case RT5631_DIG_MIC_CTRL:
-		case RT5631_MONO_INPUT_VOL:
-		case RT5631_SPK_MIXER_CTRL:
-		case RT5631_SPK_MONO_OUT_CTRL:
-		case RT5631_SPK_MONO_HP_OUT_CTRL:
-		case RT5631_SDP_CTRL:
-		case RT5631_MONO_SDP_CTRL:
-		case RT5631_STEREO_AD_DA_CLK_CTRL:
-		case RT5631_PWR_MANAG_ADD1:
-		case RT5631_PWR_MANAG_ADD2:
-		case RT5631_PWR_MANAG_ADD3:
-		case RT5631_PWR_MANAG_ADD4:
-		case RT5631_GEN_PUR_CTRL_REG:
-		case RT5631_GLOBAL_CLK_CTRL:
-		case RT5631_PLL_CTRL:
-		case RT5631_INT_ST_IRQ_CTRL_1:
-		case RT5631_INT_ST_IRQ_CTRL_2:
-		case RT5631_GPIO_CTRL:
-		case RT5631_MISC_CTRL:
-		case RT5631_DEPOP_FUN_CTRL_1:
-		case RT5631_DEPOP_FUN_CTRL_2:
-		case RT5631_JACK_DET_CTRL:
-		case RT5631_SOFT_VOL_CTRL:
-		case RT5631_ALC_CTRL_1:
-		case RT5631_ALC_CTRL_2:
-		case RT5631_ALC_CTRL_3:
-		case RT5631_PSEUDO_SPATL_CTRL:
-		case RT5631_INDEX_ADD:
-		case RT5631_INDEX_DATA:
-		case RT5631_EQ_CTRL:
-		case RT5631_VENDOR_ID:
-		case RT5631_VENDOR_ID1:
-		case RT5631_VENDOR_ID2:
-			return 1;
-		default:
-			return 0;
+	case RT5631_RESET:
+	case RT5631_SPK_OUT_VOL:
+	case RT5631_HP_OUT_VOL:
+	case RT5631_MONO_AXO_1_2_VOL:
+	case RT5631_AUX_IN_VOL:
+	case RT5631_STEREO_DAC_VOL_1:
+	case RT5631_MIC_CTRL_1:
+	case RT5631_STEREO_DAC_VOL_2:
+	case RT5631_ADC_CTRL_1:
+	case RT5631_ADC_REC_MIXER:
+	case RT5631_ADC_CTRL_2:
+	case RT5631_VDAC_DIG_VOL:
+	case RT5631_OUTMIXER_L_CTRL:
+	case RT5631_OUTMIXER_R_CTRL:
+	case RT5631_AXO1MIXER_CTRL:
+	case RT5631_AXO2MIXER_CTRL:
+	case RT5631_MIC_CTRL_2:
+	case RT5631_DIG_MIC_CTRL:
+	case RT5631_MONO_INPUT_VOL:
+	case RT5631_SPK_MIXER_CTRL:
+	case RT5631_SPK_MONO_OUT_CTRL:
+	case RT5631_SPK_MONO_HP_OUT_CTRL:
+	case RT5631_SDP_CTRL:
+	case RT5631_MONO_SDP_CTRL:
+	case RT5631_STEREO_AD_DA_CLK_CTRL:
+	case RT5631_PWR_MANAG_ADD1:
+	case RT5631_PWR_MANAG_ADD2:
+	case RT5631_PWR_MANAG_ADD3:
+	case RT5631_PWR_MANAG_ADD4:
+	case RT5631_GEN_PUR_CTRL_REG:
+	case RT5631_GLOBAL_CLK_CTRL:
+	case RT5631_PLL_CTRL:
+	case RT5631_INT_ST_IRQ_CTRL_1:
+	case RT5631_INT_ST_IRQ_CTRL_2:
+	case RT5631_GPIO_CTRL:
+	case RT5631_MISC_CTRL:
+	case RT5631_DEPOP_FUN_CTRL_1:
+	case RT5631_DEPOP_FUN_CTRL_2:
+	case RT5631_JACK_DET_CTRL:
+	case RT5631_SOFT_VOL_CTRL:
+	case RT5631_ALC_CTRL_1:
+	case RT5631_ALC_CTRL_2:
+	case RT5631_ALC_CTRL_3:
+	case RT5631_PSEUDO_SPATL_CTRL:
+	case RT5631_INDEX_ADD:
+	case RT5631_INDEX_DATA:
+	case RT5631_EQ_CTRL:
+	case RT5631_VENDOR_ID:
+	case RT5631_VENDOR_ID1:
+	case RT5631_VENDOR_ID2:
+		return 1;
+	default:
+		return 0;
 	}
 }
 
@@ -410,64 +413,114 @@ int rt5631_headset_detect(struct snd_soc_codec *codec, int jack_insert)
 {
 	int jack_type;
 
-	if(jack_insert) {
+	if (jack_insert) {
 		snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD2,
-				RT5631_PWR_MICBIAS1_VOL, RT5631_PWR_MICBIAS1_VOL);
+				    RT5631_PWR_MICBIAS2_VOL,
+				    RT5631_PWR_MICBIAS2_VOL);
 		snd_soc_update_bits(codec, RT5631_MIC_CTRL_2,
-				RT5631_MICBIAS1_S_C_DET_MASK |
-				RT5631_MICBIAS1_SHORT_CURR_DET_MASK,
-				RT5631_MICBIAS1_S_C_DET_ENA |
-				RT5631_MICBIAS1_SHORT_CURR_DET_600UA);
-		msleep(50);
-		if (rt5631_index_read(codec, 0x4a) & 0x2)
-			jack_type = RT5631_HEADPHO_DET;
-		else
-			jack_type = RT5631_HEADSET_DET;
+				    RT5631_MICBIAS2_S_C_DET_MASK |
+				    RT5631_MICBIAS2_SHORT_CURR_DET_MASK,
+				    RT5631_MICBIAS2_S_C_DET_ENA |
+				    RT5631_MICBIAS2_SHORT_CURR_DET_600UA);
+		msleep(100);
+		if (ns115_jd_get_state()) {
+			if (rt5631_index_read(codec, 0x4a) & 0x1) {
+				jack_type = RT5631_HEADSET_DET;
+				snd_soc_update_bits(codec,
+						    RT5631_PWR_MANAG_ADD2,
+						    RT5631_PWR_MICBIAS2_VOL, 0);
+				snd_soc_update_bits(codec,
+						    RT5631_PWR_MANAG_ADD2,
+						    RT5631_PWR_MICBIAS1_VOL,
+						    RT5631_PWR_MICBIAS1_VOL);
+			} else {
+				jack_type = RT5631_HEADPHO_DET;
+				snd_soc_update_bits(codec,
+						    RT5631_PWR_MANAG_ADD2,
+						    RT5631_PWR_MICBIAS1_VOL, 0);
+			}
+		} else {
+			jack_type = RT5631_NO_JACK;
+			snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD2,
+					    RT5631_PWR_MICBIAS2_VOL, 0);
+			snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD2,
+					    RT5631_PWR_MICBIAS1_VOL,
+					    RT5631_PWR_MICBIAS1_VOL);
+		}
 	} else {
 		snd_soc_update_bits(codec, RT5631_MIC_CTRL_2,
-				RT5631_MICBIAS1_S_C_DET_MASK,
-				RT5631_MICBIAS1_S_C_DET_DIS);
+				    RT5631_MICBIAS2_S_C_DET_MASK,
+				    RT5631_MICBIAS2_S_C_DET_DIS);
+		snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD2,
+				    RT5631_PWR_MICBIAS1_VOL,
+				    RT5631_PWR_MICBIAS1_VOL);
 		jack_type = RT5631_NO_JACK;
 	}
 
 	return jack_type;
 }
+
 EXPORT_SYMBOL(rt5631_headset_detect);
 
+void nusmart_rt5631_mic_sel(struct snd_soc_codec *codec, int jack_type)
+{
+
+	if (RT5631_HEADPHO_DET == jack_type) {
+		snd_soc_dapm_disable_pin(&codec->dapm, "Mic Jack1");
+		snd_soc_dapm_enable_pin(&codec->dapm, "Mic Jack2");
+		DBG_PRINT("**************Use mic on EARPHONE***************\n");
+	} else {
+		snd_soc_dapm_enable_pin(&codec->dapm, "Mic Jack1");
+		snd_soc_dapm_disable_pin(&codec->dapm, "Mic Jack2");
+		DBG_PRINT("**************Use mic on board***************\n");
+	}
+}
+
+EXPORT_SYMBOL(nusmart_rt5631_mic_sel);
+
+void nusmart_rt5631_jack_event(struct snd_soc_codec *codec, int jack_insert)
+{
+	int jack_type;
+
+	jack_type = rt5631_headset_detect(codec, jack_insert);
+	nusmart_rt5631_mic_sel(codec, jack_type);
+}
+
+EXPORT_SYMBOL(nusmart_rt5631_jack_event);
 //johnny-2-7 [s]
 #ifdef EQ_FUNC
 #define EQ_REG_NUM 16
-typedef struct  hweq_s {
+typedef struct hweq_s {
 	unsigned int reg[EQ_REG_NUM];
 	unsigned int value[EQ_REG_NUM];
 	unsigned int ctrl;
 } hweq_t;
 
-hweq_t hweq_param[]={
+hweq_t hweq_param[] = {
 	{
-		{0},
-		{0},
-		0x4000
-	},
+	 {0},
+	 {0},
+	 0x4000},
 	{
-		{     0x2,     0x3,    0x4,     0x5,     0x6,     0x7,    0x8,     0x9,     0xa,   0x10,    0x11},
-		{0xC1CB,0x1E5D,0x0C73,0xCD47,0x188D,0x0C73,0xC3B5,0x1CD0,0x0C73,0x02D6,0x168C},
-		0x400E
-	},
+	 {0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0x10, 0x11},
+	 {0xC1CB, 0x1E5D, 0x0C73, 0xCD47, 0x188D, 0x0C73, 0xC3B5, 0x1CD0,
+	  0x0C73, 0x02D6, 0x168C},
+	 0x400E},
 };
+
 #define RT5631_HWEQ_LEN ARRAY_SIZE(hweq_param)
 
 static int rt5631_hw_eq(struct snd_soc_codec *codec, int index)
 {
 	int i;
 
-	if(codec == NULL ||  index > RT5631_HWEQ_LEN)
+	if (codec == NULL || index > RT5631_HWEQ_LEN)
 		return -EINVAL;
 
-	for(i = 0; i <= EQ_REG_NUM; i++) {
-		if(hweq_param[index].value[i])
+	for (i = 0; i <= EQ_REG_NUM; i++) {
+		if (hweq_param[index].value[i])
 			rt5631_index_write(codec, hweq_param[index].reg[i],
-					hweq_param[index].value[i]);
+					   hweq_param[index].value[i]);
 		else
 			break;
 	}
@@ -494,7 +547,7 @@ static unsigned int mic_bst_tlv[] = {
 };
 
 static int rt5631_dmic_get(struct snd_kcontrol *kcontrol,
-		struct snd_ctl_elem_value *ucontrol)
+			   struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	struct rt5631_priv *rt5631 = snd_soc_codec_get_drvdata(codec);
@@ -505,7 +558,7 @@ static int rt5631_dmic_get(struct snd_kcontrol *kcontrol,
 }
 
 static int rt5631_dmic_put(struct snd_kcontrol *kcontrol,
-		struct snd_ctl_elem_value *ucontrol)
+			   struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	struct rt5631_priv *rt5631 = snd_soc_codec_get_drvdata(codec);
@@ -513,9 +566,10 @@ static int rt5631_dmic_put(struct snd_kcontrol *kcontrol,
 	rt5631->dmic_used_flag = ucontrol->value.integer.value[0];
 	return 0;
 }
+
 //johnny-2-7 [s]
 static int rt5631_call_get(struct snd_kcontrol *kcontrol,
-		struct snd_ctl_elem_value *ucontrol)
+			   struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	struct rt5631_priv *rt5631 = snd_soc_codec_get_drvdata(codec);
@@ -526,7 +580,7 @@ static int rt5631_call_get(struct snd_kcontrol *kcontrol,
 }
 
 static int rt5631_call_put(struct snd_kcontrol *kcontrol,
-		struct snd_ctl_elem_value *ucontrol)
+			   struct snd_ctl_elem_value *ucontrol)
 {
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	struct rt5631_priv *rt5631 = snd_soc_codec_get_drvdata(codec);
@@ -537,59 +591,64 @@ static int rt5631_call_put(struct snd_kcontrol *kcontrol,
 
 /* MIC Input Type */
 static const char *rt5631_input_mode[] = {
-	"Single ended", "Differential"};
+	"Single ended", "Differential"
+};
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_mic1_mode_enum, RT5631_MIC_CTRL_1,
-		RT5631_MIC1_DIFF_INPUT_SHIFT, rt5631_input_mode);
+static const SOC_ENUM_SINGLE_DECL(rt5631_mic1_mode_enum, RT5631_MIC_CTRL_1,
+				  RT5631_MIC1_DIFF_INPUT_SHIFT,
+				  rt5631_input_mode);
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_mic2_mode_enum, RT5631_MIC_CTRL_1,
-		RT5631_MIC2_DIFF_INPUT_SHIFT, rt5631_input_mode);
+static const SOC_ENUM_SINGLE_DECL(rt5631_mic2_mode_enum, RT5631_MIC_CTRL_1,
+				  RT5631_MIC2_DIFF_INPUT_SHIFT,
+				  rt5631_input_mode);
 
 /* MONO Input Type */
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_monoin_mode_enum, RT5631_MONO_INPUT_VOL,
-		RT5631_MONO_DIFF_INPUT_SHIFT, rt5631_input_mode);
+static const SOC_ENUM_SINGLE_DECL(rt5631_monoin_mode_enum,
+				  RT5631_MONO_INPUT_VOL,
+				  RT5631_MONO_DIFF_INPUT_SHIFT,
+				  rt5631_input_mode);
 
 /* SPK Ratio Gain Control */
-static const char *rt5631_spk_ratio[] = {"1.00x", "1.09x", "1.27x", "1.44x",
-	"1.56x", "1.68x", "1.99x", "2.34x"};
+static const char *rt5631_spk_ratio[] = { "1.00x", "1.09x", "1.27x", "1.44x",
+	"1.56x", "1.68x", "1.99x", "2.34x"
+};
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_spk_ratio_enum, RT5631_GEN_PUR_CTRL_REG,
-		RT5631_SPK_AMP_RATIO_CTRL_SHIFT, rt5631_spk_ratio);
+static const SOC_ENUM_SINGLE_DECL(rt5631_spk_ratio_enum,
+				  RT5631_GEN_PUR_CTRL_REG,
+				  RT5631_SPK_AMP_RATIO_CTRL_SHIFT,
+				  rt5631_spk_ratio);
 
-static const char *rt5631_spk_sw_mode[] = {"off", "on"};
+static const char *rt5631_spk_sw_mode[] = { "off", "on" };
+
 static const SOC_ENUM_SINGLE_DECL(rt5631_spk_sw_enum, 0, 0, rt5631_spk_sw_mode);
 
 static int rt5631_spk_sw_put(struct snd_kcontrol *kcontrol,
-		struct snd_ctl_elem_value *ucontrol)
+			     struct snd_ctl_elem_value *ucontrol)
 {
 	struct soc_mixer_control *mc =
-		(struct soc_mixer_control *)kcontrol->private_value;
+	    (struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	unsigned int val;
 
 	val = ucontrol->value.integer.value[0];
 
-	if(val == 1) {
+	if (val == 1) {
 		snd_soc_update_bits(codec, RT5631_SPK_OUT_VOL,
-				RT5631_L_MUTE | RT5631_R_MUTE, 0);
-	}else {
+				    RT5631_L_MUTE | RT5631_R_MUTE, 0);
+	} else {
 		snd_soc_update_bits(codec, RT5631_SPK_OUT_VOL,
-				RT5631_L_MUTE | RT5631_R_MUTE,
-				RT5631_L_MUTE | RT5631_R_MUTE);
+				    RT5631_L_MUTE | RT5631_R_MUTE,
+				    RT5631_L_MUTE | RT5631_R_MUTE);
 	}
 	is_spk_on = val;
 	return 0;
 }
 
 static int rt5631_spk_sw_get(struct snd_kcontrol *kcontrol,
-		struct snd_ctl_elem_value *ucontrol)
+			     struct snd_ctl_elem_value *ucontrol)
 {
 	struct soc_mixer_control *mc =
-		(struct soc_mixer_control *)kcontrol->private_value;
+	    (struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 
 	ucontrol->value.integer.value[0] = is_spk_on;
@@ -597,112 +656,115 @@ static int rt5631_spk_sw_get(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-static const char *rt5631_hp_sw_mode[] = {"off", "on"};
+static const char *rt5631_hp_sw_mode[] = { "off", "on" };
+
 static const SOC_ENUM_SINGLE_DECL(rt5631_hp_sw_enum, 0, 0, rt5631_hp_sw_mode);
 
 static int rt5631_hp_sw_put(struct snd_kcontrol *kcontrol,
-		struct snd_ctl_elem_value *ucontrol)
+			    struct snd_ctl_elem_value *ucontrol)
 {
 	struct soc_mixer_control *mc =
-		(struct soc_mixer_control *)kcontrol->private_value;
+	    (struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	unsigned int val;
 
 	val = ucontrol->value.integer.value[0];
 
-	if(val == 1) {
+	if (val == 1) {
 		snd_soc_update_bits(codec, RT5631_HP_OUT_VOL,
-				RT5631_L_MUTE | RT5631_R_MUTE, 0);
-	}else {
+				    RT5631_L_MUTE | RT5631_R_MUTE, 0);
+	} else {
 		snd_soc_update_bits(codec, RT5631_HP_OUT_VOL,
-				RT5631_L_MUTE | RT5631_R_MUTE,
-				RT5631_L_MUTE | RT5631_R_MUTE);
+				    RT5631_L_MUTE | RT5631_R_MUTE,
+				    RT5631_L_MUTE | RT5631_R_MUTE);
 	}
 	is_hp_on = val;
 	return 0;
 }
 
 static int rt5631_hp_sw_get(struct snd_kcontrol *kcontrol,
-		struct snd_ctl_elem_value *ucontrol)
+			    struct snd_ctl_elem_value *ucontrol)
 {
 	struct soc_mixer_control *mc =
-		(struct soc_mixer_control *)kcontrol->private_value;
+	    (struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 
 	ucontrol->value.integer.value[0] = is_hp_on;
 
 	return 0;
 }
+
 static const struct snd_kcontrol_new rt5631_snd_controls[] = {
 	/* MIC */
-	SOC_ENUM("MIC1 Mode Control",  rt5631_mic1_mode_enum),
+	SOC_ENUM("MIC1 Mode Control", rt5631_mic1_mode_enum),
 	SOC_SINGLE_TLV("MIC1 Boost", RT5631_MIC_CTRL_2,
-			RT5631_MIC1_BOOST_SHIFT, 8, 0, mic_bst_tlv),
+		       RT5631_MIC1_BOOST_SHIFT, 8, 0, mic_bst_tlv),
 	SOC_ENUM("MIC2 Mode Control", rt5631_mic2_mode_enum),
 	SOC_SINGLE_TLV("MIC2 Boost", RT5631_MIC_CTRL_2,
-			RT5631_MIC2_BOOST_SHIFT, 8, 0, mic_bst_tlv),
+		       RT5631_MIC2_BOOST_SHIFT, 8, 0, mic_bst_tlv),
 	/* MONO IN */
 	SOC_ENUM("MONOIN Mode Control", rt5631_monoin_mode_enum),
 	SOC_DOUBLE_TLV("MONOIN_RX Capture Volume", RT5631_MONO_INPUT_VOL,
-			RT5631_L_VOL_SHIFT, RT5631_R_VOL_SHIFT,
-			RT5631_VOL_MASK, 1, in_vol_tlv),
+		       RT5631_L_VOL_SHIFT, RT5631_R_VOL_SHIFT,
+		       RT5631_VOL_MASK, 1, in_vol_tlv),
 	/* AXI */
 	SOC_DOUBLE_TLV("AXI Capture Volume", RT5631_AUX_IN_VOL,
-			RT5631_L_VOL_SHIFT, RT5631_R_VOL_SHIFT,
-			RT5631_VOL_MASK, 1, in_vol_tlv),
+		       RT5631_L_VOL_SHIFT, RT5631_R_VOL_SHIFT,
+		       RT5631_VOL_MASK, 1, in_vol_tlv),
 	/* ADC */
 	SOC_DOUBLE_TLV("PCM Capture Volume", RT5631_ADC_CTRL_2,
-			RT5631_L_VOL_SHIFT, RT5631_R_VOL_SHIFT,
-			RT5631_DAC_VOL_MASK, 1, dac_vol_tlv),
+		       RT5631_L_VOL_SHIFT, RT5631_R_VOL_SHIFT,
+		       RT5631_DAC_VOL_MASK, 1, dac_vol_tlv),
 	SOC_DOUBLE("PCM Capture Switch", RT5631_ADC_CTRL_1,
-			RT5631_L_MUTE_SHIFT, RT5631_R_MUTE_SHIFT, 1, 1),
+		   RT5631_L_MUTE_SHIFT, RT5631_R_MUTE_SHIFT, 1, 1),
 	/* DAC */
 	SOC_DOUBLE_TLV_SCALE("PCM Playback Volume", RT5631_STEREO_DAC_VOL_2,
-			RT5631_L_VOL_SHIFT, RT5631_R_VOL_SHIFT,
-			222, RT5631_DAC_VOL_MASK, 1, dac_vol_tlv),
+			     RT5631_L_VOL_SHIFT, RT5631_R_VOL_SHIFT,
+			     222, RT5631_DAC_VOL_MASK, 1, dac_vol_tlv),
 	SOC_DOUBLE("PCM Playback Switch", RT5631_STEREO_DAC_VOL_1,
-			RT5631_L_MUTE_SHIFT, RT5631_R_MUTE_SHIFT, 1, 1),
+		   RT5631_L_MUTE_SHIFT, RT5631_R_MUTE_SHIFT, 1, 1),
 	/* AXO */
 	SOC_SINGLE("AXO1 Playback Switch", RT5631_MONO_AXO_1_2_VOL,
-			RT5631_L_MUTE_SHIFT, 1, 1),
+		   RT5631_L_MUTE_SHIFT, 1, 1),
 	SOC_SINGLE("AXO2 Playback Switch", RT5631_MONO_AXO_1_2_VOL,
-			RT5631_R_VOL_SHIFT, 1, 1),
+		   RT5631_R_VOL_SHIFT, 1, 1),
 	/* OUTVOL */
 	SOC_DOUBLE("OUTVOL Channel Switch", RT5631_SPK_OUT_VOL,
-			RT5631_L_EN_SHIFT, RT5631_R_EN_SHIFT, 1, 0),
+		   RT5631_L_EN_SHIFT, RT5631_R_EN_SHIFT, 1, 0),
 
 	/* SPK */
 #if 0
 	SOC_DOUBLE("Speaker Playback Switch", RT5631_SPK_OUT_VOL,
-			RT5631_L_MUTE_SHIFT, RT5631_R_MUTE_SHIFT, 1, 1),
+		   RT5631_L_MUTE_SHIFT, RT5631_R_MUTE_SHIFT, 1, 1),
 #else
 	SOC_ENUM_EXT("Speaker Playback Switch", rt5631_spk_sw_enum,
-			rt5631_spk_sw_get, rt5631_spk_sw_put),
+		     rt5631_spk_sw_get, rt5631_spk_sw_put),
 #endif
 	SOC_DOUBLE_TLV_SCALE("Speaker Playback Volume", RT5631_SPK_OUT_VOL,
-			RT5631_L_VOL_SHIFT, RT5631_R_VOL_SHIFT, 36, 39, 1, out_vol_tlv),
+			     RT5631_L_VOL_SHIFT, RT5631_R_VOL_SHIFT, 36, 39, 1,
+			     out_vol_tlv),
 	/* MONO OUT */
 	SOC_SINGLE("MONO Playback Switch", RT5631_MONO_AXO_1_2_VOL,
-			RT5631_MUTE_MONO_SHIFT, 1, 1),
+		   RT5631_MUTE_MONO_SHIFT, 1, 1),
 	/* HP */
 #if 0
 	SOC_DOUBLE("HP Playback Switch", RT5631_HP_OUT_VOL,
-			RT5631_L_MUTE_SHIFT, RT5631_R_MUTE_SHIFT, 1, 1),
+		   RT5631_L_MUTE_SHIFT, RT5631_R_MUTE_SHIFT, 1, 1),
 #else
 	SOC_ENUM_EXT("HP Playback Switch", rt5631_hp_sw_enum,
-			rt5631_hp_sw_get, rt5631_hp_sw_put),
+		     rt5631_hp_sw_get, rt5631_hp_sw_put),
 #endif
 	SOC_DOUBLE_TLV("HP Playback Volume", RT5631_HP_OUT_VOL,
-			RT5631_L_VOL_SHIFT, RT5631_R_VOL_SHIFT,
-			RT5631_VOL_MASK, 1, out_vol_tlv),
+		       RT5631_L_VOL_SHIFT, RT5631_R_VOL_SHIFT,
+		       RT5631_VOL_MASK, 1, out_vol_tlv),
 	/* DMIC */
 	/*SOC_SINGLE_EXT("RT5631_REG", 0, 0, 1, 0,
-	  rt5631_register_get, rt5631_register_put),*/
+	   rt5631_register_get, rt5631_register_put), */
 	SOC_SINGLE_EXT("DMIC Switch", 0, 0, 1, 0,
-			rt5631_dmic_get, rt5631_dmic_put),
+		       rt5631_dmic_get, rt5631_dmic_put),
 	SOC_DOUBLE("DMIC Capture Switch", RT5631_DIG_MIC_CTRL,
-			RT5631_DMIC_L_CH_MUTE_SHIFT,
-			RT5631_DMIC_R_CH_MUTE_SHIFT, 1, 1),
+		   RT5631_DMIC_L_CH_MUTE_SHIFT,
+		   RT5631_DMIC_R_CH_MUTE_SHIFT, 1, 1),
 
 	/* SPK Ratio Gain Control */
 	SOC_ENUM("SPK Ratio Control", rt5631_spk_ratio_enum),
@@ -710,12 +772,12 @@ static const struct snd_kcontrol_new rt5631_snd_controls[] = {
 	//johnny-2-7 [s]
 	/* Call Mode */
 	SOC_SINGLE_EXT("Call Mode Switch", 0, 0, 1, 0,
-			rt5631_call_get, rt5631_call_put),
+		       rt5631_call_get, rt5631_call_put),
 	//johnny-2-7 [e]
 };
 
 static int check_sysclk1_source(struct snd_soc_dapm_widget *source,
-		struct snd_soc_dapm_widget *sink)
+				struct snd_soc_dapm_widget *sink)
 {
 	unsigned int reg;
 
@@ -724,14 +786,14 @@ static int check_sysclk1_source(struct snd_soc_dapm_widget *source,
 }
 
 static int check_dmic_used(struct snd_soc_dapm_widget *source,
-		struct snd_soc_dapm_widget *sink)
+			   struct snd_soc_dapm_widget *sink)
 {
 	struct rt5631_priv *rt5631 = snd_soc_codec_get_drvdata(source->codec);
 	return rt5631->dmic_used_flag;
 }
 
 static int check_dacl_to_outmixl(struct snd_soc_dapm_widget *source,
-		struct snd_soc_dapm_widget *sink)
+				 struct snd_soc_dapm_widget *sink)
 {
 	unsigned int reg;
 
@@ -740,7 +802,7 @@ static int check_dacl_to_outmixl(struct snd_soc_dapm_widget *source,
 }
 
 static int check_dacr_to_outmixr(struct snd_soc_dapm_widget *source,
-		struct snd_soc_dapm_widget *sink)
+				 struct snd_soc_dapm_widget *sink)
 {
 	unsigned int reg;
 
@@ -749,7 +811,7 @@ static int check_dacr_to_outmixr(struct snd_soc_dapm_widget *source,
 }
 
 static int check_dacl_to_spkmixl(struct snd_soc_dapm_widget *source,
-		struct snd_soc_dapm_widget *sink)
+				 struct snd_soc_dapm_widget *sink)
 {
 	unsigned int reg;
 
@@ -758,7 +820,7 @@ static int check_dacl_to_spkmixl(struct snd_soc_dapm_widget *source,
 }
 
 static int check_dacr_to_spkmixr(struct snd_soc_dapm_widget *source,
-		struct snd_soc_dapm_widget *sink)
+				 struct snd_soc_dapm_widget *sink)
 {
 	unsigned int reg;
 
@@ -767,7 +829,7 @@ static int check_dacr_to_spkmixr(struct snd_soc_dapm_widget *source,
 }
 
 static int check_vdac_to_outmix(struct snd_soc_dapm_widget *source,
-		struct snd_soc_dapm_widget *sink)
+				struct snd_soc_dapm_widget *sink)
 {
 	unsigned int reg, ret = 1;
 
@@ -781,7 +843,7 @@ static int check_vdac_to_outmix(struct snd_soc_dapm_widget *source,
 }
 
 static int check_adcl_select(struct snd_soc_dapm_widget *source,
-		struct snd_soc_dapm_widget *sink)
+			     struct snd_soc_dapm_widget *sink)
 {
 	unsigned int reg, ret = 0;
 
@@ -793,7 +855,7 @@ static int check_adcl_select(struct snd_soc_dapm_widget *source,
 }
 
 static int check_adcr_select(struct snd_soc_dapm_widget *source,
-		struct snd_soc_dapm_widget *sink)
+			     struct snd_soc_dapm_widget *sink)
 {
 	unsigned int reg, ret = 0;
 
@@ -816,7 +878,7 @@ static void onebit_depop_power_stage(struct snd_soc_codec *codec, int enable)
 
 	/* enable one-bit depop function */
 	snd_soc_update_bits(codec, RT5631_DEPOP_FUN_CTRL_2,
-			RT5631_EN_ONE_BIT_DEPOP, 0);
+			    RT5631_EN_ONE_BIT_DEPOP, 0);
 
 	/* keep soft volume and zero crossing setting */
 	soft_vol = snd_soc_read(codec, RT5631_SOFT_VOL_CTRL);
@@ -830,7 +892,7 @@ static void onebit_depop_power_stage(struct snd_soc_codec *codec, int enable)
 		rt5631_index_write(codec, RT5631_CP_INTL_REG2, 0x6530);
 		/* power on capless block */
 		snd_soc_write(codec, RT5631_DEPOP_FUN_CTRL_2,
-				RT5631_EN_CAP_FREE_DEPOP);
+			      RT5631_EN_CAP_FREE_DEPOP);
 	} else {
 		/* power off capless block */
 		snd_soc_write(codec, RT5631_DEPOP_FUN_CTRL_2, 0);
@@ -854,7 +916,7 @@ static void onebit_depop_mute_stage(struct snd_soc_codec *codec, int enable)
 
 	/* enable one-bit depop function */
 	snd_soc_update_bits(codec, RT5631_DEPOP_FUN_CTRL_2,
-			RT5631_EN_ONE_BIT_DEPOP, 0);
+			    RT5631_EN_ONE_BIT_DEPOP, 0);
 
 	/* keep soft volume and zero crossing setting */
 	soft_vol = snd_soc_read(codec, RT5631_SOFT_VOL_CTRL);
@@ -866,12 +928,12 @@ static void onebit_depop_mute_stage(struct snd_soc_codec *codec, int enable)
 		/* config one-bit depop parameter */
 		rt5631_index_write(codec, RT5631_SPK_INTL_CTRL, 0x307f);
 		snd_soc_update_bits(codec, RT5631_HP_OUT_VOL,
-				RT5631_L_MUTE | RT5631_R_MUTE, 0);
+				    RT5631_L_MUTE | RT5631_R_MUTE, 0);
 		msleep(300);
 	} else {
 		snd_soc_update_bits(codec, RT5631_HP_OUT_VOL,
-				RT5631_L_MUTE | RT5631_R_MUTE,
-				RT5631_L_MUTE | RT5631_R_MUTE);
+				    RT5631_L_MUTE | RT5631_R_MUTE,
+				    RT5631_L_MUTE | RT5631_R_MUTE);
 		msleep(100);
 	}
 
@@ -892,7 +954,7 @@ static void depop_seq_power_stage(struct snd_soc_codec *codec, int enable)
 
 	/* depop control by register */
 	snd_soc_update_bits(codec, RT5631_DEPOP_FUN_CTRL_2,
-			RT5631_EN_ONE_BIT_DEPOP, RT5631_EN_ONE_BIT_DEPOP);
+			    RT5631_EN_ONE_BIT_DEPOP, RT5631_EN_ONE_BIT_DEPOP);
 
 	/* keep soft volume and zero crossing setting */
 	soft_vol = snd_soc_read(codec, RT5631_SOFT_VOL_CTRL);
@@ -905,46 +967,50 @@ static void depop_seq_power_stage(struct snd_soc_codec *codec, int enable)
 
 		/* power on headphone and charge pump */
 		snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD3,
-				RT5631_PWR_CHARGE_PUMP | RT5631_PWR_HP_L_AMP |
-				RT5631_PWR_HP_R_AMP,
-				RT5631_PWR_CHARGE_PUMP | RT5631_PWR_HP_L_AMP |
-				RT5631_PWR_HP_R_AMP);
+				    RT5631_PWR_CHARGE_PUMP | RT5631_PWR_HP_L_AMP
+				    | RT5631_PWR_HP_R_AMP,
+				    RT5631_PWR_CHARGE_PUMP | RT5631_PWR_HP_L_AMP
+				    | RT5631_PWR_HP_R_AMP);
 
 		/* power on soft generator and depop mode2 */
 		snd_soc_write(codec, RT5631_DEPOP_FUN_CTRL_1,
-				RT5631_POW_ON_SOFT_GEN | RT5631_EN_DEPOP2_FOR_HP);
+			      RT5631_POW_ON_SOFT_GEN | RT5631_EN_DEPOP2_FOR_HP);
 		msleep(100);
 
 		/* stop depop mode */
 		snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD3,
-				RT5631_PWR_HP_DEPOP_DIS, RT5631_PWR_HP_DEPOP_DIS);
+				    RT5631_PWR_HP_DEPOP_DIS,
+				    RT5631_PWR_HP_DEPOP_DIS);
 	} else {
 		/* config depop sequence parameter */
 		rt5631_index_write(codec, RT5631_SPK_INTL_CTRL, 0x303F);
 		snd_soc_write(codec, RT5631_DEPOP_FUN_CTRL_1,
-				RT5631_POW_ON_SOFT_GEN | RT5631_EN_MUTE_UNMUTE_DEPOP |
-				RT5631_PD_HPAMP_L_ST_UP | RT5631_PD_HPAMP_R_ST_UP);
+			      RT5631_POW_ON_SOFT_GEN |
+			      RT5631_EN_MUTE_UNMUTE_DEPOP |
+			      RT5631_PD_HPAMP_L_ST_UP |
+			      RT5631_PD_HPAMP_R_ST_UP);
 		msleep(75);
 		snd_soc_write(codec, RT5631_DEPOP_FUN_CTRL_1,
-				RT5631_POW_ON_SOFT_GEN | RT5631_PD_HPAMP_L_ST_UP |
-				RT5631_PD_HPAMP_R_ST_UP);
+			      RT5631_POW_ON_SOFT_GEN | RT5631_PD_HPAMP_L_ST_UP |
+			      RT5631_PD_HPAMP_R_ST_UP);
 
 		/* start depop mode */
 		snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD3,
-				RT5631_PWR_HP_DEPOP_DIS, 0);
+				    RT5631_PWR_HP_DEPOP_DIS, 0);
 
 		/* config depop sequence parameter */
 		snd_soc_write(codec, RT5631_DEPOP_FUN_CTRL_1,
-				RT5631_POW_ON_SOFT_GEN | RT5631_EN_DEPOP2_FOR_HP |
-				RT5631_PD_HPAMP_L_ST_UP | RT5631_PD_HPAMP_R_ST_UP);
+			      RT5631_POW_ON_SOFT_GEN | RT5631_EN_DEPOP2_FOR_HP |
+			      RT5631_PD_HPAMP_L_ST_UP |
+			      RT5631_PD_HPAMP_R_ST_UP);
 		msleep(80);
 		snd_soc_write(codec, RT5631_DEPOP_FUN_CTRL_1,
-				RT5631_POW_ON_SOFT_GEN);
+			      RT5631_POW_ON_SOFT_GEN);
 
 		/* power down headphone and charge pump */
 		snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD3,
-				RT5631_PWR_CHARGE_PUMP | RT5631_PWR_HP_L_AMP |
-				RT5631_PWR_HP_R_AMP, 0);
+				    RT5631_PWR_CHARGE_PUMP | RT5631_PWR_HP_L_AMP
+				    | RT5631_PWR_HP_R_AMP, 0);
 	}
 
 	/* recover soft volume and zero crossing setting */
@@ -964,7 +1030,7 @@ static void depop_seq_mute_stage(struct snd_soc_codec *codec, int enable)
 
 	/* depop control by register */
 	snd_soc_update_bits(codec, RT5631_DEPOP_FUN_CTRL_2,
-			RT5631_EN_ONE_BIT_DEPOP, RT5631_EN_ONE_BIT_DEPOP);
+			    RT5631_EN_ONE_BIT_DEPOP, RT5631_EN_ONE_BIT_DEPOP);
 
 	/* keep soft volume and zero crossing setting */
 	soft_vol = snd_soc_read(codec, RT5631_SOFT_VOL_CTRL);
@@ -977,32 +1043,34 @@ static void depop_seq_mute_stage(struct snd_soc_codec *codec, int enable)
 		/* config depop sequence parameter */
 		rt5631_index_write(codec, RT5631_SPK_INTL_CTRL, 0x302f);
 		snd_soc_write(codec, RT5631_DEPOP_FUN_CTRL_1,
-				RT5631_POW_ON_SOFT_GEN | RT5631_EN_MUTE_UNMUTE_DEPOP |
-				RT5631_EN_HP_R_M_UN_MUTE_DEPOP |
-				RT5631_EN_HP_L_M_UN_MUTE_DEPOP);
+			      RT5631_POW_ON_SOFT_GEN |
+			      RT5631_EN_MUTE_UNMUTE_DEPOP |
+			      RT5631_EN_HP_R_M_UN_MUTE_DEPOP |
+			      RT5631_EN_HP_L_M_UN_MUTE_DEPOP);
 
-		/*mute&unmute hp is done is HAL layer*/
-		if(is_hp_on == 1) {
+		/*mute&unmute hp is done is HAL layer */
+		if (is_hp_on == 1) {
 			snd_soc_update_bits(codec, RT5631_HP_OUT_VOL,
-					RT5631_L_MUTE | RT5631_R_MUTE, 0);
-		}else {
+					    RT5631_L_MUTE | RT5631_R_MUTE, 0);
+		} else {
 			snd_soc_update_bits(codec, RT5631_HP_OUT_VOL,
-					RT5631_L_MUTE | RT5631_R_MUTE,
-					RT5631_L_MUTE | RT5631_R_MUTE);
+					    RT5631_L_MUTE | RT5631_R_MUTE,
+					    RT5631_L_MUTE | RT5631_R_MUTE);
 		}
 		msleep(160);
 	} else {
 		/* config depop sequence parameter */
 		rt5631_index_write(codec, RT5631_SPK_INTL_CTRL, 0x302f);
 		snd_soc_write(codec, RT5631_DEPOP_FUN_CTRL_1,
-				RT5631_POW_ON_SOFT_GEN | RT5631_EN_MUTE_UNMUTE_DEPOP |
-				RT5631_EN_HP_R_M_UN_MUTE_DEPOP |
-				RT5631_EN_HP_L_M_UN_MUTE_DEPOP);
+			      RT5631_POW_ON_SOFT_GEN |
+			      RT5631_EN_MUTE_UNMUTE_DEPOP |
+			      RT5631_EN_HP_R_M_UN_MUTE_DEPOP |
+			      RT5631_EN_HP_L_M_UN_MUTE_DEPOP);
 
-		/*mute&unmute hp is done is HAL layer, cache HP reg*/
+		/*mute&unmute hp is done is HAL layer, cache HP reg */
 		snd_soc_update_bits(codec, RT5631_HP_OUT_VOL,
-				RT5631_L_MUTE | RT5631_R_MUTE,
-				RT5631_L_MUTE | RT5631_R_MUTE);
+				    RT5631_L_MUTE | RT5631_R_MUTE,
+				    RT5631_L_MUTE | RT5631_R_MUTE);
 		msleep(150);
 	}
 
@@ -1012,70 +1080,70 @@ static void depop_seq_mute_stage(struct snd_soc_codec *codec, int enable)
 }
 
 static int hp_event(struct snd_soc_dapm_widget *w,
-		struct snd_kcontrol *kcontrol, int event)
+		    struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_codec *codec = w->codec;
 	struct rt5631_priv *rt5631 = snd_soc_codec_get_drvdata(codec);
 
 	switch (event) {
-		case SND_SOC_DAPM_PRE_PMD:
-			if (rt5631->codec_version) {
-				onebit_depop_mute_stage(codec, 0);
-				onebit_depop_power_stage(codec, 0);
-			} else {
-				depop_seq_mute_stage(codec, 0);
-				depop_seq_power_stage(codec, 0);
-			}
-			break;
+	case SND_SOC_DAPM_PRE_PMD:
+		if (rt5631->codec_version) {
+			onebit_depop_mute_stage(codec, 0);
+			onebit_depop_power_stage(codec, 0);
+		} else {
+			depop_seq_mute_stage(codec, 0);
+			depop_seq_power_stage(codec, 0);
+		}
+		break;
 
-		case SND_SOC_DAPM_POST_PMU:
-			if (rt5631->codec_version) {
-				onebit_depop_power_stage(codec, 1);
-				onebit_depop_mute_stage(codec, 1);
-			} else {
-				depop_seq_power_stage(codec, 1);
-				depop_seq_mute_stage(codec, 1);
-			}
-			break;
+	case SND_SOC_DAPM_POST_PMU:
+		if (rt5631->codec_version) {
+			onebit_depop_power_stage(codec, 1);
+			onebit_depop_mute_stage(codec, 1);
+		} else {
+			depop_seq_power_stage(codec, 1);
+			depop_seq_mute_stage(codec, 1);
+		}
+		break;
 
-		default:
-			break;
+	default:
+		break;
 	}
 
 	return 0;
 }
 
 static int set_dmic_params(struct snd_soc_dapm_widget *w,
-		struct snd_kcontrol *kcontrol, int event)
+			   struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_codec *codec = w->codec;
 	struct rt5631_priv *rt5631 = snd_soc_codec_get_drvdata(codec);
 
 	switch (rt5631->rx_rate) {
-		case 44100:
-		case 48000:
-			snd_soc_update_bits(codec, RT5631_DIG_MIC_CTRL,
-					RT5631_DMIC_CLK_CTRL_MASK,
-					RT5631_DMIC_CLK_CTRL_TO_32FS);
-			break;
+	case 44100:
+	case 48000:
+		snd_soc_update_bits(codec, RT5631_DIG_MIC_CTRL,
+				    RT5631_DMIC_CLK_CTRL_MASK,
+				    RT5631_DMIC_CLK_CTRL_TO_32FS);
+		break;
 
-		case 32000:
-		case 22050:
-			snd_soc_update_bits(codec, RT5631_DIG_MIC_CTRL,
-					RT5631_DMIC_CLK_CTRL_MASK,
-					RT5631_DMIC_CLK_CTRL_TO_64FS);
-			break;
+	case 32000:
+	case 22050:
+		snd_soc_update_bits(codec, RT5631_DIG_MIC_CTRL,
+				    RT5631_DMIC_CLK_CTRL_MASK,
+				    RT5631_DMIC_CLK_CTRL_TO_64FS);
+		break;
 
-		case 16000:
-		case 11025:
-		case 8000:
-			snd_soc_update_bits(codec, RT5631_DIG_MIC_CTRL,
-					RT5631_DMIC_CLK_CTRL_MASK,
-					RT5631_DMIC_CLK_CTRL_TO_128FS);
-			break;
+	case 16000:
+	case 11025:
+	case 8000:
+		snd_soc_update_bits(codec, RT5631_DIG_MIC_CTRL,
+				    RT5631_DMIC_CLK_CTRL_MASK,
+				    RT5631_DMIC_CLK_CTRL_TO_128FS);
+		break;
 
-		default:
-			return -EINVAL;
+	default:
+		return -EINVAL;
 	}
 
 	return 0;
@@ -1169,11 +1237,11 @@ static const struct snd_kcontrol_new rt5631_outmixr_mixer_controls[] = {
 
 static const struct snd_kcontrol_new rt5631_AXO1MIX_mixer_controls[] = {
 	SOC_DAPM_SINGLE("MIC1_BST1 Playback Switch", RT5631_AXO1MIXER_CTRL,
-			RT5631_M_MIC1_AXO1MIX_BIT , 1, 1),
+			RT5631_M_MIC1_AXO1MIX_BIT, 1, 1),
 	SOC_DAPM_SINGLE("MIC2_BST2 Playback Switch", RT5631_AXO1MIXER_CTRL,
 			RT5631_M_MIC2_AXO1MIX_BIT, 1, 1),
 	SOC_DAPM_SINGLE("OUTVOLL Playback Switch", RT5631_AXO1MIXER_CTRL,
-			RT5631_M_OUTMIXL_AXO1MIX_BIT , 1 , 1),
+			RT5631_M_OUTMIXL_AXO1MIX_BIT, 1, 1),
 	SOC_DAPM_SINGLE("OUTVOLR Playback Switch", RT5631_AXO1MIXER_CTRL,
 			RT5631_M_OUTMIXR_AXO1MIX_BIT, 1, 1),
 };
@@ -1186,7 +1254,7 @@ static const struct snd_kcontrol_new rt5631_AXO2MIX_mixer_controls[] = {
 	SOC_DAPM_SINGLE("OUTVOLL Playback Switch", RT5631_AXO2MIXER_CTRL,
 			RT5631_M_OUTMIXL_AXO2MIX_BIT, 1, 1),
 	SOC_DAPM_SINGLE("OUTVOLR Playback Switch", RT5631_AXO2MIXER_CTRL,
-			RT5631_M_OUTMIXR_AXO2MIX_BIT, 1 , 1),
+			RT5631_M_OUTMIXR_AXO2MIX_BIT, 1, 1),
 };
 
 static const struct snd_kcontrol_new rt5631_spolmix_mixer_controls[] = {
@@ -1211,113 +1279,114 @@ static const struct snd_kcontrol_new rt5631_monomix_mixer_controls[] = {
 };
 
 /* Left SPK Volume Input */
-static const char *rt5631_spkvoll_sel[] = {"Vmid", "SPKMIXL"};
+static const char *rt5631_spkvoll_sel[] = { "Vmid", "SPKMIXL" };
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_spkvoll_enum, RT5631_SPK_OUT_VOL,
-		RT5631_L_EN_SHIFT, rt5631_spkvoll_sel);
+static const SOC_ENUM_SINGLE_DECL(rt5631_spkvoll_enum, RT5631_SPK_OUT_VOL,
+				  RT5631_L_EN_SHIFT, rt5631_spkvoll_sel);
 
 static const struct snd_kcontrol_new rt5631_spkvoll_mux_control =
 SOC_DAPM_ENUM("Left SPKVOL SRC", rt5631_spkvoll_enum);
 
 /* Left HP Volume Input */
-static const char *rt5631_hpvoll_sel[] = {"Vmid", "OUTMIXL"};
+static const char *rt5631_hpvoll_sel[] = { "Vmid", "OUTMIXL" };
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_hpvoll_enum, RT5631_HP_OUT_VOL,
-		RT5631_L_EN_SHIFT, rt5631_hpvoll_sel);
+static const SOC_ENUM_SINGLE_DECL(rt5631_hpvoll_enum, RT5631_HP_OUT_VOL,
+				  RT5631_L_EN_SHIFT, rt5631_hpvoll_sel);
 
 static const struct snd_kcontrol_new rt5631_hpvoll_mux_control =
 SOC_DAPM_ENUM("Left HPVOL SRC", rt5631_hpvoll_enum);
 
 /* Left Out Volume Input */
-static const char *rt5631_outvoll_sel[] = {"Vmid", "OUTMIXL"};
+static const char *rt5631_outvoll_sel[] = { "Vmid", "OUTMIXL" };
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_outvoll_enum, RT5631_MONO_AXO_1_2_VOL,
-		RT5631_L_EN_SHIFT, rt5631_outvoll_sel);
+static const SOC_ENUM_SINGLE_DECL(rt5631_outvoll_enum, RT5631_MONO_AXO_1_2_VOL,
+				  RT5631_L_EN_SHIFT, rt5631_outvoll_sel);
 
 static const struct snd_kcontrol_new rt5631_outvoll_mux_control =
 SOC_DAPM_ENUM("Left OUTVOL SRC", rt5631_outvoll_enum);
 
 /* Right Out Volume Input */
-static const char *rt5631_outvolr_sel[] = {"Vmid", "OUTMIXR"};
+static const char *rt5631_outvolr_sel[] = { "Vmid", "OUTMIXR" };
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_outvolr_enum, RT5631_MONO_AXO_1_2_VOL,
-		RT5631_R_EN_SHIFT, rt5631_outvolr_sel);
+static const SOC_ENUM_SINGLE_DECL(rt5631_outvolr_enum, RT5631_MONO_AXO_1_2_VOL,
+				  RT5631_R_EN_SHIFT, rt5631_outvolr_sel);
 
 static const struct snd_kcontrol_new rt5631_outvolr_mux_control =
 SOC_DAPM_ENUM("Right OUTVOL SRC", rt5631_outvolr_enum);
 
 /* Right HP Volume Input */
-static const char *rt5631_hpvolr_sel[] = {"Vmid", "OUTMIXR"};
+static const char *rt5631_hpvolr_sel[] = { "Vmid", "OUTMIXR" };
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_hpvolr_enum, RT5631_HP_OUT_VOL,
-		RT5631_R_EN_SHIFT, rt5631_hpvolr_sel);
+static const SOC_ENUM_SINGLE_DECL(rt5631_hpvolr_enum, RT5631_HP_OUT_VOL,
+				  RT5631_R_EN_SHIFT, rt5631_hpvolr_sel);
 
 static const struct snd_kcontrol_new rt5631_hpvolr_mux_control =
 SOC_DAPM_ENUM("Right HPVOL SRC", rt5631_hpvolr_enum);
 
 /* Right SPK Volume Input */
-static const char *rt5631_spkvolr_sel[] = {"Vmid", "SPKMIXR"};
+static const char *rt5631_spkvolr_sel[] = { "Vmid", "SPKMIXR" };
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_spkvolr_enum, RT5631_SPK_OUT_VOL,
-		RT5631_R_EN_SHIFT, rt5631_spkvolr_sel);
+static const SOC_ENUM_SINGLE_DECL(rt5631_spkvolr_enum, RT5631_SPK_OUT_VOL,
+				  RT5631_R_EN_SHIFT, rt5631_spkvolr_sel);
 
 static const struct snd_kcontrol_new rt5631_spkvolr_mux_control =
 SOC_DAPM_ENUM("Right SPKVOL SRC", rt5631_spkvolr_enum);
 
 /* SPO Left Channel Input */
 static const char *rt5631_spol_src_sel[] = {
-	"SPOLMIX", "MONOIN_RX", "VDAC", "DACL"};
+	"SPOLMIX", "MONOIN_RX", "VDAC", "DACL"
+};
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_spol_src_enum, RT5631_SPK_MONO_HP_OUT_CTRL,
-		RT5631_SPK_L_MUX_SEL_SHIFT, rt5631_spol_src_sel);
+static const SOC_ENUM_SINGLE_DECL(rt5631_spol_src_enum,
+				  RT5631_SPK_MONO_HP_OUT_CTRL,
+				  RT5631_SPK_L_MUX_SEL_SHIFT,
+				  rt5631_spol_src_sel);
 
 static const struct snd_kcontrol_new rt5631_spol_mux_control =
 SOC_DAPM_ENUM("SPOL SRC", rt5631_spol_src_enum);
 
 /* SPO Right Channel Input */
 static const char *rt5631_spor_src_sel[] = {
-	"SPORMIX", "MONOIN_RX", "VDAC", "DACR"};
+	"SPORMIX", "MONOIN_RX", "VDAC", "DACR"
+};
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_spor_src_enum, RT5631_SPK_MONO_HP_OUT_CTRL,
-		RT5631_SPK_R_MUX_SEL_SHIFT, rt5631_spor_src_sel);
+static const SOC_ENUM_SINGLE_DECL(rt5631_spor_src_enum,
+				  RT5631_SPK_MONO_HP_OUT_CTRL,
+				  RT5631_SPK_R_MUX_SEL_SHIFT,
+				  rt5631_spor_src_sel);
 
 static const struct snd_kcontrol_new rt5631_spor_mux_control =
 SOC_DAPM_ENUM("SPOR SRC", rt5631_spor_src_enum);
 
 /* MONO Input */
-static const char *rt5631_mono_src_sel[] = {"MONOMIX", "MONOIN_RX", "VDAC"};
+static const char *rt5631_mono_src_sel[] = { "MONOMIX", "MONOIN_RX", "VDAC" };
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_mono_src_enum, RT5631_SPK_MONO_HP_OUT_CTRL,
-		RT5631_MONO_MUX_SEL_SHIFT, rt5631_mono_src_sel);
+static const SOC_ENUM_SINGLE_DECL(rt5631_mono_src_enum,
+				  RT5631_SPK_MONO_HP_OUT_CTRL,
+				  RT5631_MONO_MUX_SEL_SHIFT,
+				  rt5631_mono_src_sel);
 
 static const struct snd_kcontrol_new rt5631_mono_mux_control =
 SOC_DAPM_ENUM("MONO SRC", rt5631_mono_src_enum);
 
 /* Left HPO Input */
-static const char *rt5631_hpl_src_sel[] = {"Left HPVOL", "Left DAC"};
+static const char *rt5631_hpl_src_sel[] = { "Left HPVOL", "Left DAC" };
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_hpl_src_enum, RT5631_SPK_MONO_HP_OUT_CTRL,
-		RT5631_HP_L_MUX_SEL_SHIFT, rt5631_hpl_src_sel);
+static const SOC_ENUM_SINGLE_DECL(rt5631_hpl_src_enum,
+				  RT5631_SPK_MONO_HP_OUT_CTRL,
+				  RT5631_HP_L_MUX_SEL_SHIFT,
+				  rt5631_hpl_src_sel);
 
 static const struct snd_kcontrol_new rt5631_hpl_mux_control =
 SOC_DAPM_ENUM("HPL SRC", rt5631_hpl_src_enum);
 
 /* Right HPO Input */
-static const char *rt5631_hpr_src_sel[] = {"Right HPVOL", "Right DAC"};
+static const char *rt5631_hpr_src_sel[] = { "Right HPVOL", "Right DAC" };
 
-static const SOC_ENUM_SINGLE_DECL(
-		rt5631_hpr_src_enum, RT5631_SPK_MONO_HP_OUT_CTRL,
-		RT5631_HP_R_MUX_SEL_SHIFT, rt5631_hpr_src_sel);
+static const SOC_ENUM_SINGLE_DECL(rt5631_hpr_src_enum,
+				  RT5631_SPK_MONO_HP_OUT_CTRL,
+				  RT5631_HP_R_MUX_SEL_SHIFT,
+				  rt5631_hpr_src_sel);
 
 static const struct snd_kcontrol_new rt5631_hpr_mux_control =
 SOC_DAPM_ENUM("HPR SRC", rt5631_hpr_src_enum);
@@ -1327,7 +1396,7 @@ static const struct snd_soc_dapm_widget rt5631_dapm_widgets[] = {
 	SND_SOC_DAPM_VMID("Vmid"),
 	/* PLL1 */
 	SND_SOC_DAPM_SUPPLY("PLL1", RT5631_PWR_MANAG_ADD2,
-			RT5631_PWR_PLL1_BIT, 0, NULL, 0),
+			    RT5631_PWR_PLL1_BIT, 0, NULL, 0),
 
 	/* Input Side */
 	/* Input Lines */
@@ -1341,117 +1410,117 @@ static const struct snd_soc_dapm_widget rt5631_dapm_widgets[] = {
 
 	/* MICBIAS */
 	SND_SOC_DAPM_MICBIAS("MIC Bias1", RT5631_PWR_MANAG_ADD2,
-			RT5631_PWR_MICBIAS1_VOL_BIT, 0),
+			     RT5631_PWR_MICBIAS1_VOL_BIT, 0),
 	SND_SOC_DAPM_MICBIAS("MIC Bias2", RT5631_PWR_MANAG_ADD2,
-			RT5631_PWR_MICBIAS2_VOL_BIT, 0),
+			     RT5631_PWR_MICBIAS2_VOL_BIT, 0),
 
 	/* Boost */
 	SND_SOC_DAPM_PGA("MIC1 Boost", RT5631_PWR_MANAG_ADD2,
-			RT5631_PWR_MIC1_BOOT_GAIN_BIT, 0, NULL, 0),
+			 RT5631_PWR_MIC1_BOOT_GAIN_BIT, 0, NULL, 0),
 	SND_SOC_DAPM_PGA("MIC2 Boost", RT5631_PWR_MANAG_ADD2,
-			RT5631_PWR_MIC2_BOOT_GAIN_BIT, 0, NULL, 0),
+			 RT5631_PWR_MIC2_BOOT_GAIN_BIT, 0, NULL, 0),
 	SND_SOC_DAPM_PGA("MONOIN_RXP Boost", RT5631_PWR_MANAG_ADD4,
-			RT5631_PWR_MONO_IN_P_VOL_BIT, 0, NULL, 0),
+			 RT5631_PWR_MONO_IN_P_VOL_BIT, 0, NULL, 0),
 	SND_SOC_DAPM_PGA("MONOIN_RXN Boost", RT5631_PWR_MANAG_ADD4,
-			RT5631_PWR_MONO_IN_N_VOL_BIT, 0, NULL, 0),
+			 RT5631_PWR_MONO_IN_N_VOL_BIT, 0, NULL, 0),
 	SND_SOC_DAPM_PGA("AXIL Boost", RT5631_PWR_MANAG_ADD4,
-			RT5631_PWR_AXIL_IN_VOL_BIT, 0, NULL, 0),
+			 RT5631_PWR_AXIL_IN_VOL_BIT, 0, NULL, 0),
 	SND_SOC_DAPM_PGA("AXIR Boost", RT5631_PWR_MANAG_ADD4,
-			RT5631_PWR_AXIR_IN_VOL_BIT, 0, NULL, 0),
+			 RT5631_PWR_AXIR_IN_VOL_BIT, 0, NULL, 0),
 
 	/* MONO In */
 	SND_SOC_DAPM_MIXER("MONO_IN", SND_SOC_NOPM, 0, 0, NULL, 0),
 
 	/* REC Mixer */
 	SND_SOC_DAPM_MIXER("RECMIXL Mixer", RT5631_PWR_MANAG_ADD2,
-			RT5631_PWR_RECMIXER_L_BIT, 0,
-			&rt5631_recmixl_mixer_controls[0],
-			ARRAY_SIZE(rt5631_recmixl_mixer_controls)),
+			   RT5631_PWR_RECMIXER_L_BIT, 0,
+			   &rt5631_recmixl_mixer_controls[0],
+			   ARRAY_SIZE(rt5631_recmixl_mixer_controls)),
 	SND_SOC_DAPM_MIXER("RECMIXR Mixer", RT5631_PWR_MANAG_ADD2,
-			RT5631_PWR_RECMIXER_R_BIT, 0,
-			&rt5631_recmixr_mixer_controls[0],
-			ARRAY_SIZE(rt5631_recmixr_mixer_controls)),
+			   RT5631_PWR_RECMIXER_R_BIT, 0,
+			   &rt5631_recmixr_mixer_controls[0],
+			   ARRAY_SIZE(rt5631_recmixr_mixer_controls)),
 	/* Because of record duplication for L/R channel,
 	 * L/R ADCs need power up at the same time */
 	SND_SOC_DAPM_MIXER("ADC Mixer", SND_SOC_NOPM, 0, 0, NULL, 0),
 
 	/* DMIC */
 	SND_SOC_DAPM_SUPPLY("DMIC Supply", RT5631_DIG_MIC_CTRL,
-			RT5631_DMIC_ENA_SHIFT, 0,
-			set_dmic_params, SND_SOC_DAPM_PRE_PMU),
+			    RT5631_DMIC_ENA_SHIFT, 0,
+			    set_dmic_params, SND_SOC_DAPM_PRE_PMU),
 	/* ADC Data Srouce */
 	SND_SOC_DAPM_SUPPLY("Left ADC Select", RT5631_INT_ST_IRQ_CTRL_2,
-			RT5631_ADC_DATA_SEL_MIC1_SHIFT, 0, NULL, 0),
+			    RT5631_ADC_DATA_SEL_MIC1_SHIFT, 0, NULL, 0),
 	SND_SOC_DAPM_SUPPLY("Right ADC Select", RT5631_INT_ST_IRQ_CTRL_2,
-			RT5631_ADC_DATA_SEL_MIC2_SHIFT, 0, NULL, 0),
+			    RT5631_ADC_DATA_SEL_MIC2_SHIFT, 0, NULL, 0),
 
 	/* ADCs */
 	SND_SOC_DAPM_ADC("Left ADC", "HIFI Capture",
-			RT5631_PWR_MANAG_ADD1, RT5631_PWR_ADC_L_CLK_BIT, 0),
+			 RT5631_PWR_MANAG_ADD1, RT5631_PWR_ADC_L_CLK_BIT, 0),
 	SND_SOC_DAPM_ADC("Right ADC", "HIFI Capture",
-			RT5631_PWR_MANAG_ADD1, RT5631_PWR_ADC_R_CLK_BIT, 0),
+			 RT5631_PWR_MANAG_ADD1, RT5631_PWR_ADC_R_CLK_BIT, 0),
 
 	/* DAC and ADC supply power */
 	SND_SOC_DAPM_SUPPLY("I2S", RT5631_PWR_MANAG_ADD1,
-			RT5631_PWR_MAIN_I2S_BIT, 0, NULL, 0),
+			    RT5631_PWR_MAIN_I2S_BIT, 0, NULL, 0),
 	SND_SOC_DAPM_SUPPLY("DAC REF", RT5631_PWR_MANAG_ADD1,
-			RT5631_PWR_DAC_REF_BIT, 0, NULL, 0),
+			    RT5631_PWR_DAC_REF_BIT, 0, NULL, 0),
 
 	/* Output Side */
 	/* DACs */
 	SND_SOC_DAPM_DAC("Left DAC", "HIFI Playback",
-			RT5631_PWR_MANAG_ADD1, RT5631_PWR_DAC_L_CLK_BIT, 0),
+			 RT5631_PWR_MANAG_ADD1, RT5631_PWR_DAC_L_CLK_BIT, 0),
 	SND_SOC_DAPM_DAC("Right DAC", "HIFI Playback",
-			RT5631_PWR_MANAG_ADD1, RT5631_PWR_DAC_R_CLK_BIT, 0),
+			 RT5631_PWR_MANAG_ADD1, RT5631_PWR_DAC_R_CLK_BIT, 0),
 	SND_SOC_DAPM_DAC("Voice DAC", "Voice DAC Mono Playback",
-			SND_SOC_NOPM, 0, 0),
+			 SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_PGA("Voice DAC Boost", SND_SOC_NOPM, 0, 0, NULL, 0),
 	/* DAC supply power */
 	SND_SOC_DAPM_SUPPLY("Left DAC To Mixer", RT5631_PWR_MANAG_ADD1,
-			RT5631_PWR_DAC_L_TO_MIXER_BIT, 0, NULL, 0),
+			    RT5631_PWR_DAC_L_TO_MIXER_BIT, 0, NULL, 0),
 	SND_SOC_DAPM_SUPPLY("Right DAC To Mixer", RT5631_PWR_MANAG_ADD1,
-			RT5631_PWR_DAC_R_TO_MIXER_BIT, 0, NULL, 0),
+			    RT5631_PWR_DAC_R_TO_MIXER_BIT, 0, NULL, 0),
 
 	/* Left SPK Mixer */
 	SND_SOC_DAPM_MIXER("SPKMIXL Mixer", RT5631_PWR_MANAG_ADD2,
-			RT5631_PWR_SPKMIXER_L_BIT, 0,
-			&rt5631_spkmixl_mixer_controls[0],
-			ARRAY_SIZE(rt5631_spkmixl_mixer_controls)),
+			   RT5631_PWR_SPKMIXER_L_BIT, 0,
+			   &rt5631_spkmixl_mixer_controls[0],
+			   ARRAY_SIZE(rt5631_spkmixl_mixer_controls)),
 	/* Left Out Mixer */
 	SND_SOC_DAPM_MIXER("OUTMIXL Mixer", RT5631_PWR_MANAG_ADD2,
-			RT5631_PWR_OUTMIXER_L_BIT, 0,
-			&rt5631_outmixl_mixer_controls[0],
-			ARRAY_SIZE(rt5631_outmixl_mixer_controls)),
+			   RT5631_PWR_OUTMIXER_L_BIT, 0,
+			   &rt5631_outmixl_mixer_controls[0],
+			   ARRAY_SIZE(rt5631_outmixl_mixer_controls)),
 	/* Right Out Mixer */
 	SND_SOC_DAPM_MIXER("OUTMIXR Mixer", RT5631_PWR_MANAG_ADD2,
-			RT5631_PWR_OUTMIXER_R_BIT, 0,
-			&rt5631_outmixr_mixer_controls[0],
-			ARRAY_SIZE(rt5631_outmixr_mixer_controls)),
+			   RT5631_PWR_OUTMIXER_R_BIT, 0,
+			   &rt5631_outmixr_mixer_controls[0],
+			   ARRAY_SIZE(rt5631_outmixr_mixer_controls)),
 	/* Right SPK Mixer */
 	SND_SOC_DAPM_MIXER("SPKMIXR Mixer", RT5631_PWR_MANAG_ADD2,
-			RT5631_PWR_SPKMIXER_R_BIT, 0,
-			&rt5631_spkmixr_mixer_controls[0],
-			ARRAY_SIZE(rt5631_spkmixr_mixer_controls)),
+			   RT5631_PWR_SPKMIXER_R_BIT, 0,
+			   &rt5631_spkmixr_mixer_controls[0],
+			   ARRAY_SIZE(rt5631_spkmixr_mixer_controls)),
 
 	/* Volume Mux */
 	SND_SOC_DAPM_MUX("Left SPKVOL Mux", RT5631_PWR_MANAG_ADD4,
-			RT5631_PWR_SPK_L_VOL_BIT, 0,
-			&rt5631_spkvoll_mux_control),
+			 RT5631_PWR_SPK_L_VOL_BIT, 0,
+			 &rt5631_spkvoll_mux_control),
 	SND_SOC_DAPM_MUX("Left HPVOL Mux", RT5631_PWR_MANAG_ADD4,
-			RT5631_PWR_HP_L_OUT_VOL_BIT, 0,
-			&rt5631_hpvoll_mux_control),
+			 RT5631_PWR_HP_L_OUT_VOL_BIT, 0,
+			 &rt5631_hpvoll_mux_control),
 	SND_SOC_DAPM_MUX("Left OUTVOL Mux", RT5631_PWR_MANAG_ADD4,
-			RT5631_PWR_LOUT_VOL_BIT, 0,
-			&rt5631_outvoll_mux_control),
+			 RT5631_PWR_LOUT_VOL_BIT, 0,
+			 &rt5631_outvoll_mux_control),
 	SND_SOC_DAPM_MUX("Right OUTVOL Mux", RT5631_PWR_MANAG_ADD4,
-			RT5631_PWR_ROUT_VOL_BIT, 0,
-			&rt5631_outvolr_mux_control),
+			 RT5631_PWR_ROUT_VOL_BIT, 0,
+			 &rt5631_outvolr_mux_control),
 	SND_SOC_DAPM_MUX("Right HPVOL Mux", RT5631_PWR_MANAG_ADD4,
-			RT5631_PWR_HP_R_OUT_VOL_BIT, 0,
-			&rt5631_hpvolr_mux_control),
+			 RT5631_PWR_HP_R_OUT_VOL_BIT, 0,
+			 &rt5631_hpvolr_mux_control),
 	SND_SOC_DAPM_MUX("Right SPKVOL Mux", RT5631_PWR_MANAG_ADD4,
-			RT5631_PWR_SPK_R_VOL_BIT, 0,
-			&rt5631_spkvolr_mux_control),
+			 RT5631_PWR_SPK_R_VOL_BIT, 0,
+			 &rt5631_spkvolr_mux_control),
 
 	/* DAC To HP */
 	SND_SOC_DAPM_PGA_S("Left DAC_HP", 0, SND_SOC_NOPM, 0, 0, NULL, 0),
@@ -1459,49 +1528,50 @@ static const struct snd_soc_dapm_widget rt5631_dapm_widgets[] = {
 
 	/* HP Depop */
 	SND_SOC_DAPM_PGA_S("HP Depop", 1, SND_SOC_NOPM, 0, 0,
-			hp_event, SND_SOC_DAPM_PRE_PMD | SND_SOC_DAPM_POST_PMU),
+			   hp_event,
+			   SND_SOC_DAPM_PRE_PMD | SND_SOC_DAPM_POST_PMU),
 
 	/* AXO1 Mixer */
 	SND_SOC_DAPM_MIXER("AXO1MIX Mixer", RT5631_PWR_MANAG_ADD3,
-			RT5631_PWR_AXO1MIXER_BIT, 0,
-			&rt5631_AXO1MIX_mixer_controls[0],
-			ARRAY_SIZE(rt5631_AXO1MIX_mixer_controls)),
+			   RT5631_PWR_AXO1MIXER_BIT, 0,
+			   &rt5631_AXO1MIX_mixer_controls[0],
+			   ARRAY_SIZE(rt5631_AXO1MIX_mixer_controls)),
 	/* SPOL Mixer */
 	SND_SOC_DAPM_MIXER("SPOLMIX Mixer", SND_SOC_NOPM, 0, 0,
-			&rt5631_spolmix_mixer_controls[0],
-			ARRAY_SIZE(rt5631_spolmix_mixer_controls)),
+			   &rt5631_spolmix_mixer_controls[0],
+			   ARRAY_SIZE(rt5631_spolmix_mixer_controls)),
 	/* MONO Mixer */
 	SND_SOC_DAPM_MIXER("MONOMIX Mixer", RT5631_PWR_MANAG_ADD3,
-			RT5631_PWR_MONOMIXER_BIT, 0,
-			&rt5631_monomix_mixer_controls[0],
-			ARRAY_SIZE(rt5631_monomix_mixer_controls)),
+			   RT5631_PWR_MONOMIXER_BIT, 0,
+			   &rt5631_monomix_mixer_controls[0],
+			   ARRAY_SIZE(rt5631_monomix_mixer_controls)),
 	/* SPOR Mixer */
 	SND_SOC_DAPM_MIXER("SPORMIX Mixer", SND_SOC_NOPM, 0, 0,
-			&rt5631_spormix_mixer_controls[0],
-			ARRAY_SIZE(rt5631_spormix_mixer_controls)),
+			   &rt5631_spormix_mixer_controls[0],
+			   ARRAY_SIZE(rt5631_spormix_mixer_controls)),
 	/* AXO2 Mixer */
 	SND_SOC_DAPM_MIXER("AXO2MIX Mixer", RT5631_PWR_MANAG_ADD3,
-			RT5631_PWR_AXO2MIXER_BIT, 0,
-			&rt5631_AXO2MIX_mixer_controls[0],
-			ARRAY_SIZE(rt5631_AXO2MIX_mixer_controls)),
+			   RT5631_PWR_AXO2MIXER_BIT, 0,
+			   &rt5631_AXO2MIX_mixer_controls[0],
+			   ARRAY_SIZE(rt5631_AXO2MIX_mixer_controls)),
 
 	/* Mux */
 	SND_SOC_DAPM_MUX("SPOL Mux", SND_SOC_NOPM, 0, 0,
-			&rt5631_spol_mux_control),
+			 &rt5631_spol_mux_control),
 	SND_SOC_DAPM_MUX("SPOR Mux", SND_SOC_NOPM, 0, 0,
-			&rt5631_spor_mux_control),
+			 &rt5631_spor_mux_control),
 	SND_SOC_DAPM_MUX("MONO Mux", SND_SOC_NOPM, 0, 0,
-			&rt5631_mono_mux_control),
+			 &rt5631_mono_mux_control),
 	SND_SOC_DAPM_MUX("HPL Mux", SND_SOC_NOPM, 0, 0,
-			&rt5631_hpl_mux_control),
+			 &rt5631_hpl_mux_control),
 	SND_SOC_DAPM_MUX("HPR Mux", SND_SOC_NOPM, 0, 0,
-			&rt5631_hpr_mux_control),
+			 &rt5631_hpr_mux_control),
 
 	/* AMP supply */
 	SND_SOC_DAPM_SUPPLY("MONO Depop", RT5631_PWR_MANAG_ADD3,
-			RT5631_PWR_MONO_DEPOP_DIS_BIT, 0, NULL, 0),
+			    RT5631_PWR_MONO_DEPOP_DIS_BIT, 0, NULL, 0),
 	SND_SOC_DAPM_SUPPLY("Class D", RT5631_PWR_MANAG_ADD1,
-			RT5631_PWR_CLASS_D_BIT, 0, NULL, 0),
+			    RT5631_PWR_CLASS_D_BIT, 0, NULL, 0),
 
 	/* Output Lines */
 	SND_SOC_DAPM_OUTPUT("AUXO1"),
@@ -1598,18 +1668,18 @@ static const struct snd_soc_dapm_route rt5631_dapm_routes[] = {
 	{"OUTMIXR Mixer", "AXIRVOL Playback Switch", "AXIR Boost"},
 	{"OUTMIXR Mixer", "VDAC Playback Switch", "Voice DAC Boost"},
 
-	{"Left SPKVOL Mux",  "SPKMIXL", "SPKMIXL Mixer"},
-	{"Left SPKVOL Mux",  "Vmid", "Vmid"},
-	{"Left HPVOL Mux",  "OUTMIXL", "OUTMIXL Mixer"},
-	{"Left HPVOL Mux",  "Vmid", "Vmid"},
-	{"Left OUTVOL Mux",  "OUTMIXL", "OUTMIXL Mixer"},
-	{"Left OUTVOL Mux",  "Vmid", "Vmid"},
-	{"Right OUTVOL Mux",  "OUTMIXR", "OUTMIXR Mixer"},
-	{"Right OUTVOL Mux",  "Vmid", "Vmid"},
-	{"Right HPVOL Mux",  "OUTMIXR", "OUTMIXR Mixer"},
-	{"Right HPVOL Mux",  "Vmid", "Vmid"},
-	{"Right SPKVOL Mux",  "SPKMIXR", "SPKMIXR Mixer"},
-	{"Right SPKVOL Mux",  "Vmid", "Vmid"},
+	{"Left SPKVOL Mux", "SPKMIXL", "SPKMIXL Mixer"},
+	{"Left SPKVOL Mux", "Vmid", "Vmid"},
+	{"Left HPVOL Mux", "OUTMIXL", "OUTMIXL Mixer"},
+	{"Left HPVOL Mux", "Vmid", "Vmid"},
+	{"Left OUTVOL Mux", "OUTMIXL", "OUTMIXL Mixer"},
+	{"Left OUTVOL Mux", "Vmid", "Vmid"},
+	{"Right OUTVOL Mux", "OUTMIXR", "OUTMIXR Mixer"},
+	{"Right OUTVOL Mux", "Vmid", "Vmid"},
+	{"Right HPVOL Mux", "OUTMIXR", "OUTMIXR Mixer"},
+	{"Right HPVOL Mux", "Vmid", "Vmid"},
+	{"Right SPKVOL Mux", "SPKMIXR", "SPKMIXR Mixer"},
+	{"Right SPKVOL Mux", "Vmid", "Vmid"},
 
 	{"AXO1MIX Mixer", "MIC1_BST1 Playback Switch", "MIC1 Boost"},
 	{"AXO1MIX Mixer", "OUTVOLL Playback Switch", "Left OUTVOL Mux"},
@@ -1685,124 +1755,124 @@ struct pll_div {
 };
 
 static const struct pll_div codec_master_pll_div[] = {
-	{2048000,  8192000,  0x0ea0},
-	{3686400,  8192000,  0x4e27},
-	{12000000,  8192000,  0x456b},
-	{13000000,  8192000,  0x495f},
-	{13100000,  8192000,  0x0320},
-	{2048000,  11289600,  0xf637},
-	{3686400,  11289600,  0x2f22},
-	{12000000,  11289600,  0x3e2f},
-	{13000000,  11289600,  0x4d5b},
-	{13100000,  11289600,  0x363b},
-	{2048000,  16384000,  0x1ea0},
-	{3686400,  16384000,  0x9e27},
-	{12000000,  16384000,  0x452b},
-	{13000000,  16384000,  0x542f},
-	{13100000,  16384000,  0x03a0},
-	{2048000,  16934400,  0xe625},
-	{3686400,  16934400,  0x9126},
-	{12000000,  16934400,  0x4d2c},
-	{13000000,  16934400,  0x742f},
-	{13100000,  16934400,  0x3c27},
-	{2048000,  22579200,  0x2aa0},
-	{3686400,  22579200,  0x2f20},
-	{12000000,  22579200,  0x7e2f},
-	{13000000,  22579200,  0x742f},
-	{13100000,  22579200,  0x3c27},
-	{2048000,  24576000,  0x2ea0},
-	{3686400,  24576000,  0xee27},
-	{12000000,  24576000,  0x2915},
-	{13000000,  24576000,  0x772e},
-	{13100000,  24576000,  0x0d20},
-	{26000000,  24576000,  0x2027},
-	{26000000,  22579200,  0x392f},
-	{24576000,  22579200,  0x0921},
-	{24576000,  24576000,  0x02a0},
+	{2048000, 8192000, 0x0ea0},
+	{3686400, 8192000, 0x4e27},
+	{12000000, 8192000, 0x456b},
+	{13000000, 8192000, 0x495f},
+	{13100000, 8192000, 0x0320},
+	{2048000, 11289600, 0xf637},
+	{3686400, 11289600, 0x2f22},
+	{12000000, 11289600, 0x3e2f},
+	{13000000, 11289600, 0x4d5b},
+	{13100000, 11289600, 0x363b},
+	{2048000, 16384000, 0x1ea0},
+	{3686400, 16384000, 0x9e27},
+	{12000000, 16384000, 0x452b},
+	{13000000, 16384000, 0x542f},
+	{13100000, 16384000, 0x03a0},
+	{2048000, 16934400, 0xe625},
+	{3686400, 16934400, 0x9126},
+	{12000000, 16934400, 0x4d2c},
+	{13000000, 16934400, 0x742f},
+	{13100000, 16934400, 0x3c27},
+	{2048000, 22579200, 0x2aa0},
+	{3686400, 22579200, 0x2f20},
+	{12000000, 22579200, 0x7e2f},
+	{13000000, 22579200, 0x742f},
+	{13100000, 22579200, 0x3c27},
+	{2048000, 24576000, 0x2ea0},
+	{3686400, 24576000, 0xee27},
+	{12000000, 24576000, 0x2915},
+	{13000000, 24576000, 0x772e},
+	{13100000, 24576000, 0x0d20},
+	{26000000, 24576000, 0x2027},
+	{26000000, 22579200, 0x392f},
+	{24576000, 22579200, 0x0921},
+	{24576000, 24576000, 0x02a0},
 };
 
 static const struct pll_div codec_slave_pll_div[] = {
-	{256000,  2048000,  0x46f0},
-	{256000,  4096000,  0x3ea0},
-	{352800,  5644800,  0x3ea0},
-	{512000,  4096000,  0x46f0},
-	{512000,  8192000,  0x3ea0},
-	{1024000,  8192000,  0x46f0},
-	{705600,  11289600,  0x3ea0},
-	{1024000,  16384000,  0x3ea0},
-	{1411200,  22579200,  0x3ea0},
-	{1536000,  24576000,  0x3ea0},
-	{2048000,  16384000,  0x1ea0},
-	{2822400,  22579200,  0x1ea0},
-	{2822400,  45158400,  0x5ec0},
-	{5644800,  45158400,  0x46f0},
-	{3072000,  24576000,  0x1ea0},
-	{3072000,  49152000,  0x5ec0},
-	{6144000,  49152000,  0x46f0},
-	{705600,  11289600,  0x3ea0},
-	{705600,  8467200,  0x3ab0},
-	{12288000,  49152000,  0x0a90},
-	{24576000,  24576000,  0x02a0},
-	{1411200,  11289600,  0x1690},
-	{2822400,  11289600,  0x0a90},
-	{1536000,  12288000,  0x1690},
-	{3072000,  12288000,  0x0a90},
+	{256000, 2048000, 0x46f0},
+	{256000, 4096000, 0x3ea0},
+	{352800, 5644800, 0x3ea0},
+	{512000, 4096000, 0x46f0},
+	{512000, 8192000, 0x3ea0},
+	{1024000, 8192000, 0x46f0},
+	{705600, 11289600, 0x3ea0},
+	{1024000, 16384000, 0x3ea0},
+	{1411200, 22579200, 0x3ea0},
+	{1536000, 24576000, 0x3ea0},
+	{2048000, 16384000, 0x1ea0},
+	{2822400, 22579200, 0x1ea0},
+	{2822400, 45158400, 0x5ec0},
+	{5644800, 45158400, 0x46f0},
+	{3072000, 24576000, 0x1ea0},
+	{3072000, 49152000, 0x5ec0},
+	{6144000, 49152000, 0x46f0},
+	{705600, 11289600, 0x3ea0},
+	{705600, 8467200, 0x3ab0},
+	{12288000, 49152000, 0x0a90},
+	{24576000, 24576000, 0x02a0},
+	{1411200, 11289600, 0x1690},
+	{2822400, 11289600, 0x0a90},
+	{1536000, 12288000, 0x1690},
+	{3072000, 12288000, 0x0a90},
 };
 
 struct coeff_clk_div coeff_div[] = {
 	/* sysclk is 256fs */
-	{2048000,  8000 * 32,  8000, 0x1000},
-	{2048000,  8000 * 64,  8000, 0x0000},
-	{2822400,  11025 * 32,  11025,  0x1000},
-	{2822400,  11025 * 64,  11025,  0x0000},
-	{4096000,  16000 * 32,  16000,  0x1000},
-	{4096000,  16000 * 64,  16000,  0x0000},
-	{5644800,  22050 * 32,  22050,  0x1000},
-	{5644800,  22050 * 64,  22050,  0x0000},
-	{8192000,  32000 * 32,  32000,  0x1000},
-	{8192000,  32000 * 64,  32000,  0x0000},
-	{11289600,  44100 * 32,  44100,  0x1000},
-	{11289600,  44100 * 64,  44100,  0x0000},
-	{12288000,  48000 * 32,  48000,  0x1000},
-	{12288000,  48000 * 64,  48000,  0x0000},
-	{22579200,  88200 * 32,  88200,  0x1000},
-	{22579200,  88200 * 64,  88200,  0x0000},
-	{24576000,  96000 * 32,  96000,  0x1000},
-	{24576000,  96000 * 64,  96000,  0x0000},
-	{49152000,  192000 * 32,  192000, 0x1000},
-	{49152000,  192000 * 64,  192000, 0x0000},
+	{2048000, 8000 * 32, 8000, 0x1000},
+	{2048000, 8000 * 64, 8000, 0x0000},
+	{2822400, 11025 * 32, 11025, 0x1000},
+	{2822400, 11025 * 64, 11025, 0x0000},
+	{4096000, 16000 * 32, 16000, 0x1000},
+	{4096000, 16000 * 64, 16000, 0x0000},
+	{5644800, 22050 * 32, 22050, 0x1000},
+	{5644800, 22050 * 64, 22050, 0x0000},
+	{8192000, 32000 * 32, 32000, 0x1000},
+	{8192000, 32000 * 64, 32000, 0x0000},
+	{11289600, 44100 * 32, 44100, 0x1000},
+	{11289600, 44100 * 64, 44100, 0x0000},
+	{12288000, 48000 * 32, 48000, 0x1000},
+	{12288000, 48000 * 64, 48000, 0x0000},
+	{22579200, 88200 * 32, 88200, 0x1000},
+	{22579200, 88200 * 64, 88200, 0x0000},
+	{24576000, 96000 * 32, 96000, 0x1000},
+	{24576000, 96000 * 64, 96000, 0x0000},
+	{49152000, 192000 * 32, 192000, 0x1000},
+	{49152000, 192000 * 64, 192000, 0x0000},
 	/* sysclk is 512fs */
-	{4096000,  8000 * 32,  8000, 0x3000},
-	{4096000,  8000 * 64,  8000, 0x2000},
-	{5644800,  11025 * 32,  11025, 0x3000},
-	{5644800,  11025 * 64,  11025, 0x2000},
-	{8192000,  16000 * 32,  16000, 0x3000},
-	{8192000,  16000 * 64,  16000, 0x2000},
-	{11289600,  22050 * 32,  22050, 0x3000},
-	{11289600,  22050 * 64,  22050, 0x2000},
-	{16384000,  32000 * 32,  32000, 0x3000},
-	{16384000,  32000 * 64,  32000, 0x2000},
-	{22579200,  44100 * 32,  44100, 0x3000},
-	{22579200,  44100 * 64,  44100, 0x2000},
-	{24576000,  48000 * 32,  48000, 0x3000},
-	{24576000,  48000 * 64,  48000, 0x2000},
-	{45158400,  88200 * 32,  88200, 0x3000},
-	{45158400,  88200 * 64,  88200, 0x2000},
-	{49152000,  96000 * 32,  96000, 0x3000},
-	{49152000,  96000 * 64,  96000, 0x2000},
+	{4096000, 8000 * 32, 8000, 0x3000},
+	{4096000, 8000 * 64, 8000, 0x2000},
+	{5644800, 11025 * 32, 11025, 0x3000},
+	{5644800, 11025 * 64, 11025, 0x2000},
+	{8192000, 16000 * 32, 16000, 0x3000},
+	{8192000, 16000 * 64, 16000, 0x2000},
+	{11289600, 22050 * 32, 22050, 0x3000},
+	{11289600, 22050 * 64, 22050, 0x2000},
+	{16384000, 32000 * 32, 32000, 0x3000},
+	{16384000, 32000 * 64, 32000, 0x2000},
+	{22579200, 44100 * 32, 44100, 0x3000},
+	{22579200, 44100 * 64, 44100, 0x2000},
+	{24576000, 48000 * 32, 48000, 0x3000},
+	{24576000, 48000 * 64, 48000, 0x2000},
+	{45158400, 88200 * 32, 88200, 0x3000},
+	{45158400, 88200 * 64, 88200, 0x2000},
+	{49152000, 96000 * 32, 96000, 0x3000},
+	{49152000, 96000 * 64, 96000, 0x2000},
 	/* sysclk is 24.576Mhz or 22.5792Mhz */
-	{24576000,  8000 * 32,  8000,  0x7080},
-	{24576000,  8000 * 64,  8000,  0x6080},
-	{24576000,  16000 * 32,  16000,  0x5080},
-	{24576000,  16000 * 64,  16000,  0x4080},
-	{24576000,  24000 * 32,  24000,  0x5000},
-	{24576000,  24000 * 64,  24000,  0x4000},
-	{24576000,  32000 * 32,  32000,  0x3080},
-	{24576000,  32000 * 64,  32000,  0x2080},
-	{22579200,  11025 * 32,  11025,  0x7000},
-	{22579200,  11025 * 64,  11025,  0x6000},
-	{22579200,  22050 * 32,  22050,  0x5000},
-	{22579200,  22050 * 64,  22050,  0x4000},
+	{24576000, 8000 * 32, 8000, 0x7080},
+	{24576000, 8000 * 64, 8000, 0x6080},
+	{24576000, 16000 * 32, 16000, 0x5080},
+	{24576000, 16000 * 64, 16000, 0x4080},
+	{24576000, 24000 * 32, 24000, 0x5000},
+	{24576000, 24000 * 64, 24000, 0x4000},
+	{24576000, 32000 * 32, 32000, 0x3080},
+	{24576000, 32000 * 64, 32000, 0x2080},
+	{22579200, 11025 * 32, 11025, 0x7000},
+	{22579200, 11025 * 64, 11025, 0x6000},
+	{22579200, 22050 * 32, 22050, 0x5000},
+	{22579200, 22050 * 64, 22050, 0x4000},
 };
 
 static int get_coeff(int mclk, int rate, int timesofbclk)
@@ -1811,20 +1881,22 @@ static int get_coeff(int mclk, int rate, int timesofbclk)
 
 	for (i = 0; i < ARRAY_SIZE(coeff_div); i++) {
 		if (coeff_div[i].mclk == mclk && coeff_div[i].rate == rate &&
-				(coeff_div[i].bclk / coeff_div[i].rate) == timesofbclk)
+		    (coeff_div[i].bclk / coeff_div[i].rate) == timesofbclk)
 			return i;
 	}
 	return -EINVAL;
 }
+
 static int get_coeff_slave(int bclk, int rate)
 {
 	int i, j;
 	for (i = 0; i < ARRAY_SIZE(codec_slave_pll_div); i++) {
-		if(codec_slave_pll_div[i].pll_in == bclk)
-		{
+		if (codec_slave_pll_div[i].pll_in == bclk) {
 			for (j = 0; j < ARRAY_SIZE(coeff_div); j++) {
-				if (coeff_div[j].bclk == bclk && coeff_div[j].rate == rate &&
-						coeff_div[j].mclk == codec_slave_pll_div[i].pll_out)
+				if (coeff_div[j].bclk == bclk
+				    && coeff_div[j].rate == rate
+				    && coeff_div[j].mclk ==
+				    codec_slave_pll_div[i].pll_out)
 					return j;
 			}
 		}
@@ -1833,7 +1905,8 @@ static int get_coeff_slave(int bclk, int rate)
 }
 
 static int rt5631_hifi_pcm_params(struct snd_pcm_substream *substream,
-		struct snd_pcm_hw_params *params, struct snd_soc_dai *dai)
+				  struct snd_pcm_hw_params *params,
+				  struct snd_soc_dai *dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_codec *codec = rtd->codec;
@@ -1844,20 +1917,18 @@ static int rt5631_hifi_pcm_params(struct snd_pcm_substream *substream,
 	dev_dbg(codec->dev, "enter %s\n", __func__);
 
 	//rt5631->bclk_rate = snd_soc_params_to_bclk(params);
-	/*Config bclk and sysclk according to Nufront I2S config*/
+	/*Config bclk and sysclk according to Nufront I2S config */
 	rt5631->rx_rate = params_rate(params);
 	rt5631->bclk_rate = rt5631->rx_rate * timesofbclk;
 	if (rt5631->bclk_rate < 0) {
 		dev_err(codec->dev, "Fail to get BCLK rate\n");
 		return rt5631->bclk_rate;
 	}
-	if (rt5631->master)
-	{
+	if (rt5631->master) {
 		rt5631->sysclk = 12000000;
 		coeff = get_coeff(rt5631->sysclk, rt5631->rx_rate,
-				rt5631->bclk_rate / rt5631->rx_rate);
-	}
-	else
+				  rt5631->bclk_rate / rt5631->rx_rate);
+	} else
 		coeff = get_coeff_slave(rt5631->bclk_rate, rt5631->rx_rate);
 	if (coeff < 0) {
 		dev_err(codec->dev, "Fail to get coeff\n");
@@ -1867,17 +1938,16 @@ static int rt5631_hifi_pcm_params(struct snd_pcm_substream *substream,
 
 	for (i = 0; i < ARRAY_SIZE(codec_slave_pll_div); i++)
 		if (rt5631->bclk_rate == codec_slave_pll_div[i].pll_in &&
-				rt5631->sysclk == codec_slave_pll_div[i].pll_out) {
+		    rt5631->sysclk == codec_slave_pll_div[i].pll_out) {
 			snd_soc_write(codec, RT5631_PLL_CTRL,
-					codec_slave_pll_div[i].reg_val);
-			schedule_timeout_uninterruptible(
-					msecs_to_jiffies(20));
+				      codec_slave_pll_div[i].reg_val);
+			schedule_timeout_uninterruptible(msecs_to_jiffies(20));
 			snd_soc_update_bits(codec,
-					RT5631_GLOBAL_CLK_CTRL,
-					RT5631_SYSCLK_SOUR_SEL_MASK |
-					RT5631_PLLCLK_SOUR_SEL_MASK,
-					RT5631_SYSCLK_SOUR_SEL_PLL |
-					RT5631_PLLCLK_SOUR_SEL_BCLK);
+					    RT5631_GLOBAL_CLK_CTRL,
+					    RT5631_SYSCLK_SOUR_SEL_MASK |
+					    RT5631_PLLCLK_SOUR_SEL_MASK,
+					    RT5631_SYSCLK_SOUR_SEL_PLL |
+					    RT5631_PLLCLK_SOUR_SEL_BCLK);
 			pll_ret = 1;
 			break;
 		}
@@ -1888,31 +1958,31 @@ static int rt5631_hifi_pcm_params(struct snd_pcm_substream *substream,
 	}
 
 	switch (params_format(params)) {
-		case SNDRV_PCM_FORMAT_S16_LE:
-			break;
-		case SNDRV_PCM_FORMAT_S20_3LE:
-			iface |= RT5631_SDP_I2S_DL_20;
-			break;
-		case SNDRV_PCM_FORMAT_S24_LE:
-			iface |= RT5631_SDP_I2S_DL_24;
-			break;
-		case SNDRV_PCM_FORMAT_S8:
-			iface |= RT5631_SDP_I2S_DL_8;
-			break;
-		default:
-			return -EINVAL;
+	case SNDRV_PCM_FORMAT_S16_LE:
+		break;
+	case SNDRV_PCM_FORMAT_S20_3LE:
+		iface |= RT5631_SDP_I2S_DL_20;
+		break;
+	case SNDRV_PCM_FORMAT_S24_LE:
+		iface |= RT5631_SDP_I2S_DL_24;
+		break;
+	case SNDRV_PCM_FORMAT_S8:
+		iface |= RT5631_SDP_I2S_DL_8;
+		break;
+	default:
+		return -EINVAL;
 	}
 
 	snd_soc_update_bits(codec, RT5631_SDP_CTRL,
-			RT5631_SDP_I2S_DL_MASK, iface);
+			    RT5631_SDP_I2S_DL_MASK, iface);
 	snd_soc_write(codec, RT5631_STEREO_AD_DA_CLK_CTRL,
-			coeff_div[coeff].reg_val);
+		      coeff_div[coeff].reg_val);
 
 	return 0;
 }
 
 static int rt5631_hifi_codec_set_dai_fmt(struct snd_soc_dai *codec_dai,
-		unsigned int fmt)
+					 unsigned int fmt)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
 	struct rt5631_priv *rt5631 = snd_soc_codec_get_drvdata(codec);
@@ -1921,41 +1991,41 @@ static int rt5631_hifi_codec_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	dev_dbg(codec->dev, "enter %s\n", __func__);
 
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
-		case SND_SOC_DAIFMT_CBM_CFM:
-			rt5631->master = 1;
-			break;
-		case SND_SOC_DAIFMT_CBS_CFS:
-			iface |= RT5631_SDP_MODE_SEL_SLAVE;
-			rt5631->master = 0;
-			break;
-		default:
-			return -EINVAL;
+	case SND_SOC_DAIFMT_CBM_CFM:
+		rt5631->master = 1;
+		break;
+	case SND_SOC_DAIFMT_CBS_CFS:
+		iface |= RT5631_SDP_MODE_SEL_SLAVE;
+		rt5631->master = 0;
+		break;
+	default:
+		return -EINVAL;
 	}
 
 	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-		case SND_SOC_DAIFMT_I2S:
-			break;
-		case SND_SOC_DAIFMT_LEFT_J:
-			iface |= RT5631_SDP_I2S_DF_LEFT;
-			break;
-		case SND_SOC_DAIFMT_DSP_A:
-			iface |= RT5631_SDP_I2S_DF_PCM_A;
-			break;
-		case SND_SOC_DAIFMT_DSP_B:
-			iface  |= RT5631_SDP_I2S_DF_PCM_B;
-			break;
-		default:
-			return -EINVAL;
+	case SND_SOC_DAIFMT_I2S:
+		break;
+	case SND_SOC_DAIFMT_LEFT_J:
+		iface |= RT5631_SDP_I2S_DF_LEFT;
+		break;
+	case SND_SOC_DAIFMT_DSP_A:
+		iface |= RT5631_SDP_I2S_DF_PCM_A;
+		break;
+	case SND_SOC_DAIFMT_DSP_B:
+		iface |= RT5631_SDP_I2S_DF_PCM_B;
+		break;
+	default:
+		return -EINVAL;
 	}
 
 	switch (fmt & SND_SOC_DAIFMT_INV_MASK) {
-		case SND_SOC_DAIFMT_NB_NF:
-			break;
-		case SND_SOC_DAIFMT_IB_NF:
-			iface |= RT5631_SDP_I2S_BCLK_POL_CTRL;
-			break;
-		default:
-			return -EINVAL;
+	case SND_SOC_DAIFMT_NB_NF:
+		break;
+	case SND_SOC_DAIFMT_IB_NF:
+		iface |= RT5631_SDP_I2S_BCLK_POL_CTRL;
+		break;
+	default:
+		return -EINVAL;
 	}
 
 	snd_soc_write(codec, RT5631_SDP_CTRL, iface);
@@ -1964,7 +2034,8 @@ static int rt5631_hifi_codec_set_dai_fmt(struct snd_soc_dai *codec_dai,
 }
 
 static int rt5631_hifi_codec_set_dai_sysclk(struct snd_soc_dai *codec_dai,
-		int clk_id, unsigned int freq, int dir)
+					    int clk_id, unsigned int freq,
+					    int dir)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
 	struct rt5631_priv *rt5631 = snd_soc_codec_get_drvdata(codec);
@@ -1980,7 +2051,8 @@ static int rt5631_hifi_codec_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 }
 
 static int rt5631_codec_set_dai_pll(struct snd_soc_dai *codec_dai, int pll_id,
-		int source, unsigned int freq_in, unsigned int freq_out)
+				    int source, unsigned int freq_in,
+				    unsigned int freq_out)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
 	struct rt5631_priv *rt5631 = snd_soc_codec_get_drvdata(codec);
@@ -1992,8 +2064,8 @@ static int rt5631_codec_set_dai_pll(struct snd_soc_dai *codec_dai, int pll_id,
 		dev_dbg(codec->dev, "PLL disabled\n");
 
 		snd_soc_update_bits(codec, RT5631_GLOBAL_CLK_CTRL,
-				RT5631_SYSCLK_SOUR_SEL_MASK,
-				RT5631_SYSCLK_SOUR_SEL_MCLK);
+				    RT5631_SYSCLK_SOUR_SEL_MASK,
+				    RT5631_SYSCLK_SOUR_SEL_MCLK);
 
 		return 0;
 	}
@@ -2001,38 +2073,40 @@ static int rt5631_codec_set_dai_pll(struct snd_soc_dai *codec_dai, int pll_id,
 	if (rt5631->master) {
 		for (i = 0; i < ARRAY_SIZE(codec_master_pll_div); i++)
 			if (freq_in == codec_master_pll_div[i].pll_in &&
-					freq_out == codec_master_pll_div[i].pll_out) {
+			    freq_out == codec_master_pll_div[i].pll_out) {
 				dev_info(codec->dev,
-						"change PLL in master mode\n");
+					 "change PLL in master mode\n");
 				snd_soc_write(codec, RT5631_PLL_CTRL,
-						codec_master_pll_div[i].reg_val);
-				schedule_timeout_uninterruptible(
-						msecs_to_jiffies(20));
+					      codec_master_pll_div[i].reg_val);
+				schedule_timeout_uninterruptible
+				    (msecs_to_jiffies(20));
 				snd_soc_update_bits(codec,
-						RT5631_GLOBAL_CLK_CTRL,
-						RT5631_SYSCLK_SOUR_SEL_MASK |
-						RT5631_PLLCLK_SOUR_SEL_MASK,
-						RT5631_SYSCLK_SOUR_SEL_PLL |
-						RT5631_PLLCLK_SOUR_SEL_MCLK);
+						    RT5631_GLOBAL_CLK_CTRL,
+						    RT5631_SYSCLK_SOUR_SEL_MASK
+						    |
+						    RT5631_PLLCLK_SOUR_SEL_MASK,
+						    RT5631_SYSCLK_SOUR_SEL_PLL |
+						    RT5631_PLLCLK_SOUR_SEL_MCLK);
 				ret = 0;
 				break;
 			}
 	} else {
 		for (i = 0; i < ARRAY_SIZE(codec_slave_pll_div); i++)
 			if (freq_in == codec_slave_pll_div[i].pll_in &&
-					freq_out == codec_slave_pll_div[i].pll_out) {
+			    freq_out == codec_slave_pll_div[i].pll_out) {
 				dev_info(codec->dev,
-						"change PLL in slave mode\n");
+					 "change PLL in slave mode\n");
 				snd_soc_write(codec, RT5631_PLL_CTRL,
-						codec_slave_pll_div[i].reg_val);
-				schedule_timeout_uninterruptible(
-						msecs_to_jiffies(20));
+					      codec_slave_pll_div[i].reg_val);
+				schedule_timeout_uninterruptible
+				    (msecs_to_jiffies(20));
 				snd_soc_update_bits(codec,
-						RT5631_GLOBAL_CLK_CTRL,
-						RT5631_SYSCLK_SOUR_SEL_MASK |
-						RT5631_PLLCLK_SOUR_SEL_MASK,
-						RT5631_SYSCLK_SOUR_SEL_PLL |
-						RT5631_PLLCLK_SOUR_SEL_BCLK);
+						    RT5631_GLOBAL_CLK_CTRL,
+						    RT5631_SYSCLK_SOUR_SEL_MASK
+						    |
+						    RT5631_PLLCLK_SOUR_SEL_MASK,
+						    RT5631_SYSCLK_SOUR_SEL_PLL |
+						    RT5631_PLLCLK_SOUR_SEL_BCLK);
 				ret = 0;
 				break;
 			}
@@ -2045,71 +2119,68 @@ int rt5631_codec_digital_mute(struct snd_soc_dai *codec_dai, int mute)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
 
-	if (mute)
-	{
+	if (mute) {
 		snd_soc_update_bits(codec, RT5631_HP_OUT_VOL,
-				RT5631_L_MUTE | RT5631_R_MUTE,
-				RT5631_L_MUTE | RT5631_R_MUTE);
+				    RT5631_L_MUTE | RT5631_R_MUTE,
+				    RT5631_L_MUTE | RT5631_R_MUTE);
 
 		snd_soc_update_bits(codec, RT5631_SPK_OUT_VOL,
-				RT5631_L_MUTE | RT5631_R_MUTE,
-				RT5631_L_MUTE | RT5631_R_MUTE);
+				    RT5631_L_MUTE | RT5631_R_MUTE,
+				    RT5631_L_MUTE | RT5631_R_MUTE);
 		msleep(100);
-	}
-	else
-	{
+	} else {
 		if (is_hp_on)
 			snd_soc_update_bits(codec, RT5631_HP_OUT_VOL,
-					RT5631_L_MUTE | RT5631_R_MUTE,
-					0 );
+					    RT5631_L_MUTE | RT5631_R_MUTE, 0);
 
 		if (is_spk_on)
 			snd_soc_update_bits(codec, RT5631_SPK_OUT_VOL,
-					RT5631_L_MUTE | RT5631_R_MUTE,
-					0 );
+					    RT5631_L_MUTE | RT5631_R_MUTE, 0);
 	}
 
 	return 0;
 }
 
 static int rt5631_set_bias_level(struct snd_soc_codec *codec,
-		enum snd_soc_bias_level level)
+				 enum snd_soc_bias_level level)
 {
 	switch (level) {
-		case SND_SOC_BIAS_ON:
-			break;
+	case SND_SOC_BIAS_ON:
+		break;
 
-		case SND_SOC_BIAS_PREPARE:
-			snd_soc_update_bits(codec, RT5631_SPK_OUT_VOL,
-					RT5631_L_MUTE | RT5631_R_MUTE,
-					RT5631_L_MUTE | RT5631_R_MUTE);
-			msleep(100);
-			break;
+	case SND_SOC_BIAS_PREPARE:
+		snd_soc_update_bits(codec, RT5631_SPK_OUT_VOL,
+				    RT5631_L_MUTE | RT5631_R_MUTE,
+				    RT5631_L_MUTE | RT5631_R_MUTE);
+		msleep(100);
+		break;
 
-		case SND_SOC_BIAS_STANDBY:
-			if (codec->dapm.bias_level == SND_SOC_BIAS_OFF) {
-				snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD3,
-						RT5631_PWR_VREF | RT5631_PWR_MAIN_BIAS,
-						RT5631_PWR_VREF | RT5631_PWR_MAIN_BIAS);
-				msleep(80);
-				snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD3,
-						RT5631_PWR_FAST_VREF_CTRL,
-						RT5631_PWR_FAST_VREF_CTRL);
-				codec->cache_only = false;
-				snd_soc_cache_sync(codec);
-				rt5631_index_sync(codec);
-			}
-			break;
+	case SND_SOC_BIAS_STANDBY:
+		if (codec->dapm.bias_level == SND_SOC_BIAS_OFF) {
+			snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD3,
+					    RT5631_PWR_VREF |
+					    RT5631_PWR_MAIN_BIAS,
+					    RT5631_PWR_VREF |
+					    RT5631_PWR_MAIN_BIAS);
+			msleep(80);
+			snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD3,
+					    RT5631_PWR_FAST_VREF_CTRL,
+					    RT5631_PWR_FAST_VREF_CTRL);
+			codec->cache_only = false;
+			snd_soc_cache_sync(codec);
+			rt5631_index_sync(codec);
+		}
+		break;
 
-		case SND_SOC_BIAS_OFF:
-			snd_soc_write(codec, RT5631_PWR_MANAG_ADD1, 0x0000);
-			snd_soc_write(codec, RT5631_PWR_MANAG_ADD2, 0x0000);
-			snd_soc_write(codec, RT5631_PWR_MANAG_ADD3, 0x0000);
-			snd_soc_write(codec, RT5631_PWR_MANAG_ADD4, 0x0000);
-			break;
+	case SND_SOC_BIAS_OFF:
+		snd_soc_write(codec, RT5631_PWR_MANAG_ADD1, 0x0000);
+		snd_soc_write(codec, RT5631_PWR_MANAG_ADD2, 0x0000);
+		snd_soc_write(codec, RT5631_PWR_MANAG_ADD3, 0x0000);
+		snd_soc_write(codec, RT5631_PWR_MANAG_ADD4, 0x0000);
+		break;
 
-		default:
-			break;
+	default:
+		break;
 	}
 	codec->dapm.bias_level = level;
 
@@ -2137,32 +2208,32 @@ static int rt5631_probe(struct snd_soc_codec *codec)
 
 	rt5631_reset(codec);
 	snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD3,
-			RT5631_PWR_VREF | RT5631_PWR_MAIN_BIAS,
-			RT5631_PWR_VREF | RT5631_PWR_MAIN_BIAS);
+			    RT5631_PWR_VREF | RT5631_PWR_MAIN_BIAS,
+			    RT5631_PWR_VREF | RT5631_PWR_MAIN_BIAS);
 	msleep(80);
 	snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD3,
-			RT5631_PWR_FAST_VREF_CTRL, RT5631_PWR_FAST_VREF_CTRL);
+			    RT5631_PWR_FAST_VREF_CTRL,
+			    RT5631_PWR_FAST_VREF_CTRL);
 	/* enable HP zero cross */
 	snd_soc_write(codec, RT5631_INT_ST_IRQ_CTRL_2, 0x0f18);
 	/* power off ClassD auto Recovery */
 	if (rt5631->codec_version)
 		snd_soc_update_bits(codec, RT5631_INT_ST_IRQ_CTRL_2,
-				0x2000, 0x2000);
+				    0x2000, 0x2000);
 	else
-		snd_soc_update_bits(codec, RT5631_INT_ST_IRQ_CTRL_2,
-				0x2000, 0);
+		snd_soc_update_bits(codec, RT5631_INT_ST_IRQ_CTRL_2, 0x2000, 0);
 	/* DMIC */
 	if (rt5631->dmic_used_flag) {
 		snd_soc_update_bits(codec, RT5631_GPIO_CTRL,
-				RT5631_GPIO_PIN_FUN_SEL_MASK |
-				RT5631_GPIO_DMIC_FUN_SEL_MASK,
-				RT5631_GPIO_PIN_FUN_SEL_GPIO_DIMC |
-				RT5631_GPIO_DMIC_FUN_SEL_DIMC);
+				    RT5631_GPIO_PIN_FUN_SEL_MASK |
+				    RT5631_GPIO_DMIC_FUN_SEL_MASK,
+				    RT5631_GPIO_PIN_FUN_SEL_GPIO_DIMC |
+				    RT5631_GPIO_DMIC_FUN_SEL_DIMC);
 		snd_soc_update_bits(codec, RT5631_DIG_MIC_CTRL,
-				RT5631_DMIC_L_CH_LATCH_MASK |
-				RT5631_DMIC_R_CH_LATCH_MASK,
-				RT5631_DMIC_L_CH_LATCH_FALLING |
-				RT5631_DMIC_R_CH_LATCH_RISING);
+				    RT5631_DMIC_L_CH_LATCH_MASK |
+				    RT5631_DMIC_R_CH_LATCH_MASK,
+				    RT5631_DMIC_L_CH_LATCH_FALLING |
+				    RT5631_DMIC_R_CH_LATCH_RISING);
 	}
 
 	rt5631_reg_init(codec);
@@ -2179,11 +2250,11 @@ static int rt5631_probe(struct snd_soc_codec *codec)
 	rt5631->codec = codec;
 
 	snd_soc_add_controls(codec, rt5631_snd_controls,
-			ARRAY_SIZE(rt5631_snd_controls));
+			     ARRAY_SIZE(rt5631_snd_controls));
 	snd_soc_dapm_new_controls(&codec->dapm, rt5631_dapm_widgets,
-			ARRAY_SIZE(rt5631_dapm_widgets));
+				  ARRAY_SIZE(rt5631_dapm_widgets));
 	snd_soc_dapm_add_routes(&codec->dapm, rt5631_dapm_routes,
-			ARRAY_SIZE(rt5631_dapm_routes));
+				ARRAY_SIZE(rt5631_dapm_routes));
 
 	return 0;
 }
@@ -2194,32 +2265,32 @@ static int rt5631_init(struct snd_soc_codec *codec)
 
 	rt5631_reset(codec);
 	snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD3,
-			RT5631_PWR_VREF | RT5631_PWR_MAIN_BIAS,
-			RT5631_PWR_VREF | RT5631_PWR_MAIN_BIAS);
+			    RT5631_PWR_VREF | RT5631_PWR_MAIN_BIAS,
+			    RT5631_PWR_VREF | RT5631_PWR_MAIN_BIAS);
 	msleep(80);
 	snd_soc_update_bits(codec, RT5631_PWR_MANAG_ADD3,
-			RT5631_PWR_FAST_VREF_CTRL, RT5631_PWR_FAST_VREF_CTRL);
+			    RT5631_PWR_FAST_VREF_CTRL,
+			    RT5631_PWR_FAST_VREF_CTRL);
 	/* enable HP zero cross */
 	snd_soc_write(codec, RT5631_INT_ST_IRQ_CTRL_2, 0x0f18);
 	/* power off ClassD auto Recovery */
 	if (rt5631->codec_version)
 		snd_soc_update_bits(codec, RT5631_INT_ST_IRQ_CTRL_2,
-				0x2000, 0x2000);
+				    0x2000, 0x2000);
 	else
-		snd_soc_update_bits(codec, RT5631_INT_ST_IRQ_CTRL_2,
-				0x2000, 0);
+		snd_soc_update_bits(codec, RT5631_INT_ST_IRQ_CTRL_2, 0x2000, 0);
 	/* DMIC */
 	if (rt5631->dmic_used_flag) {
 		snd_soc_update_bits(codec, RT5631_GPIO_CTRL,
-				RT5631_GPIO_PIN_FUN_SEL_MASK |
-				RT5631_GPIO_DMIC_FUN_SEL_MASK,
-				RT5631_GPIO_PIN_FUN_SEL_GPIO_DIMC |
-				RT5631_GPIO_DMIC_FUN_SEL_DIMC);
+				    RT5631_GPIO_PIN_FUN_SEL_MASK |
+				    RT5631_GPIO_DMIC_FUN_SEL_MASK,
+				    RT5631_GPIO_PIN_FUN_SEL_GPIO_DIMC |
+				    RT5631_GPIO_DMIC_FUN_SEL_DIMC);
 		snd_soc_update_bits(codec, RT5631_DIG_MIC_CTRL,
-				RT5631_DMIC_L_CH_LATCH_MASK |
-				RT5631_DMIC_R_CH_LATCH_MASK,
-				RT5631_DMIC_L_CH_LATCH_FALLING |
-				RT5631_DMIC_R_CH_LATCH_RISING);
+				    RT5631_DMIC_L_CH_LATCH_MASK |
+				    RT5631_DMIC_R_CH_LATCH_MASK,
+				    RT5631_DMIC_L_CH_LATCH_FALLING |
+				    RT5631_DMIC_R_CH_LATCH_RISING);
 	}
 
 	rt5631_reg_cache_write(codec);
@@ -2247,7 +2318,7 @@ static int rt5631_suspend(struct snd_soc_codec *codec, pm_message_t state)
 	struct rt5631_priv *rt5631 = snd_soc_codec_get_drvdata(codec);
 
 	rt5631_reg_cache_read(codec);
-	if(rt5631->call_mode == false)
+	if (rt5631->call_mode == false)
 		rt5631_set_bias_level(codec, SND_SOC_BIAS_OFF);
 	return 0;
 }
@@ -2255,14 +2326,18 @@ static int rt5631_suspend(struct snd_soc_codec *codec, pm_message_t state)
 static int rt5631_resume(struct snd_soc_codec *codec)
 {
 	struct rt5631_priv *rt5631 = snd_soc_codec_get_drvdata(codec);
+	int jack_insert;
 
 	rt5631_init(codec);
-
-	if(rt5631->call_mode == false)
+	if (rt5631->call_mode == false)
 		rt5631_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
-
+#ifndef CONFIG_MACH_NS115_PAD_PROTOTYPE
+	jack_insert = ns115_jd_get_state();
+	nusmart_rt5631_jack_event(codec, jack_insert);
+#endif
 	return 0;
 }
+
 //johnny-2-7 [e]
 #else
 #define rt5631_suspend NULL
@@ -2285,24 +2360,24 @@ struct snd_soc_dai_ops rt5631_ops = {
 
 struct snd_soc_dai_driver rt5631_dai[] = {
 	{
-		.name = "rt5631-hifi",
-		.id = 1,
-		.playback = {
-			.stream_name = "HIFI Playback",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = RT5631_STEREO_RATES,
-			.formats = RT5631_FORMAT,
-		},
-		.capture = {
-			.stream_name = "HIFI Capture",
-			.channels_min = 1,
-			.channels_max = 2,
-			.rates = RT5631_STEREO_RATES,
-			.formats = RT5631_FORMAT,
-		},
-		.ops = &rt5631_ops,
-	},
+	 .name = "rt5631-hifi",
+	 .id = 1,
+	 .playback = {
+		      .stream_name = "HIFI Playback",
+		      .channels_min = 1,
+		      .channels_max = 2,
+		      .rates = RT5631_STEREO_RATES,
+		      .formats = RT5631_FORMAT,
+		      },
+	 .capture = {
+		     .stream_name = "HIFI Capture",
+		     .channels_min = 1,
+		     .channels_max = 2,
+		     .rates = RT5631_STEREO_RATES,
+		     .formats = RT5631_FORMAT,
+		     },
+	 .ops = &rt5631_ops,
+	 },
 };
 
 static struct snd_soc_codec_driver soc_codec_dev_rt5631 = {
@@ -2318,36 +2393,35 @@ static struct snd_soc_codec_driver soc_codec_dev_rt5631 = {
 	.readable_register = rt5631_readable_register,
 	.reg_cache_step = 1,
 	/*.controls = rt5631_snd_controls,
-	  .num_controls = ARRAY_SIZE(rt5631_snd_controls),
-	  .dapm_widgets = rt5631_dapm_widgets,
-	  .num_dapm_widgets = ARRAY_SIZE(rt5631_dapm_widgets),
-	  .dapm_routes = rt5631_dapm_routes,
-	  .num_dapm_routes = ARRAY_SIZE(rt5631_dapm_routes),*/
+	   .num_controls = ARRAY_SIZE(rt5631_snd_controls),
+	   .dapm_widgets = rt5631_dapm_widgets,
+	   .num_dapm_widgets = ARRAY_SIZE(rt5631_dapm_widgets),
+	   .dapm_routes = rt5631_dapm_routes,
+	   .num_dapm_routes = ARRAY_SIZE(rt5631_dapm_routes), */
 };
 
 static const struct i2c_device_id rt5631_i2c_id[] = {
-	{ "rt5631", 0 },
-	{ }
+	{"rt5631", 0},
+	{}
 };
+
 MODULE_DEVICE_TABLE(i2c, rt5631_i2c_id);
 
 static int rt5631_i2c_probe(struct i2c_client *i2c,
-		const struct i2c_device_id *id)
+			    const struct i2c_device_id *id)
 {
 	struct rt5631_priv *rt5631;
 	int ret;
 
 	rt5631 = kzalloc(sizeof(struct rt5631_priv), GFP_KERNEL);
-	if (NULL == rt5631)
-	{
+	if (NULL == rt5631) {
 		return -ENOMEM;
 	}
 	i2c_set_clientdata(i2c, rt5631);
 
 	ret = snd_soc_register_codec(&i2c->dev, &soc_codec_dev_rt5631,
-			rt5631_dai, ARRAY_SIZE(rt5631_dai));
-	if (ret < 0)
-	{
+				     rt5631_dai, ARRAY_SIZE(rt5631_dai));
+	if (ret < 0) {
 		kfree(rt5631);
 	}
 	return ret;
@@ -2373,9 +2447,9 @@ static int rt5631_i2c_shutdown(struct i2c_client *client)
 
 struct i2c_driver rt5631_i2c_driver = {
 	.driver = {
-		.name = "rt5631",
-		.owner = THIS_MODULE,
-	},
+		   .name = "rt5631",
+		   .owner = THIS_MODULE,
+		   },
 	.probe = rt5631_i2c_probe,
 	.remove = __devexit_p(rt5631_i2c_remove),
 	.shutdown = rt5631_i2c_shutdown,
@@ -2386,12 +2460,14 @@ static int __init rt5631_modinit(void)
 {
 	return i2c_add_driver(&rt5631_i2c_driver);
 }
+
 module_init(rt5631_modinit);
 
 static void __exit rt5631_modexit(void)
 {
 	i2c_del_driver(&rt5631_i2c_driver);
 }
+
 module_exit(rt5631_modexit);
 
 MODULE_DESCRIPTION("ASoC RT5631 driver");

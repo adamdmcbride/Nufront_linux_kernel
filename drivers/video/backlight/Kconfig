@@ -205,12 +205,18 @@ config BACKLIGHT_NS2816
 config BACKLIGHT_NS115
 	tristate "NS115 PWL-based LCD Backlight"
 	depends on BACKLIGHT_CLASS_DEVICE && ARCH_NS115
-	default y
 	help
 	  This driver controls the LCD backlight level and power for
 	  the PWL module of NS115 processors.  Say Y if your board
 	  uses this hardware.
 
+config BACKLIGHT_NS115M
+	tristate "NS115M PHONE PWL-based LCD Backlight"
+	depends on BACKLIGHT_CLASS_DEVICE && ARCH_NS115
+	help
+	  This driver controls the LCD backlight level and power for
+	  the PWL module of NS115m processors.  Say Y if your board
+	  uses this hardware.
 
 
 config BACKLIGHT_HP680

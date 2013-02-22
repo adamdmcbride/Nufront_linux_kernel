@@ -57,6 +57,17 @@ config MACH_NS115_STICK
 	help
 	  Include support for the Nufront NS115 Stick Board.
 
+config MACH_NS115_PAD_PROTOTYPE
+	bool "Nufront NS115 Pad Prototype Board"
+	select ARM_GIC
+	select PL330
+	select HAVE_PATA_PLATFORM
+	select ARCH_SPARSEMEM_ENABLE if CPU_V7 && \
+		!NS115_HIGH_PHYS_OFFSET && MMU
+	select ZONE_DMA if SPARSEMEM
+	help
+	  Include support for the Nufront NS115 Pad Prototype Board.
+
 config NS115_HIGH_PHYS_OFFSET
 	bool "High physical base address for the NS115 platform"
 	depends on MMU 
@@ -107,7 +118,7 @@ config CLASS_ULTRA
 config NUSMART_CTS_BUG2509
 	bool "0002509: junit.framework.AssertionFailedError"
 	depends on RICOH583_AC_DETECT 
-	default y
+	default n
 	help
 	 The testcase use posix timer which ID is CLOCK_THREAD_CPUTIME_ID 
 	 to calc interval, and add log trace , we can fixed this bug;	

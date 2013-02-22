@@ -919,13 +919,14 @@ void fb_edid_to_monspecs(unsigned char *edid, struct fb_monspecs *specs)
 	if (edid == NULL)
 		return;
 
+	memset(specs, 0, sizeof(struct fb_monspecs));
+
 	if (!(edid_checksum(edid)))
 		return;
 
 	if (!(edid_check_header(edid)))
 		return;
 
-	memset(specs, 0, sizeof(struct fb_monspecs));
 
 	specs->version = edid[EDID_STRUCT_VERSION];
 	specs->revision = edid[EDID_STRUCT_REVISION];

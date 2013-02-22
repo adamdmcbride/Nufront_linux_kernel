@@ -20,6 +20,7 @@ struct clk {
         int                 (*disable)(struct clk * c);
         int                 (*set_rate)(struct clk *c, unsigned long rate, unsigned int port);
         unsigned long       (*get_rate)(struct clk *c);
+	void                (*reset)(struct clk *c, bool flag);
 };
 
 #endif

@@ -83,6 +83,10 @@ enum {
 
 	/* gc0329 */
        V4L2_IDENT_GC0329 = 329,
+       /* gc0308 */
+	V4L2_IDENT_GC0308 = 329,
+
+	V4L2_IDENT_GT2005 = 2005,
 
 	/* Conexant MPEG encoder/decoders: reserved range 400-420 */
 	V4L2_IDENT_CX23418_843 = 403, /* Integrated A/V Decoder on the '418 */

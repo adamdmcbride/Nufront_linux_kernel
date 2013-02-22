@@ -59,6 +59,7 @@ extern struct platform_device ns115_sdmmc_device;
 extern struct platform_device ns115_serial_device;
 extern struct platform_device ns115_i2c_device[];
 extern struct platform_device ns115_clcd_device[];
+extern struct platform_device ns115_dsi_device;
 extern struct platform_device ns115_wk_timer_device;
 extern struct platform_device ns115_i2s_plat_device;
 extern struct platform_device ns115_pcm_device;
@@ -69,6 +70,12 @@ extern struct platform_device ns115_camera_device;
 extern struct platform_device ns115_vibrator_device;
 #ifdef CONFIG_SOC_CAMERA_GC0329
 extern struct platform_device gc0329_camera_device;
+#endif
+#ifdef CONFIG_SOC_CAMERA_GC0308
+extern struct platform_device gc0308_camera_device;
+#endif
+#ifdef CONFIG_SOC_CAMERA_GT2005
+extern struct platform_device gt2005_camera_device;
 #endif
 #ifdef CONFIG_SOC_CAMERA_OV5640
 extern struct platform_device ov5640_camera_device;
@@ -81,6 +88,7 @@ extern struct platform_device ns115_mali_drm_device;
 extern struct amba_device pl330_dma_device;
 #endif
 
+extern struct platform_device mu600_gpio_device;
 extern struct platform_device ns115_backlight_device;
 extern void ns115_timer_init(void);
 /*m@nufront*/
@@ -93,8 +101,10 @@ extern struct platform_device ns115_hdmi_device;//by wangzhi add
 
 extern struct platform_device ns115ref_bt_rfkill_device;
 
-extern struct platform_device ns115ref_rt5631_jd_device;
-
+extern struct platform_device ns115_jd_device;
+#ifdef CONFIG_BT_NW53
+extern struct platform_device nw53_bluesleep_device;
+#endif
 extern void __iomem *_timer0_va_base;
 extern void __iomem *_timer3_va_base;
 

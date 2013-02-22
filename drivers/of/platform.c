@@ -205,6 +205,12 @@ struct platform_device *of_platform_device_create_pdata(
 	dev->archdata.dma_mask = 0xffffffffUL;
 #endif
 	dev->dev.coherent_dma_mask = DMA_BIT_MASK(32);
+	/*
+	 *if device doesn't have parent,set it to platform_bus
+	 *so device attribute is in sys/platform/
+	 */
+	if (!dev->dev.parent)
+		dev->dev.parent = &platform_bus;
 	dev->dev.bus = &platform_bus_type;
 	dev->dev.platform_data = platform_data;
 
@@ -212,7 +218,6 @@ struct platform_device *of_platform_device_create_pdata(
 	 * This is currently the responsibility of the platform code
 	 * to do such, possibly using a device notifier
 	 */
-
 	if (of_device_add(dev) != 0) {
 		platform_device_put(dev);
 		return NULL;

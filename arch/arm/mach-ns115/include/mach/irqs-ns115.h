@@ -119,6 +119,9 @@
 #define IRQ_NS115_DISPCTR0_HINT                 (IRQ_NS115_GIC_START + 73)
 #define IRQ_NS115_DISPCTR0_VINT                 (IRQ_NS115_GIC_START + 72)
 #define IRQ_NS115_DISPCTR0_ERR                  (IRQ_NS115_GIC_START + 71)
+/* nufront DSI */
+#define IRQ_NS115_DSI_ERR                       (IRQ_NS115_GIC_START + 74)
+#define IRQ_NS115_DSI_INT                       (IRQ_NS115_GIC_START + 72)
 /* SIMG HDMI TX controller active high */
 #define IRQ_NS115_HDMI_PCL                      (IRQ_NS115_GIC_START + 70)
 /* Synopsys USB host controller ehci/ohci active high/low */

@@ -76,6 +76,9 @@ struct machine_desc * __init setup_machine_fdt(unsigned int dt_phys)
 	unsigned long dt_root;
 	const char *model;
 
+//just to fit old version uboot	!!...
+	dt_phys = 0x80002300;
+//
 	if (!dt_phys)
 		return NULL;
 

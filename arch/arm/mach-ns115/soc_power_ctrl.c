@@ -21,8 +21,8 @@
 
 #else
 
-#define		GPIO_BT_ON 	(8 + 32 + 25)   //low -> high
-#define		GPIO_BT_INT 	(8 + 16)   	//bt wakeup ap
+#define		GPIO_BT_ON 	(8 + 32 + 23)   //low -> high
+#define		GPIO_BT_INT 	(6)   		//bt wakeup ap
 #define		GPIO_BT_RST 	(8 + 32 + 13)   //low -> high
 #define		GPIO_BT_WAKEUP 	(8 + 32 + 14)  	//ap wakeup bt
 
@@ -31,7 +31,7 @@
 int bt_init()
 {
 	int ret = 0;
-
+#ifndef CONFIG_BT_NW53
 	ret = gpio_request(GPIO_BT_ON, "bt power");
 	if(ret != 0) {
 		printk("gpio %d request fail!\n", GPIO_BT_ON);
@@ -61,7 +61,7 @@ int bt_init()
 		return ret;
 	gpio_direction_input(GPIO_BT_INT);
 	gpio_free(GPIO_BT_INT);
-
+#endif
 	return ret;
 }
 
@@ -105,7 +105,10 @@ void bcm_wlan_power_on(int flag)
 	struct regulator *regu = NULL;
 	struct platform_device  *pdev = &ns115_sdmmc_device;
 	struct ns115_mmc_platform_data *pdata = pdev->dev.platform_data;
-	gpio = pdata->gpio;
+	if(pdata == NULL)
+		gpio = 57;
+	else
+		gpio = pdata->gpio;
 
 	printk(KERN_INFO "%s: WiFi WL_REG_ON GPIO %d, flag %d >>>>>>>>>\n", __func__, gpio, flag);
 
@@ -151,7 +154,10 @@ void bcm_wlan_power_off(int flag)
 	struct regulator *regu = NULL;
 	struct platform_device  *pdev = &ns115_sdmmc_device;
 	struct ns115_mmc_platform_data *pdata = pdev->dev.platform_data;
-	gpio = pdata->gpio;
+	if(pdata == NULL)
+		gpio = 57;
+	else
+		gpio = pdata->gpio;
 
 	printk(KERN_INFO "%s: WiFi WL_REG_ON GPIO %d, flag %d >>>>>>>>>\n", __func__, gpio, flag);
 
@@ -222,4 +228,18 @@ void rt5631_gpio_ref_init(void)
     gpio_direction_output(63, 1);
 }
 EXPORT_SYMBOL(rt5631_gpio_ref_init);
+#endif
+
+#ifdef CONFIG_SND_SOC_ALC3261
+void rt3261_gpio_test_init(void)
+{
+#define GPIO_CODEC_LDO       (8+('b'-'a')*32+25)      // gpio_pb25
+    int ret = 0;
+
+    ret = gpio_request(GPIO_CODEC_LDO, "CODEC_LDO");
+    if(ret < 0)
+        printk(KERN_ERR "RT5631 CODEC_LDO request failed \n");
+    gpio_direction_output(GPIO_CODEC_LDO, 1);
+}
+EXPORT_SYMBOL(rt3261_gpio_test_init);
 #endif

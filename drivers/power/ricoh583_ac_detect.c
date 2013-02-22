@@ -30,17 +30,18 @@ struct ricoh583_ac_detect_info {
 	struct work_struct  work;
 #if RICOH583_USB_CHARGER_DETECT
 	struct delayed_work usb_work;
-	int			usb_gpio;
-	int			usb_irq;
-	int			usb_online;
+	int	usb_gpio;
+	int	usb_irq;
+	int	usb_online;
+	int	usb_effect;
 #endif
-	int			irq;
-	int			online;
+	int	irq;
+	int	online;
 };
 
 static struct ricoh583_ac_detect_info * g_info;
 
-int n3_otg_plug()
+int n3_otg_plug(void)
 {
 #ifdef RICOH583_USB_CHARGER_DETECT
 	if(g_info != NULL) {
@@ -128,7 +129,7 @@ extern void fsa880_int_func(void);
 static void ricoh583_usb_work(struct work_struct * work)
 {
 	int ret;
-	int val;
+	int val, online;
 
 	ret = gpio_request(g_info->usb_gpio, "usb_detect");
 	if (ret < 0){
@@ -140,23 +141,19 @@ static void ricoh583_usb_work(struct work_struct * work)
 
 	val = gpio_get_value(g_info->usb_gpio);
 	gpio_free(g_info->usb_gpio);
-	val = !val;
-	if (g_info->usb_online == val){
+	online = (val == g_info->usb_effect);
+	if (g_info->usb_online == online){
 		dev_info(g_info->dev, "%s the state isn't changed!\n", __func__);
 		enable_irq(g_info->usb_irq);
 		return;
 	}
 	
-	g_info->usb_online = val;
+	g_info->usb_online = online;
 	free_irq(g_info->usb_irq, g_info);
 	if (g_info->usb_online){
-		ret = request_threaded_irq(g_info->usb_irq, NULL, ricoh583_usb_irq,
-			IRQF_TRIGGER_RISING, "usb_charger_detect", g_info);
 		dev_info(g_info->dev, "USB charger is plugged!\n");
 		ricoh583_charger_plug(CHG_TYPE_USB);
 	}else{
-		ret = request_threaded_irq(g_info->usb_irq, NULL, ricoh583_usb_irq,
-			IRQF_TRIGGER_FALLING, "usb_charger_detect", g_info);
 		dev_info(g_info->dev, "USB charger is unplugged!\n");
 		ricoh583_charger_unplug();
 		msleep(500);
@@ -165,11 +162,16 @@ static void ricoh583_usb_work(struct work_struct * work)
 		dwc_otg_usb_det();
 #endif
 	}
-
 #ifdef CONFIG_FSA880_USB_DETECT
 	fsa880_int_func();
 #endif
-
+	if (val){
+		ret = request_threaded_irq(g_info->usb_irq, NULL, ricoh583_usb_irq,
+			IRQF_TRIGGER_FALLING, "usb_charger_detect", g_info);
+	}else{
+		ret = request_threaded_irq(g_info->usb_irq, NULL, ricoh583_usb_irq,
+			IRQF_TRIGGER_RISING, "usb_charger_detect", g_info);
+	}
 	if (ret < 0) {
 		dev_err(g_info->dev, "Can't get %d IRQ for ricoh583 usb charger detect: %d\n",
 				g_info->usb_irq, ret);
@@ -182,6 +184,9 @@ static __devinit int ricoh583_ac_detect_probe(struct platform_device *pdev)
 	struct ricoh583_ac_detect_info *info;
 	struct ricoh583_ac_detect_platform_data *pdata;
 	int ret;
+#if RICOH583_USB_CHARGER_DETECT
+	int val;
+#endif
 
 	info = kzalloc(sizeof(struct ricoh583_ac_detect_info), GFP_KERNEL);
 	if (!info)
@@ -192,6 +197,7 @@ static __devinit int ricoh583_ac_detect_probe(struct platform_device *pdev)
 	info->irq = pdata->irq;
 #if RICOH583_USB_CHARGER_DETECT
 	info->usb_gpio = pdata->usb_gpio;
+	info->usb_effect = pdata->usb_effect;
 	info->usb_irq = gpio_to_irq(info->usb_gpio);
 #endif
 	platform_set_drvdata(pdev, info);
@@ -218,17 +224,20 @@ static __devinit int ricoh583_ac_detect_probe(struct platform_device *pdev)
 		goto irq;
 	}
 	gpio_direction_input(info->usb_gpio);
-	int val = gpio_get_value(info->usb_gpio);
+	val = gpio_get_value(info->usb_gpio);
 	gpio_free(info->usb_gpio);
 
-	if (val){
+	if (val != info->usb_effect){
 		info->usb_online = 0;
-		ret = request_threaded_irq(info->usb_irq, NULL, ricoh583_usb_irq,
-			IRQF_TRIGGER_FALLING, "usb_charger_detect", info);
 	}else{
 		info->usb_online = 1;
 		dev_info(g_info->dev, "USB charger is plugged!\n");
 		ricoh583_charger_plug(CHG_TYPE_USB);
+	}
+	if (val){
+		ret = request_threaded_irq(info->usb_irq, NULL, ricoh583_usb_irq,
+			IRQF_TRIGGER_FALLING, "usb_charger_detect", info);
+	}else{
 		ret = request_threaded_irq(info->usb_irq, NULL, ricoh583_usb_irq,
 			IRQF_TRIGGER_RISING, "usb_charger_detect", info);
 	}

@@ -13,7 +13,7 @@
 #define CTRL_MODE_BIT	(0x1<<1)
 #define CTRL_MASK_BIT	(0x1<<2)
 
-#define FREQ_REF_KHZ	12000
+#define FREQ_REF_KHZ	32
 
 struct wake_timer
 {

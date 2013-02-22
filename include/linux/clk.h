@@ -23,6 +23,8 @@ struct device;
  */
 struct clk;
 
+void clk_reset_assert(struct clk *clk);
+void clk_reset_desert(struct clk *clk);
 /**
  * clk_get - lookup and obtain a reference to a clock producer.
  * @dev: device for clock "consumer"

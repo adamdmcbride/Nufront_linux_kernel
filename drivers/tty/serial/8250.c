@@ -39,6 +39,8 @@
 #include <linux/mutex.h>
 #include <linux/slab.h>
 #include <linux/clk.h>
+#include <mach/board-ns115.h>
+#include <mach/hardware.h>
 
 #include <asm/io.h>
 #include <asm/irq.h>
@@ -314,7 +316,7 @@ static const struct serial8250_config uart_config[] = {
 		.name		= "NF_16550A",
 		.fifo_size	= 64,
 		.tx_loadsz	= 64,
-		.fcr		= UART_FCR_ENABLE_FIFO | UART_FCR_R_TRIG_11,
+		.fcr		= UART_FCR_ENABLE_FIFO | UART_FCR_R_TRIG_10,
 		.flags		= UART_CAP_FIFO | UART_CAP_AFE,
 	},
 };
@@ -2728,7 +2730,7 @@ static void serial8250_config_port(struct uart_port *port, int flags)
 	/* if access method is AU, it is a 16550 with a quirk */
 	if (up->port.type == PORT_16550A && up->port.iotype == UPIO_AU)
 		up->bugs |= UART_BUG_NOMSR;
-	
+
 	if (up->port.type == PORT_NF_16550A)
 		up->bugs |= UART_BUG_NOMSR;
 
@@ -3176,6 +3178,14 @@ static int serial8250_suspend(struct platform_device *dev, pm_message_t state)
 			uart_suspend_port(&serial8250_reg, &up->port);
 	}
 
+	unsigned int tmp;
+	void * __iomem addr2 = __io_address(0x05822018);
+	tmp = readl(addr2);
+	tmp &= 0xcfffffff;
+	tmp |= 0x10000000;
+	writel(tmp, addr2);
+	pr_info("pinmux:gpio");
+
 	return 0;
 }
 
@@ -3189,6 +3199,18 @@ static int serial8250_resume(struct platform_device *dev)
 		if (up->port.type != PORT_UNKNOWN && up->port.dev == &dev->dev)
 			serial8250_resume_port(i);
 	}
+
+	unsigned int tmp;
+	void * __iomem addr1 = __io_address(0x06140004);
+	void * __iomem addr2 = __io_address(0x05822018);
+	tmp = readl(addr1);
+	tmp &= 0x7fffffff;
+	writel(tmp, addr1);
+
+	tmp = readl(addr2);
+	tmp &= 0xcfffffff;
+	writel(tmp, addr2);
+	pr_info("pinmux:rts");
 
 	return 0;
 }

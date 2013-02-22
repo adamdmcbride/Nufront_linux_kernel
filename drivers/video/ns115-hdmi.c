@@ -78,7 +78,7 @@ static struct ns115_hdmi_lcdc_data ns115_hdmi_lcdc;
 extern int send_hdmi_hotplug_event(unsigned long val, void *v);
 #endif
 static irqreturn_t ns115_hdmi_hotplug(int irq, void *dev_id);
-void hdmi_notifier(int flag);
+extern void hdmi_notifier(int flag);
 
 static void ns115_hdmi_hot_connect();
 static void ns115_hdmi_hot_disconnect();
@@ -152,10 +152,13 @@ static struct video_code ns115_hdmi_video_code[VIDEO_CODE_COUNT]={
 
 static BLOCKING_NOTIFIER_HEAD(new_resolution_notifier_list);
 
+int hdmi_flag = 0;
+int plug_start_flag = 0;
 static int hdmi_new_resolution(struct notifier_block *this, unsigned long event, void *ptr)
 {
 	const struct fb_videomode * m = ptr;
 	struct ns115_hdmi_data *hdmi = ns115_hdmi_get_pt();
+	hdmi_flag = 1;
 	hdmi->pixel_clk = m->pixclock;
 	hdmi->refresh = m->refresh;
 	hdmi->horizontal_res = m->xres;
@@ -557,8 +560,8 @@ static int ns115_hdmi_dec_fun(struct ns115_hdmi_data *hdmi)
 #endif
                 //configure HDMI's audio and video parameters and infoframes
                 ns115_hdmi_configure(hdmi);
+		/* Audio InfoFrame */
                 ns115_hdmi_TxPowerStateD0(hdmi);
-                ns115_hdmi_EnableTMDS(hdmi);
         }
         /* HDMI disconnect */
         else if (hdmi->hp_state == HDMI_HOTPLUG_DISCONNECTED)
@@ -1003,7 +1006,7 @@ static void ns115_hdmi_video_config(struct ns115_hdmi_data *hdmi)
 	WriteByteHDMI(hdmi,HDMI_TPI_PIXEL_REPETITION_REG, val);
 #endif
 	// Write out the TPI Pixel Repetition Data (24 bit wide bus, falling edge, no pixel replication)
-	val = TPI_AVI_PIXEL_REP_TCLLKSEL_x1 | TPI_AVI_PIXEL_REP_BUS_24BIT | TPI_AVI_PIXEL_REP_FALLING_EDGE | TPI_AVI_PIXEL_REP_NONE;
+	val = TPI_AVI_PIXEL_REP_TCLLKSEL_x1 | TPI_AVI_PIXEL_REP_BUS_24BIT | TPI_AVI_PIXEL_REP_RISING_EDGE | TPI_AVI_PIXEL_REP_NONE;
 	WriteByteHDMI(hdmi,HDMI_TPI_PIXEL_REPETITION_REG, val);
 #if 0
 	val = ReadByteHDMI(hdmi,HDMI_TPI_PIXEL_REPETITION_REG);
@@ -1023,6 +1026,12 @@ static void ns115_hdmi_video_config(struct ns115_hdmi_data *hdmi)
 #endif
 	// Write out the TPI AVI InfoFrame Data (all defaults)
 	// Compute CRC
+	if(((hdmi_edid_buff[131]&0x20)== 0x20)||((hdmi_edid_buff[131]&0x10)== 0x10)){
+		avi_info_frame_data[1] = 0x40;
+	}
+	else{
+		avi_info_frame_data[1] = 0;
+	}
 	val = 0x82 + 0x02 + 13;
 	if((hdmi->horizontal_res)/(hdmi->vertical_res) == 13){
 		avi_info_frame_data[2] = 0x98;
@@ -1049,6 +1058,14 @@ static void ns115_hdmi_video_config(struct ns115_hdmi_data *hdmi)
 
 	for (i = 0; i < sizeof(avi_info_frame_data); i ++) {
 		WriteByteHDMI(hdmi,HDMI_TPI_AVI_DBYTE_BASE_REG + i, avi_info_frame_data[i]);
+	}
+	if(((hdmi_edid_buff[131]&0x20)== 0x20)||((hdmi_edid_buff[131]&0x10)== 0x10)){
+		WriteIndexedRegister(hdmi,INDEXED_PAGE_0,0x49,0x14);
+		WriteIndexedRegister(hdmi,INDEXED_PAGE_0,0x50,0x03);
+	}
+	else{
+		WriteIndexedRegister(hdmi,INDEXED_PAGE_0,0x49,0);
+		WriteIndexedRegister(hdmi,INDEXED_PAGE_0,0x50,0);
 	}
 
 #endif
@@ -1281,24 +1298,32 @@ static void ns115_hdmi_DisableTMDS (struct ns115_hdmi_data *hdmi)
 
 static void ns115_hdmi_configure(struct ns115_hdmi_data *hdmi)
 {
-	///start
-	WriteByteHDMI(hdmi,TPI_SYSTEM_CONTROL_DATA_REG, BIT_4 | BIT_0);// Disable TMDS output
+	if(plug_start_flag == 1){
+		WriteByteHDMI(hdmi,TPI_DEVICE_POWER_STATE_CTRL_REG, TX_POWER_STATE_D0);// Enter full-operation D0 state
+		if(hdmi_flag == 1){
+			ns115_hdmi_video_config(hdmi);
+		}
+		ns115_hdmi_audio_config(hdmi);
 
-	WriteByteHDMI(hdmi,TPI_DEVICE_POWER_STATE_CTRL_REG, TX_POWER_STATE_D0);// Enter full-operation D0 state
+		ns115_hdmi_audio_infoframe_setup(hdmi,hdmi->channels - 1, 0x00, 0x00, 0x00, 0x00);
+		if(hdmi_flag == 1){
+			WriteByteHDMI(hdmi,TPI_SYSTEM_CONTROL_DATA_REG, BIT_0);
+		}
 
-	/* Configure video format */
-	ns115_hdmi_video_config(hdmi);
-	/* Auxiliary Video Information (AVI) InfoFrame */
-	//ns115_hdmi_avi_infoframe_setup(hdmi);
+	}
+	else{
+		WriteByteHDMI(hdmi,TPI_SYSTEM_CONTROL_DATA_REG, BIT_4 | BIT_0);// Disable TMDS output
 
-	/* Configure audio format */
-	ns115_hdmi_audio_config(hdmi);
+		WriteByteHDMI(hdmi,TPI_DEVICE_POWER_STATE_CTRL_REG, TX_POWER_STATE_D0);// Enter full-operation D0 state
 
-	/* Audio InfoFrame */
-	ns115_hdmi_audio_infoframe_setup(hdmi,hdmi->channels - 1, 0x00, 0x00, 0x00, 0x00);
+		ns115_hdmi_video_config(hdmi);
 
-	///end
-	WriteByteHDMI(hdmi,TPI_SYSTEM_CONTROL_DATA_REG, BIT_0);// Enable TMDS output
+		ns115_hdmi_audio_config(hdmi);
+
+		ns115_hdmi_audio_infoframe_setup(hdmi,hdmi->channels - 1, 0x00, 0x00, 0x00, 0x00);
+
+		WriteByteHDMI(hdmi,TPI_SYSTEM_CONTROL_DATA_REG, BIT_0);// Enable TMDS output
+	}
 }
 
 static void ns115_hdmi_tmds_clock_disable(struct ns115_hdmi_data *hdmi)
@@ -1618,7 +1643,7 @@ static int __init ns115_hdmi_probe(struct platform_device *pdev)
 	struct ns115_hdmi_data *hdmi;
 	int err;
 	struct class *hdmi_class;
-
+	int plug_start_test = 0;
 	if (irq < 0)
 		return -ENODEV;
 
@@ -1695,11 +1720,16 @@ static int __init ns115_hdmi_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Unable to request irq: %d\n", ret);
 		goto err_release;
 	}
-
+	plug_start_test = ReadByteHDMI(hdmi,TPI_INTERRUPT_STATUS_REG);
+	if(plug_start_test&0x04 == 0x04){
+		plug_start_flag = 1;
+	}
+	else{
+		plug_start_flag = 0;
+	}
 #if !(defined(NS115_HDMI_INTERRUPT_GPIO_EDGE) || defined(NS115_HDMI_INTERRUPT_GPIO_LEVEL))
 	EnableInterrupts(hdmi,HOT_PLUG_EVENT | RX_SENSE_EVENT);
 #endif
-	ns115_hdmi_TxPowerStateD2(hdmi);
 #ifdef CONFIG_EARLYSUSPEND
 	register_early_suspend(&es);
 #endif

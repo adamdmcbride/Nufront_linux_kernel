@@ -218,7 +218,7 @@ static int __init gpio_regulator_init(void)
 {
 	return platform_driver_register(&gpio_regulator_driver);
 }
-device_initcall(gpio_regulator_init);
+subsys_initcall(gpio_regulator_init);
 
 static void __exit gpio_regulator_exit(void)
 {

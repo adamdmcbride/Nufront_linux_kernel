@@ -8,8 +8,10 @@ wm97xx-ts-y := wm97xx-core.o
 
 obj-$(CONFIG_TOUCHSCREEN_88PM860X)	+= 88pm860x-ts.o
 obj-$(CONFIG_TOUCHSCREEN_AD7877)	+= ad7877.o
-obj-$(CONFIG_TOUCHSCREEN_GOODIX_BIG)   += goodix_touch.o
-obj-$(CONFIG_TOUCHSCREEN_FT5X06)   += ft5x06_ts.o
+obj-$(CONFIG_TOUCHSCREEN_GOODIX_BIG)	+= goodix_touch.o
+obj-$(CONFIG_TOUCHSCREEN_GT811)		+= gt811.o gt811_update.o goodix_tool.o
+obj-$(CONFIG_TOUCHSCREEN_FT5X06)	+= ft5x06_ts.o ft5x06_ex_fun.o
+obj-$(CONFIG_TOUCHSCREEN_GT9XX)         += gt9xx.o gt9xx_update.o goodix_tool.o
 obj-$(CONFIG_TOUCHSCREEN_AD7879)	+= ad7879.o
 obj-$(CONFIG_TOUCHSCREEN_AD7879_I2C)	+= ad7879-i2c.o
 obj-$(CONFIG_TOUCHSCREEN_AD7879_SPI)	+= ad7879-spi.o

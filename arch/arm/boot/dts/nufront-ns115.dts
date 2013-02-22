@@ -1,0 +1,105 @@
+/dts-v1/;
+
+
+/include/ "nufront.dtsi"
+
+/ {
+	model = "NUFRONT NS115 REF board";
+	compatible = "nufront,ns115";
+
+	chosen {
+		bootargs = "root=/dev/mmcblk0p3 rw rootwait init=/init pmem=0xb3800000  mem=640M console=ttyS0,115200   video=nusmartfb:480x800-16";
+	};
+	aliases { };
+
+	i2c@06100000 {
+
+		tritonFN {
+
+			compatible = "tritonFN";
+			interrupts = <4>;
+			reg = <0x39>;
+		};
+
+		mpu3050 {
+			compatible = "mpu3050";
+			interrupts = <35>;
+			reg = <0x68>;
+			int_config = <0x10>;
+			orientation = <0 0xff 0 1 0 0 0 0 1>;
+		};
+
+		bma250 {
+			compatible = "bma250";
+			interrupts = <36>;
+			reg = <0x18>;
+			bus = <0x01>;
+			orientation = <1 0 0 0 1 0 0 0 1>;
+		};
+	};
+
+	i2c@06110000 {
+	};
+
+	i2c@06120000 {
+	};
+
+	i2c@06130000 {
+/*
+		Goodix-TS{
+				compatible = "Goodix-TS";
+				interrupts = <16>;
+				reset_gpio = <49>;
+				reg = <0x55>;
+			  };
+*/
+		ft5x0x_ts{
+				compatible = "ft5x0x_ts";
+				interrupts = <16>;
+				reset_gpio = <49>;
+				reg = <0x38>;
+			  };
+	};
+
+	sdmmc@0x05070000 {
+		slot@0{
+			ctype          = <1>;//SD_CARD,
+			caps           = <1>;//MMC_CAP_4_BIT_DATA
+			freq           = <25000000>;
+			ocr_avail      = <0xff8000>;     //2.6V-3.7V
+			force_rescan   = <0>;
+		};
+		slot@1{
+			ctype          = <4>;//EMMC_CARD,
+			caps           = <0x142>;//MMC_CAP_NONREMOVABLE|MMC_CAP_8_BIT_DATA
+			freq           = <25000000>;
+			ocr_avail      = <0xff8000>;     //2.6V-3.7V
+			force_rescan   = <1>;
+		};
+		slot@2{
+			ctype          = <8>;//SDIO_CARD,
+			caps           = <0x101>;//MMC_CAP_NONREMOVABLE|MMC_CAP_4_BIT_DATA
+			pm_caps        = <0x5>;//MMC_PM_KEEP_POWER|MMC_PM_IGNORE_PM_NOTIFY
+			freq           = <25000000>;
+			ocr_avail      = <0xff8000>;     //2.6V-3.7V
+			force_rescan   = <1>;
+		};
+	};
+
+	bluetooth{
+		compatible	= "nufront,nw53_bt_power";
+		interrupts	= <6>;
+		reg		= <0x0 0x0>;
+		ap_wake		= <6>;
+		bt_wake		= <54>;
+		reset_gpio	= <53>;
+		shutdown_gpio	= <63>;
+		rfkill_name	= "rfkill_gpio";
+	};
+
+	pinmux{
+		compatible	= "nufront,ns115-pinmux";
+		setting_table	= <0xaa000000 0x0 0x0 0x14000 0x0 0x40155100 0x14001 0x50000000 0x555 0x0>;
+	};
+
+};

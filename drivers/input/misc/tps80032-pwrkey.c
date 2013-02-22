@@ -72,15 +72,20 @@ static void tps80032_irq_work(struct work_struct * work)
 		if (!g_pwrkey->pressed_first){
 			g_pwrkey->pressed_first = true;
 			input_report_key(g_pwrkey->pwr, KEY_POWER, 1);
-			input_sync(g_pwrkey->pwr);
+		}else{
+			input_report_key(g_pwrkey->pwr, KEY_POWER, 0);
+			input_report_key(g_pwrkey->pwr, KEY_POWER, 1);
 		}
 	}else{
 		if (g_pwrkey->pressed_first){
 			g_pwrkey->pressed_first = false;
 			input_report_key(g_pwrkey->pwr, KEY_POWER, 0);
-			input_sync(g_pwrkey->pwr);
+		}else{
+			input_report_key(g_pwrkey->pwr, KEY_POWER, 1);
+			input_report_key(g_pwrkey->pwr, KEY_POWER, 0);
 		}
 	}
+	input_sync(g_pwrkey->pwr);
 	mutex_unlock(&g_pwrkey->lock);
 }
 

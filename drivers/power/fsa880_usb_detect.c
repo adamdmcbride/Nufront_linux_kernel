@@ -23,21 +23,34 @@
 #include <linux/i2c.h>
 #include <linux/slab.h>
 #include <linux/delay.h>
+#include <linux/power/fsa880_usb_detect.h>
 
-//#define DEBUG_EN
+#define DEBUG_EN
 #ifdef DEBUG_EN
-#define  PDBG(format,...)               printk("[%d:%s]:"format, \
-                __LINE__,__func__ , ##__VA_ARGS__ )
+#define  PDBG(format,...)	\
+	dev_err(g_info->dev, format, ##__VA_ARGS__)
+#define  PINFO(format,...)	\
+	dev_err(g_info->dev, format, ##__VA_ARGS__)
 #else
-#define  PDBG(format,...)               do{}while(0)
+#define  PDBG(format,...)	do{}while(0)
+#define  PINFO(format,...)	\
+	dev_info(g_info->dev, format, ##__VA_ARGS__)
 #endif
+
+#define FSA880_DEV_TYPE1	0x0A
+#define DEV_TYPE1_MASK		0x6C
+#define SDP_BIT		(1 << 2)
+#define TA_BIT		(1 << 3)
+#define CDP_BIT		(1 << 5)
+#define DCP_BIT		(1 << 6)
 
 struct fsa880 {
 	struct device		*dev;
 	struct i2c_client	*client;
 };
 
-static struct i2c_client * g_i2c_c = NULL;
+static struct fsa880 * g_info = NULL;
+
 static int fsa880_read(struct i2c_client *client, u8 reg, uint8_t *val)
 {
 	int ret;
@@ -120,22 +133,12 @@ static ssize_t store_val(struct device *dev, struct device_attribute *attr,
 	return n;
 }
 
-static ssize_t store_test(struct device *dev, struct device_attribute *attr,
-		const char *buf, size_t n)
-{
-	struct i2c_client *client = to_i2c_client(dev);
-
-	return n;
-}
-
 static DEVICE_ATTR(addr, S_IRUGO | S_IWUGO, show_addr, store_addr);
 static DEVICE_ATTR(val, S_IRUGO | S_IWUGO, show_val, store_val);
-static DEVICE_ATTR(test, S_IWUGO, NULL, store_test);
 
 static struct attribute *dev_attributes[] = {
 	&dev_attr_addr.attr,
 	&dev_attr_val.attr,
-	&dev_attr_test.attr,
 	NULL
 };
 
@@ -144,15 +147,54 @@ static struct attribute_group dev_attr_group = {
 };
 #endif
 
+int fsa880_get_chg_type(enum ns115_charger_type * type)
+{
+	int ret;
+	u8 val;
+
+	if (!g_info){
+		dev_err(g_info->dev, "fsa880 don't init!\n");
+		return -1;
+	}
+	fsa880_int_func();
+
+	ret = fsa880_read(g_info->client, FSA880_DEV_TYPE1, &val);
+	if (ret < 0){
+		dev_err(g_info->dev, "read: 0x%x failed: %d\n", FSA880_DEV_TYPE1, ret);
+		return -1;
+	}
+	PINFO("charger type reg val: 0x%x\n", val);
+	val &= DEV_TYPE1_MASK;
+
+	if (!val){
+		PINFO("No charger!\n");
+		return -2;
+	}
+	if (val & SDP_BIT){
+		*type = CHG_TYPE_USB;
+		PDBG("USB charger detected!\n");
+		goto out;
+	}
+	if (val & (SDP_BIT | TA_BIT | CDP_BIT | DCP_BIT)){
+		*type = CHG_TYPE_AC;
+		PDBG("AC charger detected!\n");
+		goto out;
+	}
+	return -1;
+
+out:
+	return 0;
+}
+
 void fsa880_int_func(void)
 {
 	char val;
 
 	PDBG("fsa880_int_func\n");
-	if(!g_i2c_c)
+	if(!g_info)
 		return;
 
-	fsa880_read(g_i2c_c, 0x03, &val);
+	fsa880_read(g_info->client, 0x03, &val);
 	PDBG("reg0x03 = 0x%02x\n", val);
 }
 
@@ -161,7 +203,6 @@ static int fsa880_i2c_probe(struct i2c_client *i2c,
 {
 	struct fsa880 *fsa880;
 	int ret;
-	uint8_t val;
 
 	fsa880 = kzalloc(sizeof(struct fsa880), GFP_KERNEL);
 	if (fsa880 == NULL)
@@ -194,7 +235,7 @@ static int fsa880_i2c_probe(struct i2c_client *i2c,
 
 	dev_info(fsa880->dev, "%s is ok!\n", __func__);
 
-	g_i2c_c = i2c;
+	g_info = fsa880;
 
 	return 0;
 
@@ -210,7 +251,7 @@ static int  __devexit fsa880_i2c_remove(struct i2c_client *i2c)
 #ifdef DEBUG_EN
 	sysfs_remove_group(&i2c->dev.kobj, &dev_attr_group);
 #endif
-	g_i2c_c = NULL;
+	g_info = NULL;
 	kfree(fsa880);
 	return 0;
 }
@@ -254,7 +295,7 @@ static int __init fsa880_i2c_init(void)
 	return ret;
 }
 
-late_initcall(fsa880_i2c_init);
+device_initcall(fsa880_i2c_init);
 
 static void __exit fsa880_i2c_exit(void)
 {

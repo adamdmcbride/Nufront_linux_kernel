@@ -65,6 +65,7 @@
  */
 #define NS115_DISPCTR0_BASE             0x05010000
 #define NS115_DISPCTR1_BASE             0x05011000
+#define NS115_DSI_BASE             	0x060a0000
 #define NS115_DMA_330_BASE              0x05020000
 #define NS115_DMA_330S_BASE             0x05021000
 #define NS115_MALI_BASE                 0x05030000 /* MALI 64K */

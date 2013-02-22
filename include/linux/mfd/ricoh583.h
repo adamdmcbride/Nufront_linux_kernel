@@ -142,6 +142,7 @@ struct ricoh583_pwrkey_platform_data {
 struct ricoh583_ac_detect_platform_data {
 	int irq;
 	int usb_gpio;
+	int usb_effect;
 };
 
 struct ricoh583_battery_platform_data {
@@ -152,7 +153,6 @@ struct ricoh583_battery_platform_data {
 	int power_off_mvolts;
 	int adc_vdd_mvolts;
 	int pre_chg_mvolts;
-	int full_mvolts;
 	int normal_pwr;
 	int early_pwr;
 	int suspend_pwr;

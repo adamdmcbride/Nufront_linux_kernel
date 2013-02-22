@@ -324,15 +324,16 @@ config FB_NS2816CLCD
 	  inserted into and removed from the running kernel), say M
 	  here and read <file:Documentation/kbuild/modules.txt>.  
 
-config MOBILE_PHONE_LCD_NS115
-        tristate "NS115 soc mobile phone lcd support"
-        depends on FB
-        help
-          Function for the on-chip NS115 mobile phone lcd(truly).
+menuconfig NS115_LCD
+	bool "Support for NUFRONT NS115 frame buffer devices"
+	depends on FB
+	---help---
+	  This menu will let you enable support for the framebuffers with NS115,
+	  Include ns115 lcd driver and some configurations
 
 config FB_NS115CLCD
 	tristate "NS115 CLCD support"
-	depends on FB
+	depends on FB && NS115_LCD
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
@@ -343,6 +344,34 @@ config FB_NS115CLCD
 	  If you want to compile this as a module (=code which can be
 	  inserted into and removed from the running kernel), say M
 	  here and read <file:Documentation/kbuild/modules.txt>.  
+
+config MOBILE_PHONE_LCD_NS115
+        tristate "NS115 soc mobile phone lcd support"
+        depends on FB && NS115_LCD && FB_NS115CLCD
+        help
+          Function for the on-chip NS115 mobile phone lcd(truly).
+
+config 1080I_TO_1080P
+        tristate "NS115 LCD force to set 1080i timing to 1080p@60"
+        depends on FB && NS115_LCD && FB_NS115CLCD
+        help
+          Config for set 1080i to 1080p@60.
+
+config USES_FAKE_1080P
+        tristate "Using fake 1080p for NS115 HDMI device"
+        depends on FB && NS115_LCD && FB_NS115CLCD
+        help
+          Config for using fake 1080p.
+
+config FB_NS115M_DSI
+	tristate "ns115m DSI support(ssd2825)"
+	depends on FB
+	help
+	  This dsi device driver is for nusmart devices.
+
+	  If you want to compile this as a module (=code which can be
+	  inserted into and removed from the running kernel), say M
+	  here and read <file:Documentation/kbuild/modules.txt>.
 
 config FB_HDMI_NS115
         tristate "NS115 soc HDMI controller support"

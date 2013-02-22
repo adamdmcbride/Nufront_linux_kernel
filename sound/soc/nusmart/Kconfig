@@ -39,6 +39,19 @@ config SND_SOC_ALC5631
 	tristate "Use RT5631 as CODEC DAI"
 	depends on SND_NUSMART_SOC_MACH
 
+config SND_SOC_ALC3261
+       tristate "Use RT3261 as CODEC DAI"
+       depends on SND_NUSMART_SOC_MACH
+
+config SND_HWDEP_MODULE
+       tristate "Use RT3261 IOCTRL"
+       depends on SND_SOC_ALC3261
+       select SND_HWDEP
+
+config SND_SOC_RT3261_MODULE
+       tristate "Use RT3261 DSP"
+       depends on SND_HWDEP_MODULE
+
 config SND_SOC_WM8960
 	tristate "Use WM8960 as CODEC DAI"
 	depends on SND_NUSMART_SOC_MACH
@@ -48,8 +61,3 @@ config SND_NUSMART_HDMI_CH7033
         depends on SND_NUSMART_SOC_MACH
 
 endchoice
-
-
-
-
-

@@ -15,6 +15,12 @@
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/power/ns115-battery.h>
+#ifdef CONFIG_FSA880_USB_DETECT
+#include <linux/power/fsa880_usb_detect.h>
+#endif
+#ifdef CONFIG_USB_DESIGN_WARE
+extern void dwc_otg_usb_det(void);
+#endif
 
 #define TPS80032_CONTROLLER_CTRL2	2, 0xDA
 #define TPS80032_CONTROLLER_VSEL_COMP	2, 0xDB
@@ -26,6 +32,7 @@
 #define STAT_BAT_TEMP_OVRANGE	1
 #define STAT_BAT_REMOVED	(1 << 1)
 #define STAT_VBUS_DET		(1 << 2)
+#define STAT_VAC_DET		(1 << 3)
 #define STAT_FAULT_WDG		(1 << 4)
 
 #define MVAC_FAULT	(1 << 7)
@@ -47,12 +54,14 @@ struct tps80032_chg_ctrl_info {
 	struct delayed_work work;
 	int irq;
 	int vbus_online;
+	int vac_online;
 };
 
 static void tps80032_chg_ctrl_work(struct work_struct * work)
 {
 	struct tps80032_chg_ctrl_info * info = 
 		container_of(work, struct tps80032_chg_ctrl_info, work.work);
+	enum ns115_charger_type chg_type;
 	int ret;
 	u8 val;
 
@@ -61,7 +70,7 @@ static void tps80032_chg_ctrl_work(struct work_struct * work)
 		dev_err(info->dev, "read interrupt status failed: %d", ret);
 		goto out;
 	}
-	dev_dbg(info->dev, "charger controller interrupt status: 0x%x\n", val);
+	PDBG(info->dev, "charger controller interrupt status: 0x%x\n", val);
 	if (val & STAT_BAT_REMOVED){
 		dev_err(info->dev, "battery is removed!\n");
 		ns115_battery_notify_event(CHG_BATT_REMOVED);
@@ -77,12 +86,38 @@ static void tps80032_chg_ctrl_work(struct work_struct * work)
 	if (val & STAT_VBUS_DET){
 		if (info->vbus_online == 0){
 			info->vbus_online = 1;
-			dev_info(info->dev, "USB charger is plugged!\n");
-			ns115_charger_plug(CHG_TYPE_USB);
+			PINFO(info->dev, "VBUS charger is plugged!\n");
+#ifdef CONFIG_FSA880_USB_DETECT
+			ret = fsa880_get_chg_type(&chg_type);
+			if (ret < 0){
+				PINFO(info->dev, "get charger type failed! use default type: USB!\n");
+				chg_type = CHG_TYPE_USB;
+			}
+#else
+			chg_type = CHG_TYPE_USB;
+#endif
+			ns115_charger_plug(chg_type);
 		}
 	}else if (info->vbus_online){
 		info->vbus_online = 0;
-		dev_info(info->dev, "charger is unplugged!\n");
+		PINFO(info->dev, "VBUS charger is unplugged!\n");
+#ifdef CONFIG_FSA880_USB_DETECT
+		fsa880_int_func();
+#endif
+		ns115_charger_unplug();
+#ifdef CONFIG_USB_DESIGN_WARE
+		dwc_otg_usb_det();
+#endif
+	}
+	if (val & STAT_VAC_DET){
+		if (info->vac_online == 0){
+			info->vac_online = 1;
+			PINFO(info->dev, "AC charger is plugged!\n");
+			ns115_charger_plug(CHG_TYPE_AC);
+		}
+	}else if (info->vac_online){
+		info->vac_online = 0;
+		PINFO(info->dev, "AC charger is unplugged!\n");
 		ns115_charger_unplug();
 	}
 
@@ -130,18 +165,13 @@ static int tps80032_chg_ctrl_init(struct tps80032_chg_ctrl_info * info)
 {
 	int ret;
 	u8 val;
+	enum ns115_charger_type chg_type;
 
 	//mask interrupt
 	ret = tps80032_write(TPS80032_CONTROLLER_INT_MASK, 
-			MVAC_FAULT | MVAC_EOC | MLINCH_GATED | MVAC_DET);
+			MVAC_FAULT | MVAC_EOC | MLINCH_GATED);
 	if (ret < 0){
 		dev_err(info->dev, "set interrupt mask register failed: %d", ret);
-		return -1;
-	}
-	//enable charger
-	ret = tps80032_set_bits(TPS80032_CONTROLLER_CTRL1, EN_CHARGER);
-	if (ret < 0){
-		dev_err(info->dev, "enable USB charging failed:%d\n", ret);
 		return -1;
 	}
 	ret = tps80032_read(TPS80032_CONTROLLER_STAT1, &val);
@@ -151,9 +181,26 @@ static int tps80032_chg_ctrl_init(struct tps80032_chg_ctrl_info * info)
 	}
 	if (val & STAT_VBUS_DET){
 		info->vbus_online = 1;
-		ns115_charger_plug(CHG_TYPE_USB);
+		PINFO(info->dev, "VBUS charger is plugged!\n");
+#ifdef CONFIG_FSA880_USB_DETECT
+		ret = fsa880_get_chg_type(&chg_type);
+		if (ret < 0){
+			PINFO(info->dev, "get charger type failed! use default type: USB!\n");
+			chg_type = CHG_TYPE_USB;
+		}
+#else
+		chg_type = CHG_TYPE_USB;
+#endif
+		ns115_charger_plug(chg_type);
 	}else{
 		info->vbus_online = 0;
+	}
+	if (val & STAT_VAC_DET){
+		info->vac_online = 1;
+		PINFO(info->dev, "AC charger is plugged!\n");
+		ns115_charger_plug(CHG_TYPE_AC);
+	}else{
+		info->vac_online = 0;
 	}
 
 	return 0;
@@ -188,7 +235,7 @@ static __devinit int tps80032_chg_ctrl_probe(struct platform_device *pdev)
 				info->irq, ret);
 		goto out;
 	}
-	dev_info(info->dev, "%s is OK!\n", __func__);
+	PINFO(info->dev, "%s is OK!\n", __func__);
 
 	return 0;
 

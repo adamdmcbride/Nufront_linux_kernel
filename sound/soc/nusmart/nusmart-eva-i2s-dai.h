@@ -47,5 +47,3 @@
 #define NUSMART_I2S_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | \
                          SNDRV_PCM_FMTBIT_S24_LE | \
                          SNDRV_PCM_FMTBIT_S32_LE)
-
-extern struct snd_soc_dai_driver eva_i2s_dai;

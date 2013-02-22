@@ -54,13 +54,13 @@
 #include <linux/dma-mapping.h>
 #include <linux/platform_device.h>
 #include <linux/interrupt.h>
+#include <linux/gpio.h>
 #include <linux/earlysuspend.h>
 #include <asm/uaccess.h>
 #include <mach/memory.h>
 #include <mach/get_bootargs.h>
 #include <mach/lcdc.h>
 #include <asm/irq.h>
-
 #include <asm/mach-types.h>
 /* NS115 do NOT need these any more */
 #define NUSMART_PW_CTRL
@@ -90,7 +90,7 @@
 #define err(x,args...)  printk(KERN_ERR "%s:"#x"\n",__func__,##args)
 /*******************************************************************/
 
-//#define DEBUG
+#define DEBUG
 #ifdef DEBUG
 //#define ctrace printk("ctrace:%s\n",__func__)
 void display_modelist(struct list_head *head);
@@ -118,6 +118,8 @@ static int  set_resolution = 0;
 
 static u32	pseudo_palette[16];
 static u32	pseudo_palette1[16];
+
+static int fb0_bits_per_pixel = 32;
 
 extern int send_new_resolution_event(unsigned long val, void *v);
 /*
@@ -572,7 +574,11 @@ static void nusmart_fb_set_burstlen(struct fb_info *fb)
 		dbg("change burst len to 2!\n");
 	}else{
 		regs.cfg_axi &= ~(0xf00);
+#ifdef CONFIG_MACH_NS115_STICK
+		regs.cfg_axi |= (NUSMART_LCDC_ARBLEN_2);
+#else
 		regs.cfg_axi |= (NUSMART_LCDC_ARBLEN_8);
+#endif
 		writel(regs.cfg_axi, par->mmio + NUSMART_LCDC_CFG_AXI);
 		dbg("change burst len to 8!\n");
 	}
@@ -655,6 +661,9 @@ void nusmartfb_reset(struct fb_info *fb)
  *
  *	Returns negative errno on error, or zero on success.
  */
+#ifdef CONFIG_MACH_NS115_STICK
+static int first_flag = 2;
+#endif
 static int nusmartfb_set_par(struct fb_info *fb)
 {
 	struct nusmart_par *par = fb->par;
@@ -664,6 +673,7 @@ static int nusmartfb_set_par(struct fb_info *fb)
 	int clk=1000000000;
 	int xfer_num, xres, yres, rgb32, burst_len;
 
+	printk(KERN_EMERG "%s %d ", __func__, first_flag);
 	ctrace;
 	dbg_var(var);
 
@@ -673,8 +683,26 @@ static int nusmartfb_set_par(struct fb_info *fb)
 		dbg("bit_per_pixel(%d) not supported",fb->var.bits_per_pixel);
 	}	
 	fb->fix.visual = FB_VISUAL_TRUECOLOR;
-	if(is_fb_changed(fb) || hdmi_plugin) {
 
+#ifdef CONFIG_MACH_NS115_STICK
+	if(first_flag)
+	{
+		first_flag--;
+
+		if((!first_flag) && (!hdmi_state))
+			goto LCD_RESET;
+		return 0;
+	}
+
+#endif
+
+LCD_RESET:
+
+#ifdef CONFIG_MACH_NS115_STICK
+	if(is_fb_changed(fb) || hdmi_plugin || (!hdmi_state)) {
+#else
+	if(is_fb_changed(fb) || hdmi_plugin) {
+#endif
 		nusmart_clcd_decode(fb, &regs);
 		nusmart_clcd_disable(fb);
 
@@ -737,12 +765,25 @@ static int set_resolution_ratio(struct fb_info * fb,struct fb_videomode *find_mo
 
 	fb_videomode_to_var(&var, find_mode);
 
+#ifdef CONFIG_MACH_NS115_STICK
+#ifdef CONFIG_USES_FAKE_1080P
+		var.bits_per_pixel = 32;
+#else
 	if((var.xres * var.yres) <= (1280 * 720))
 	{
 		var.bits_per_pixel = 32;
 	}else{
  		var.bits_per_pixel = 16;
 	}
+#endif
+#else
+	if(fb0_bits_per_pixel == 16 && (var.xres * var.yres) <= (1280 * 720))
+	{
+		var.bits_per_pixel = 32;
+	}else{
+ 		var.bits_per_pixel = 16;
+	}
+#endif
 
 	if(!find_mode->refresh)
 		find_mode->refresh = 60;
@@ -787,14 +828,28 @@ static int set_resolution_ratio(struct fb_info * fb,struct fb_videomode *find_mo
 	}
 
 done:
+#ifdef CONFIG_MACH_NS115_STICK
+#ifdef CONFIG_USES_FAKE_1080P
+		fb->var.bits_per_pixel = 32;
+#else
 	if((fb->mode->xres * fb->mode->yres) <= (1280 * 720))
 	{
 		fb->var.bits_per_pixel = 32;
 	}else{
 		fb->var.bits_per_pixel = 16;
 	}
+#endif
+#else
+	if(fb0_bits_per_pixel == 16 && (fb->mode->xres * fb->mode->yres) <= (1280 * 720))
+	{
+		fb->var.bits_per_pixel = 32;
+	}else{
+		fb->var.bits_per_pixel = 16;
+	}
+#endif
 	retval = nusmartfb_check_var(&fb->var, fb);
-	nusmartfb_set_par(fb); 
+	memset(fb->screen_base, 0x0, fb->fix.smem_len);
+	nusmartfb_set_par(fb);
 #ifdef CONFIG_FB_HDMI_NS115
 	send_new_resolution_event(1, fb->mode);
 #endif
@@ -1379,10 +1434,10 @@ static int video_mem_alloc(struct fb_info *info, unsigned int id)
 		return -ENOMEM;
 	}
 
-//#ifndef CONFIG_MACH_NS115_STICK
+#ifndef CONFIG_MACH_NS115_STICK
 	if(1 == id)
 		memset(info->screen_base, 0x0, info->fix.smem_len);
-//#endif
+#endif
 
 	return 0;
 }
@@ -1443,7 +1498,8 @@ static irqreturn_t nusmart_lcdc_irq(int irq, void *dev_id)
 
 	/*disable interrupt*/
 	ctrl &= ~NUSMART_LCDC_INTM_ERR;
-	ctrl &= ~NUSMART_LCDC_ENABLE;
+	//ctrl &= ~NUSMART_LCDC_ENABLE;
+	ctrl |= NUSMART_LCDC_FRAME_RESET;
 	writel(ctrl, par->mmio);
 
 	if(ctrl & (NUSMART_LCDC_UNDERFLOW | NUSMART_LCDC_OVERFLOW)) {
@@ -1473,7 +1529,7 @@ static irqreturn_t nusmart_lcdc_irq(int irq, void *dev_id)
 
 	/*clear flag & enable interrupt*/
 	ctrl |= NUSMART_LCDC_INTM_ERR;
-	ctrl |= NUSMART_LCDC_ENABLE;
+	//ctrl |= NUSMART_LCDC_ENABLE;
 	writel(ctrl, par->mmio);
 
 	return IRQ_HANDLED;
@@ -1493,6 +1549,11 @@ static int nusmartfb_restore(struct fb_info * info);
 static void nusmartfb_early_resume(struct early_suspend * h)
 {
 	struct ns2815fb_early_suspend * nes = es_to_fbinfo(h);
+	#ifdef CONFIG_MOBILE_PHONE_LCD_NS115
+	gpio_direction_output(LCD_ON,1);//LCD_ON
+	mdelay(50);
+	lcd_init_hx8369();
+	#endif
 	nusmartfb_restore(nes->fb);
 }
 
@@ -1548,6 +1609,9 @@ static int __devinit nusmartfb_probe(struct platform_device *pdev)
 	printk(KERN_EMERG "lcd %d probe begine!!!!!!!!!!\n", id);
 
 #ifdef CONFIG_MOBILE_PHONE_LCD_NS115
+	gpio_request(LCD_ON, "LCD-ON");
+	gpio_direction_output(LCD_ON,1);//LCD_ON
+	mdelay(50);
 	lcd_init_hx8369();
 #endif
 
@@ -1734,20 +1798,16 @@ static int __devinit nusmartfb_probe(struct platform_device *pdev)
 		if(0 != bits_per_pixel){
 			info->var.bits_per_pixel = bits_per_pixel;
 		}else{
-			//set default bits_per_pixel as 16
-			info->var.bits_per_pixel = 16;
+			//set default bits_per_pixel as 32 
+			info->var.bits_per_pixel = 32;
 
-			if((xres * yres) <= (1280*720)){
-				info->var.bits_per_pixel = 32;
-			}else{
-				info->var.bits_per_pixel = 16;
-			}
 			printk(KERN_INFO "nusmartfb%d: set default bits_per_pixel as %d\n", 
 				id, info->var.bits_per_pixel );
 		}
 	}
 
 	if(0 == id){
+		fb0_bits_per_pixel = info->var.bits_per_pixel;
 		retval = fb_find_mode(&stdvar, info, mode_option, NULL, 0,NULL, info->var.bits_per_pixel);
 		fb_var_to_videomode(&mode, &stdvar);
 		fb_videomode_to_var(&info->var, &mode);
@@ -1791,7 +1851,7 @@ static int __devinit nusmartfb_probe(struct platform_device *pdev)
 	 * point will corrupt the VGA console, so it might be safer to skip a
 	 * call to set_par here and just allow fbcon to do it for you.
 	 */
-	nusmartfb_set_par(info); 
+	nusmartfb_set_par(info);
 
 	if (register_framebuffer(info) < 0) {
 		dbg("register framebuffer failed!");
@@ -1858,6 +1918,9 @@ static void __devexit nusmartfb_remove(struct platform_device *pdev)
 		video_mem_free(info);
 		framebuffer_release(info);
 	}
+	#ifdef CONFIG_MOBILE_PHONE_LCD_NS115
+	gpio_free(LCD_ON);
+	#endif
 }
 
 #include <linux/platform_device.h>
@@ -1940,6 +2003,11 @@ static int nusmartfb_restore(struct fb_info * info)
 static int nusmartfb_resume(struct platform_device *dev)
 {
 	struct fb_info *info = platform_get_drvdata(dev);
+	#ifdef CONFIG_MOBILE_PHONE_LCD_NS115
+	gpio_direction_output(LCD_ON,1);//LCD_ON
+	mdelay(50);
+	lcd_init_hx8369();
+	#endif
 	nusmartfb_restore(info);
 	/* resume here */
 	return 0;
@@ -1985,7 +2053,8 @@ void fb_select_modes(const struct fb_videomode *mode,
 	struct fb_modelist *modelist;
 	struct fb_videomode *m;
 
-	printk(KERN_INFO "%s : %d\n", __func__, __LINE__);
+//	printk(KERN_INFO "%s : %d\n", __func__, __LINE__);
+	dbg();
 
 	list_for_each_safe(pos, n, head) {
 		modelist = list_entry(pos, struct fb_modelist, list);
@@ -2007,14 +2076,21 @@ void fb_select_modes_new(struct list_head *head)
 	struct fb_modelist *modelist;
 	struct fb_videomode *m;
 
-	printk(KERN_INFO "%s : %d\n", __func__, __LINE__);
+//	printk(KERN_INFO "%s : %d\n", __func__, __LINE__);
+	dbg();
 
 	list_for_each_safe(pos, n, head) {
 		modelist = list_entry(pos, struct fb_modelist, list);
 		m = &modelist->mode;
+#ifdef CONFIG_1080I_TO_1080P
+		if ( (m->xres !=1920 || m->yres != 1080)
+			    && (m->xres !=1280 || m->yres != 720) )
+#else
 		if ( ((m->xres !=1920 || m->yres != 1080)
 			    && (m->xres !=1280 || m->yres != 720))
             || (m->vmode & FB_VMODE_INTERLACED) )
+
+#endif
 		{
 			list_del(pos);
 			kfree(pos);
@@ -2058,6 +2134,11 @@ void fb_add_720p(struct list_head *head)
 						list_del(pos);
 						kfree(pos);
 					}
+				}else{
+					if(m->vmode & FB_VMODE_INTERLACED){
+						list_del(pos);
+						kfree(pos);
+					}
 				}
 			}
 
@@ -2071,6 +2152,17 @@ void fb_add_720p(struct list_head *head)
 						list_del(pos);
 						kfree(pos);
 					}
+				}else{
+					if(m->vmode & FB_VMODE_INTERLACED){
+						if(!flag_1){
+							memcpy(&modelist->mode, &mode_1080p, sizeof(struct fb_videomode));
+							flag_1 = 1;
+						}else{
+							list_del(pos);
+							kfree(pos);
+						}
+					}
+
 				}
 			}
 		}
@@ -2194,10 +2286,10 @@ int hdmi_edid_fetch(unsigned char *edid, struct fb_info *info)
 		}
 
 		fb_edid_to_monspecs(edid, specs);
-//		if(*(edid + 126))
-//		{
-//			fb_edid_add_monspecs(edid + 0x80, specs); 
-//		}
+		if(*(edid + 126))
+		{
+			fb_edid_add_monspecs(edid + 0x80, specs); 
+		}
 
                if(device_create_file(info->dev, &dev_attr_vendor)){
                        device_remove_file(info->dev, &dev_attr_vendor);
@@ -2221,6 +2313,10 @@ int hdmi_edid_fetch(unsigned char *edid, struct fb_info *info)
 #endif
 			//fb_select_modes(&select_mode, &info->modelist);
 			fb_select_modes_new(&info->modelist);
+#ifdef DEBUG
+			printk(KERN_INFO "after fb_select_modes_new!!!");
+			display_modelist(&info->modelist);
+#endif
 			fb_add_720p(&info->modelist);
 
 #ifdef DEBUG
@@ -2306,16 +2402,29 @@ static int enable_lcd1(struct ns115_hdmi_lcdc_data *hdmi)
 	}
 
 	if( 1 != get_lcd1_args){
+#ifdef CONFIG_MACH_NS115_STICK
+#ifdef CONFIG_USES_FAKE_1080P
+			fb1_info->var.bits_per_pixel = 32;
+#else
 		if((fb1_info->mode->xres * fb1_info->mode->yres) <= (1280 * 720))
 		{
 			fb1_info->var.bits_per_pixel = 32;
 		}else{
 			fb1_info->var.bits_per_pixel = 16;
 		}
+#endif
+#else
+		if(fb0_bits_per_pixel == 16 && (fb1_info->mode->xres * fb1_info->mode->yres) <= (1280 * 720))
+		{
+			fb1_info->var.bits_per_pixel = 32;
+		}else{
+			fb1_info->var.bits_per_pixel = 16;
+		}
+#endif
 	}
 
 	nusmartfb_check_var(&fb1_info->var, fb1_info);
-	nusmartfb_set_par(fb1_info); 
+	nusmartfb_set_par(fb1_info);
 
 	hdmi->horizontal_res = fb1_info->var.xres;
 	hdmi->vertical_res = fb1_info->var.yres;
@@ -2347,9 +2456,7 @@ static int hdmi_hotplug_probe_lcd(struct notifier_block *this, unsigned long eve
 		hdmi_state = 1;
 		hdmi_edid = hdmi_data->pedid;
 		//clk_enable(par->clk);
-#ifdef CONFIG_MACH_NS115_STICK
-		nusmart_clcd_disable(fb1_info);
-#endif
+
 		hdmi_plugin = 1;
 		enable_lcd1(hdmi_data);
 		hdmi_plugin = 0;

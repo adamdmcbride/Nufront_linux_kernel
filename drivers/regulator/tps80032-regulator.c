@@ -174,6 +174,10 @@ done:
 	else
 		ri->vout_reg_cache = vout_val;
 
+	vout_val = 0;
+	ret = tps80032_read(ri->vout_reg_id, ri->vout_reg, &vout_val);
+	PDBG(ri->dev, "id:%d addr: 0x%x val: 0x%x\n", ri->vout_reg_id, ri->vout_reg, vout_val);
+
 	return ret;
 }
 
@@ -232,15 +236,15 @@ static struct regulator_ops tps80032_ops = {
 //_min_mv, _max_mv, _step_uV, _ops, _delay)
 
 static struct tps80032_regulator tps80032_regulator[] = {
-	TPS80032_REG(SMPS1, 1, 0, 0x54, 0, 0x56, 0x3F, 0x53,
+	TPS80032_REG(SMPS1, 1, 0, 0x54, 0, 0x55, 0x3F, 0x53,
 			600, 2100, 12500, tps80032_ops, 500),
-	TPS80032_REG(SMPS2, 1, 0, 0x5A, 0, 0x5C, 0x3F, 0x59,
+	TPS80032_REG(SMPS2, 1, 0, 0x5A, 0, 0x5B, 0x3F, 0x59,
 			600, 2100, 12500, tps80032_ops, 500),
 	TPS80032_REG(SMPS3, 1, 1, 0x66, 0, 0x68, 0x3F, 0x65,
 			600, 2100, 12500, tps80032_ops, 500),
 	TPS80032_REG(SMPS4, 1, 1, 0x42, 0, 0x44, 0x3F, 0x41,
 			600, 2100, 12500, tps80032_ops, 500),
-	TPS80032_REG(SMPS5, 1, 0, 0x48, 0, 0x4A, 0x3F, 0x47,
+	TPS80032_REG(SMPS5, 1, 0, 0x48, 0, 0x49, 0x3F, 0x47,
 			600, 2100, 12500, tps80032_ops, 500),
 	TPS80032_REG(LDOLN, 1, 1, 0x96, 0, 0x97, 0x1F, 0x95,
 			1000, 3300, 100000, tps80032_ops, 500),
@@ -297,6 +301,7 @@ static int tps80032_regulator_preinit(struct tps80032_regulator *ri,
 			return ret;
 		}
 	}
+	PDBG(ri->dev, "%s: init vol: %dmV", ri->desc.name, tps80032_pdata->init_uV / 1000);
 
 	if (tps80032_pdata->init_enable)
 		ret = tps80032_set_bits(ri->reg_id, ri->reg_en_reg,

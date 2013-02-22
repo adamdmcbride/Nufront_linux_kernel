@@ -355,6 +355,14 @@ config ISL29020
 	  This driver can also be built as a module.  If so, the module
 	  will be called isl29020.
 
+config TELINK_MU600
+	tristate "Telink mu600 power control"
+	help
+	  If you say yes here you get support for the telink mu600 3G moudle.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called telink mu600.
+
 config SENSORS_TSL2550
 	tristate "Taos TSL2550 ambient light sensor"
 	depends on I2C && SYSFS

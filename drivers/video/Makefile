@@ -100,6 +100,7 @@ obj-$(CONFIG_FB_NS2816CLCD)	  += nusmart-clcd.o
 obj-$(CONFIG_FB_HDMI_CH7033)      += nusmart-hdmi.o
 obj-$(CONFIG_MOBILE_PHONE_LCD_NS115)	  += ns115_truly.o
 obj-$(CONFIG_FB_NS115CLCD)	  += ns115-clcd.o
+obj-$(CONFIG_FB_NS115M_DSI)	  += ns115m-dsi.o
 obj-$(CONFIG_FB_HDMI_NS115)       += ns115-hdmi.o
 obj-$(CONFIG_FB_ARMCLCD)	  += amba-clcd.o
 obj-$(CONFIG_FB_68328)            += 68328fb.o

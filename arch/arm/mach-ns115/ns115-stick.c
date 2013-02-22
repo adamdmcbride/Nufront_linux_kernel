@@ -464,7 +464,7 @@ static struct soc_plat_dev plat_devs[] =
 #endif
 	/*SOC_PLAT_DEV(&ns115_vibrator_device,   NULL),*/
 #ifdef CONFIG_SND_SOC_ALC5631
-	SOC_PLAT_DEV(&ns115ref_rt5631_jd_device, NULL),
+	SOC_PLAT_DEV(&ns115_jd_device, NULL),
 #endif
 
 #if 0

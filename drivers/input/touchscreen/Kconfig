@@ -30,6 +30,12 @@ config TOUCHSCREEN_GOODIX_BIG
        help
         This is a android driver to support the Gooidx touchscreen.          
 
+config TOUCHSCREEN_GT9XX
+	tristate "Goodi9xx TouchScreen Driver"
+	default n
+	depends on I2C
+	help
+          This is a android driver to support the Gooidx touchscreen.
 
 config TOUCHSCREEN_GOODIX_IAP                                                
 	bool "Goodix GT8xx touchscreen update support"                        
@@ -42,6 +48,15 @@ config TOUCHSCREEN_GOODIX_IAP
          Say Y here to enable the driver for the touchscreen on the S3C SMDK board.                                                                         
          If unsure, say N.
                                                                              
+
+
+config TOUCHSCREEN_GT811
+         tristate "Goodix GT811 TouchScreen Driver"
+        default n
+        depends on I2C
+        help
+          This is a android driver to support the Goodix GT811 touchscreen.
+
 
 
  config TOUCHSCREEN_FT5X06

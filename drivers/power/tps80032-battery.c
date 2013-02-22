@@ -18,18 +18,6 @@
 #include <linux/power/ns115-battery.h>
 #include <linux/completion.h>
 
-//#define DEBUG_EN
-#ifdef DEBUG_EN
-#define  PDBG(dev, format,...)	\
-	dev_err(dev, format, ##__VA_ARGS__)
-#define  PINFO(format,...)	\
-	dev_err(dev, format, ##__VA_ARGS__)
-#else
-#define  PDBG(dev, format,...)	do{}while(0)
-#define  PINFO(dev, format,...)	\
-	dev_info(dev, format, ##__VA_ARGS__)
-#endif
-
 //if platform data is NULL, use the defualt value
 #define TPS80032_ALARM_MVOLTS	3600
 #define TPS80032_POWER_OFF_MVOLTS	3400
@@ -79,8 +67,8 @@ struct tps80032_battery_info {
 	struct completion	autocal_comp;
 	int		autocal_irq;
 	int		cal_offset;
-	int		init_cc;
-	int		max_cc;
+	int		init_mAh;
+	int		max_mAh;
 	int		resistor;
 	int		tmp_channel;
 	int		power_off_mvolts;
@@ -128,12 +116,14 @@ static int tps80032_gauge_calibration(struct tps80032_battery_info * info)
 
 	data = reg_data[1] & 0x01;
 	data = (data << 8) | reg_data[0];
-	if (reg_data[1] & 0x02){
-		data = -data;
+	if (reg_data[1] & (1 << 1)){
+		data |= ~0 << 9;
 	}
 	info->cal_offset = data;
+#if 0
 	PDBG(info->dev, "FG_REG_08(0xc8): 0x%x\n", reg_data[0]);
 	PDBG(info->dev, "FG_REG_09(0xc9): 0x%x\n", reg_data[1]);
+#endif
 	PDBG(info->dev, "the auto calibration offset value: %d\n", data);
 
 	mutex_unlock(&info->lock);
@@ -152,11 +142,11 @@ static irqreturn_t tps80032_autocal_irq(int irq, void *_info)
 	return IRQ_HANDLED;
 }
 
-static int tps80032_get_capacity(int mvolts)
+static int tps80032_get_cur_mAh(struct tps80032_battery_info *info)
 {
-	struct tps80032_battery_info *info = g_info;
 	int ret;
-	int accum, counter, iacc, cur_cc, capacity;
+	int accum, counter, iacc;
+	int cur_mAh;
 	u8 reg_data[7];
 
 	mutex_lock(&info->lock);
@@ -177,26 +167,43 @@ static int tps80032_get_capacity(int mvolts)
 	accum = (accum << 8) | reg_data[5];
 	accum = (accum << 8) | reg_data[4];
 	accum = (accum << 8) | reg_data[3];
+#if 0
 	PDBG(info->dev, "FG_REG_04(0xc4): 0x%x\n", reg_data[3]);
 	PDBG(info->dev, "FG_REG_05(0xc5): 0x%x\n", reg_data[4]);
 	PDBG(info->dev, "FG_REG_06(0xc6): 0x%x\n", reg_data[5]);
 	PDBG(info->dev, "FG_REG_07(0xc7): 0x%x\n", reg_data[6]);
+#endif
 	PDBG(info->dev, "Accumulated value: %d\n", accum);
 
-	iacc = (accum - (info->cal_offset * counter)) * VFS 
-		/ (SENSE_RESISTOR * CLOCK_SOURCE * 36 / 10);
+	iacc = (accum - (info->cal_offset * counter)) / 36
+		* (VFS * 10 / SENSE_RESISTOR) / CLOCK_SOURCE;
 	PDBG(info->dev, "accumulated current(VFS=62mV): %dmAh\n", iacc);
-	iacc = (accum - (info->cal_offset * counter)) * 1250 
-		/ (SENSE_RESISTOR * CLOCK_SOURCE * 36 / 10);
-	PDBG(info->dev, "Accumulated current(VFS=1250mV): %dmAh\n", iacc);
-	cur_cc = info->init_cc + iacc;
-	capacity = (cur_cc * 100) / info->max_cc;
+
+	cur_mAh = info->init_mAh + iacc;
 
 	mutex_unlock(&info->lock);
-	return capacity;
+
+	return cur_mAh;
 err:
 	mutex_unlock(&info->lock);
 	return -1;
+}
+
+static int tps80032_get_capacity(int mvolts)
+{
+	struct tps80032_battery_info *info = g_info;
+	int cur_mAh, cc;
+
+	cur_mAh = tps80032_get_cur_mAh(info);
+	cc = cur_mAh * 100 / info->max_mAh;
+	if (cc < 0){
+		cc = 0;
+	}else if (cc > 100){
+		cc = 100;
+	}
+	PDBG(info->dev, "capacity: %d%%\n", cc);
+
+	return cc;
 }
 
 static int tps80032_get_mvolts(void)
@@ -217,16 +224,12 @@ static int tps80032_get_current(void)
 {
 	struct tps80032_battery_info *info = g_info;
 	int cur;
-	//int ret;
-	//u8 reg_data[2];
+	int ret;
+	u8 reg_data[2];
 
-#if 1
+#if 0
 	cur = tps80032_get_adc_value(TPS80032_ADC17_BAT_CUR, 0, 0);
-	if (!cur){
-		dev_err(info->dev, "get battery current failed!\n");
-		return 0;
-	}
-	dev_dbg(info->dev, "GPADC current: %d\n", cur);
+	PDBG(info->dev, "GPADC current: %d\n", cur);
 #else
 	ret = tps80032_bulk_reads(TPS80032_FG_REG_10, 2, reg_data);
 	if (ret < 0){
@@ -235,16 +238,18 @@ static int tps80032_get_current(void)
 	}
 	cur = reg_data[1] & 0x1f;
 	cur = (cur << 8) | reg_data[0];
-	if (reg_data[1] & 0x20){
-		cur = -cur;
+	if (reg_data[1] & (1 << 5)){
+		cur |= ~0 << 13;
 	}
 
+#if 0
 	PDBG(info->dev, "reg_data0: 0x%x\n", reg_data[0]);
 	PDBG(info->dev, "reg_data1: 0x%x\n", reg_data[1]);
 	PDBG(info->dev, "CC_INTEG: %d, offset: %d\n", cur, info->cal_offset);
+#endif
 	cur -= info->cal_offset;
 
-	cur = cur * VFS * 1000 / (SENSE_RESISTOR * 8191);
+	cur = cur * (VFS * 1000 * 4 / SENSE_RESISTOR ) / CLOCK_SOURCE;
 	PDBG(info->dev, "current: %d\n", cur);
 #endif
 
@@ -254,12 +259,10 @@ static int tps80032_get_current(void)
 static int tps80032_calib_start_chg(void)
 {
 	struct tps80032_battery_info *info = g_info;
-	int ret, capacity;
+	int ret;
 
-	capacity = tps80032_get_capacity(0);
-	info->init_cc = info->max_cc * capacity / 100;
-	PINFO(info->dev, "capacity is %d%%. reset the init_cc is %dmAh\n",
-			capacity, info->init_cc);
+	info->init_mAh = tps80032_get_cur_mAh(info);;
+	PINFO(info->dev, "start charging. init_mAh is %dmAh\n", info->init_mAh);
 	ret = tps80032_gauge_calibration(info);
 
 	return ret;
@@ -268,12 +271,10 @@ static int tps80032_calib_start_chg(void)
 static int tps80032_calib_stop_chg(void)
 {
 	struct tps80032_battery_info *info = g_info;
-	int ret, capacity;
+	int ret;
 
-	capacity = tps80032_get_capacity(0);
-	info->init_cc = info->max_cc * capacity / 100;
-	PINFO(info->dev, "capacity is %d%%. reset the init_cc is %dmAh\n",
-			capacity, info->init_cc);
+	info->init_mAh = tps80032_get_cur_mAh(info);;
+	PINFO(info->dev, "stop charging. init_mAh is %dmAh\n", info->init_mAh);
 	ret = tps80032_gauge_calibration(info);
 
 	return ret;
@@ -284,7 +285,7 @@ static int tps80032_calib_chg_done(void)
 	struct tps80032_battery_info *info = g_info;
 	int ret;
 
-	info->init_cc = info->max_cc;
+	info->init_mAh = info->max_mAh;
 	PINFO(info->dev, "charging is done. reset the capacity 100%%\n");
 	ret = tps80032_gauge_calibration(info);
 
@@ -298,18 +299,17 @@ static int tps80032_capacity_init(struct tps80032_battery_info *info)
 	int i;
 	int capacity;
 
-	mvolts = tps80032_get_mvolts();
-	if (mvolts < 0){
+	for (i = 0, mvolts = 0; i < 5 && !mvolts; ++i){
+		mvolts = tps80032_get_mvolts();
+	}
+	if (!mvolts){
 		dev_err(info->dev, "%s: get voltage failed!\n", __func__);
 		return -1;
 	}
 	dev_info(info->dev, "init battery voltage: %dmV\n", mvolts);
 
 	cur = tps80032_get_current();
-	if (!cur){
-		dev_err(info->dev, "%s: get current failed!\n", __func__);
-		return -1;
-	}
+
 	dev_info(info->dev, "init battery current: %dmA\n", cur);
 
 	mvolts -= info->resistor * cur / 1000;
@@ -321,9 +321,9 @@ static int tps80032_capacity_init(struct tps80032_battery_info *info)
 			break;
 		}
 	}
-	info->init_cc = info->max_cc * capacity / 100;
+	info->init_mAh = info->max_mAh * capacity / 100;
 	dev_info(info->dev, "init capacity: %d%%. init cc: %dmAh. Max cc: %dmAh\n",
-			capacity, info->init_cc, info->max_cc);
+			capacity, info->init_mAh, info->max_mAh);
 
 	return 0;
 }
@@ -332,11 +332,6 @@ static int tps80032_gauge_init(struct tps80032_battery_info *info)
 {
 	int ret;
 
-	ret = tps80032_capacity_init(info);
-	if (ret < 0){
-		dev_err(info->dev, "calculate init capacity failed!\n");
-		return -1;
-	}
 	ret = tps80032_reg_update(TPS80032_FG_REG_00, UPDATE_RATE_250MS, 0xC0);
 	if (ret < 0){
 		dev_err(info->dev, "Set update rate failed!\n");
@@ -350,6 +345,12 @@ static int tps80032_gauge_init(struct tps80032_battery_info *info)
 	ret = tps80032_gauge_calibration(info);
 	if (ret < 0){
 		dev_err(info->dev, "Gas Gauge calibration failed!\n");
+		return -1;
+	}
+	msleep(250); /*wait update CC_INTEG to get current*/
+	ret = tps80032_capacity_init(info);
+	if (ret < 0){
+		dev_err(info->dev, "calculate init capacity failed!\n");
 		return -1;
 	}
 
@@ -378,7 +379,7 @@ static __devinit int tps80032_battery_probe(struct platform_device *pdev)
 	info->dev = &pdev->dev;
 	pdata = pdev->dev.platform_data;
 	info->autocal_irq = pdata->autocal_irq;
-	info->max_cc = pdata->max_capacity;
+	info->max_mAh = pdata->max_mAh;
 	info->resistor = pdata->resistor;
 	info->alarm_mvolts = pdata->alarm_mvolts;
 	info->power_off_mvolts = pdata->power_off_mvolts;

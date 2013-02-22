@@ -24,8 +24,9 @@
 
 #include <mach/get_bootargs.h>
 
-static unsigned long pmem_base   = 0xB3800000;
+static unsigned long pmem_base   = 0xB1800000;
 static unsigned long pmem_len    = 0x00000000;	//No pmem
+static unsigned long gc300_mem_len= 0x02000000;  //32M
 static unsigned long fb_mem_len  = 0x02000000;	//32M
 static unsigned long vpu_mem_len = 0x0a000000;	//160M
 static unsigned long zsp_mem_len = 0x00800000;	//8M
@@ -124,11 +125,20 @@ static int __init fb_mem_setup(char *str)
 	return 1;
 }
 
+static int __init gc300_mem_setup(char *str)
+{
+
+	gc300_mem_len = memparse(str, &str);
+
+	printk(KERN_EMERG "gc300_mem_len is 0x%0x\n", ump_mem_len);
+	return 1;
+}
 __setup("pmem=", pmem_mem_setup);
 __setup("gpumem=", gpu_mem_setup);
 __setup("umpmem=", ump_mem_setup);
 __setup("vpumem=", vpu_mem_setup);
 __setup("fbmem=", fb_mem_setup);
+__setup("gc300mem=", gc300_mem_setup);
 
 unsigned int nusmart_pmem_base(void)
 {
@@ -143,9 +153,21 @@ unsigned int nusmart_pmem_len(void)
 }
 EXPORT_SYMBOL(nusmart_pmem_len);
 
-unsigned int nusmart_lcd_base(void)
+unsigned int nusmart_gc300_base(void)
 {
 	return (pmem_base + pmem_len);
+}
+EXPORT_SYMBOL(nusmart_gc300_base);
+
+unsigned int nusmart_gc300_len(void)
+{
+	return (gc300_mem_len);
+}
+EXPORT_SYMBOL(nusmart_gc300_len);
+
+unsigned int nusmart_lcd_base(void)
+{
+	return (pmem_base + pmem_len + gc300_mem_len);
 }
 EXPORT_SYMBOL(nusmart_lcd_base);
 
@@ -157,7 +179,7 @@ EXPORT_SYMBOL(nusmart_lcd_len);
 
 unsigned int nusmart_on2_base(void)
 {
-	return (pmem_base + pmem_len + fb_mem_len);
+	return (pmem_base + pmem_len + gc300_mem_len + fb_mem_len);
 }
 EXPORT_SYMBOL(nusmart_on2_base);
 
@@ -169,7 +191,7 @@ EXPORT_SYMBOL(nusmart_on2_len);
 
 unsigned int nusmart_zsp_base(void)
 {
-	return (pmem_base + pmem_len + fb_mem_len + vpu_mem_len);
+	return (pmem_base + pmem_len + gc300_mem_len + fb_mem_len + vpu_mem_len);
 }
 EXPORT_SYMBOL(nusmart_zsp_base);
 

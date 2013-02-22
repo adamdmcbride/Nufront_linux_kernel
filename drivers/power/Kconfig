@@ -245,6 +245,20 @@ config NS115_BATTERY
 	help
 	  Say Y here to enable support for Ns115 Battery Interface.
 
+config NS115_ADC_GAUGE
+	tristate "simulate gas-gauge by software with ADC"
+	depends on NS115_BATTERY
+	default y
+	help
+		Say Y here to enable support for Ns115 ADC gauge calculate capacity.
+
+config NS115_CHG_SUSPEND
+	tristate "suspend when charging by AC"
+	depends on NS115_BATTERY && WAKELOCK
+	default n
+	help
+		Say Y here to enable support for suspned when charging by AC.
+
 config BATTERY_RICOH583
 	tristate "RICOH583 battery driver"
 	depends on MFD_RICOH583 && NS115_BATTERY
@@ -268,6 +282,12 @@ config BQ24170_CHARGER
 	depends on NS115_BATTERY
 	help
 	  Say Y here to enable support for bq24170 charger Interface.
+
+config MP2611_CHARGER
+	tristate "charger support for mp2611"
+	depends on NS115_BATTERY
+	help
+	  Say Y here to enable support for mp2611 charger Interface.
 
 config TPS80032_CHG_CTRL
 	tristate "TPS80032 charger controller driver"

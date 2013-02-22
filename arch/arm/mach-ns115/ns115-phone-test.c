@@ -29,7 +29,9 @@
 #include <linux/delay.h>
 #include <linux/gpio.h>
 #include <linux/clk.h>
-
+#include <linux/of_platform.h>
+#include <linux/of_address.h>
+#include <linux/irq.h>
 
 #include <asm/irq.h>
 #include <asm/leds.h>
@@ -51,7 +53,7 @@
 #include <mach/get_bootargs.h>
 #include <mach/gpio.h>
 #include <mach/ns115-cpufreq.h>
-
+#include <mach/i2c.h>
 #include <media/soc_camera.h>
 #include <mach/soc_power_ctrl.h>
 #include <mach/mmc.h>
@@ -62,7 +64,9 @@
 #ifdef CONFIG_BQ24170_CHARGER
 #include <linux/power/bq24170-charger.h>
 #endif
-
+#ifdef CONFIG_REGULATOR_GPIO
+#include <linux/regulator/gpio-regulator.h>
+#endif
 #ifdef CONFIG_NS115_EFUSE_SUPPORT
 #include <mach/efuse.h>
 #endif
@@ -108,6 +112,10 @@ static struct lcdc_platform_data lcdc_data =
 };
 #endif
 
+static struct lcdc_platform_data dsi_data =
+{
+};
+
 #ifdef CONFIG_BATTERY_BQ27410_GASGAUGE
 
 static struct i2c_board_info bq27410_gasgauge = {
@@ -124,7 +132,6 @@ static int gc0329_power(struct device * dev, int on)
 {
 #define GPIO_PWDN	(8+('d'-'a')*32+3)	// gpio_pd3
 #define GPIO_RST	(8+('d'-'a')*32+2)	// gpio_pd2
-#define GPIO_PWEN	(8+('c'-'a')*32+22)	// gpio_pc22
 #define CLK_ID		"ns115_alt0"
 #define CLK_RATE	24000000
 
@@ -141,11 +148,6 @@ static int gc0329_power(struct device * dev, int on)
 		goto err_rst;
 	}
 
-	ret = gpio_request(GPIO_PWEN, "gc0329");
-	if (ret) {
-		goto err_pwen;
-	}
-
 	clk = clk_get(NULL, CLK_ID);
 	if (IS_ERR(clk)) {
 		ret = PTR_ERR(clk);
@@ -153,7 +155,6 @@ static int gc0329_power(struct device * dev, int on)
 	}
 
 	if (on) {
-		gpio_direction_output(GPIO_PWEN, 1);
 		clk_enable(clk);
 		clk_set_rate(clk, CLK_RATE);
 		mdelay(2);
@@ -169,13 +170,10 @@ static int gc0329_power(struct device * dev, int on)
 		gpio_direction_output(GPIO_RST, 0);
 		mdelay(2);
 		clk_disable(clk);
-		gpio_direction_output(GPIO_PWEN, 0);
 	}
 
 	clk_put(clk);
 err_clk:
-	gpio_free(GPIO_PWEN);
-err_pwen:
 	gpio_free(GPIO_RST);
 err_rst:
 	gpio_free(GPIO_PWDN);
@@ -184,7 +182,6 @@ err_rst:
 
 #undef GPIO_PWDN
 #undef GPIO_RST
-#undef GPIO_PWEN
 #undef CLK_ID
 #undef CLK_RATE
 }
@@ -197,7 +194,6 @@ static int ov5640_power(struct device * dev, int on)
 {
 #define GPIO_PWDN	(8+('d'-'a')*32+5)	// gpio_pd5
 #define GPIO_RST	(8+('d'-'a')*32+4)	// gpio_pd4
-#define GPIO_PWEN	(8+('c'-'a')*32+22)	// gpio_pc22
 #define CLK_ID		"ns115_alt0"
 #define CLK_RATE	24000000
 
@@ -214,11 +210,6 @@ static int ov5640_power(struct device * dev, int on)
 		goto err_rst;
 	}
 
-	ret = gpio_request(GPIO_PWEN, "ov5640");
-	if (ret) {
-		goto err_pwen;
-	}
-
 	clk = clk_get(NULL, CLK_ID);
 	if (IS_ERR(clk)) {
 		ret = PTR_ERR(clk);
@@ -226,7 +217,6 @@ static int ov5640_power(struct device * dev, int on)
 	}
 
 	if (on) {
-		gpio_direction_output(GPIO_PWEN, 1);
 		clk_enable(clk);
 		clk_set_rate(clk, CLK_RATE);
 		mdelay(5);
@@ -238,14 +228,11 @@ static int ov5640_power(struct device * dev, int on)
 	else {
 		gpio_direction_output(GPIO_RST, 0);
 		clk_disable(clk);
-		gpio_direction_output(GPIO_PWEN, 0);
 		gpio_direction_output(GPIO_PWDN, 1);
 	}
 
 	clk_put(clk);
 err_clk:
-	gpio_free(GPIO_PWEN);
-err_pwen:
 	gpio_free(GPIO_RST);
 err_rst:
 	gpio_free(GPIO_PWDN);
@@ -254,31 +241,31 @@ err_rst:
 
 #undef GPIO_PWDN
 #undef GPIO_RST
-#undef GPIO_PWEN
 #undef CLK_ID
 #undef CLK_RATE
 }
 
 static struct regulator_bulk_data camera_regulators[] = {
-	{ .supply = "vdd_cam0_io_1v8" },
-	{ .supply = "vdd_cam1_io_1v8" },
+	{ .supply = "avdd_cam_2v8" },
+	{ .supply = "vddio_cam_1v8" },
+	{ .supply = "vdd_focus_2v8" },
 };
 
 static struct soc_camera_link iclink[] = {
 	{
 		.bus_id		= 0, /* Must match the camera ID */
 		.board_info	= &gc0329_camera_i2c,
-		.i2c_adapter_id	= 1,
-		.regulators	= &camera_regulators[0],
-		.num_regulators	= 1,
+		.i2c_adapter_id	= 2,
+		.regulators	= camera_regulators,
+		.num_regulators	= 2,
 		.power		= gc0329_power,
 	},
 	{
 		.bus_id		= 0, /* Must match the camera ID */
 		.board_info	= &ov5640_camera_i2c,
-		.i2c_adapter_id	= 1,
-		.regulators	= &camera_regulators[1],
-		.num_regulators	= 1,
+		.i2c_adapter_id	= 2,
+		.regulators	= camera_regulators,
+		.num_regulators	= 3,
 		.power		= ov5640_power,
 	},
 };
@@ -313,14 +300,14 @@ static int slot_attr_init(struct evatronix_sdio_slot_data *sd,
 	mmc->caps 	= sd->caps;
 	mmc->pm_caps 	= sd->pm_caps;
 
-	printk(KERN_INFO "slot%u: f_min %d, f_max %d, ocr_avial 0x%x, caps 0x%x, pm_caps 0x%x",
+	printk(KERN_WARNING "%s slot%u: f_min %d, f_max %d, ocr_avial 0x%x, caps 0x%x, pm_caps 0x%x",__func__,
 				id, mmc->f_min, mmc->f_max,
 				mmc->ocr_avail, mmc->caps, mmc->pm_caps);
 	return 0;
 }
 
 //#define WIFI_REG_ON_GPIO	(1)
-#define WIFI_REG_ON_GPIO	(8+32+17)
+#define WIFI_REG_ON_GPIO	(8+17)
 static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 	.ref_clk		= 100000000,
 	.nr_slots 		= 3,
@@ -344,7 +331,7 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 		.ctype       	= EMMC_CARD,
 		.force_rescan	= true,
 		.caps		= (MMC_CAP_NONREMOVABLE|
-					MMC_CAP_8_BIT_DATA/*|MMC_CAP_MMC_HIGHSPEED*/),
+					MMC_CAP_8_BIT_DATA|MMC_CAP_MMC_HIGHSPEED),
 		.freq 		= 25000000,
 		.ocr_avail	= 0xff8000,
 	},
@@ -397,25 +384,100 @@ struct i2c_board_info __initdata fsa880_i2c_dev = {
 };
 #endif
 /*for suspend test*/
-#define N3S3_FW_NAME	"n3s3_fw_ref.bin"
+#define N3S3_FW_NAME	"n3s3_fw_ns115m.bin"
 static struct wake_timer_data wake_data = {
 	.fw_name = N3S3_FW_NAME,
 	.suspend_ms = 2000,
 	.wake_ms = 2000,
 };
 
+#ifdef CONFIG_REGULATOR_GPIO
+static struct regulator_consumer_supply gpio_19_supply[] = {
+	REGULATOR_SUPPLY("vddio_lcd_1v8", NULL),
+	REGULATOR_SUPPLY("vdd_lcd_2v8", NULL),
+	REGULATOR_SUPPLY("vddio_tp_1v8", NULL),
+	REGULATOR_SUPPLY("vdd_tp_2v8", NULL),
+	REGULATOR_SUPPLY("vddio_gpio3_1v8", NULL),
+};
+
+static struct regulator_consumer_supply gpio_23_supply[] = {
+	REGULATOR_SUPPLY("vdd_focus_2v8", NULL),
+};
+
+static struct regulator_consumer_supply gpio_93_supply[] = {
+	REGULATOR_SUPPLY("vdd_hdmi_5v", NULL),
+	REGULATOR_SUPPLY("vdd_vbus_5v", NULL),
+};
+
+static struct regulator_consumer_supply gpio_94_supply[] = {
+	REGULATOR_SUPPLY("avdd_cam_2v8", NULL),
+	REGULATOR_SUPPLY("vddio_cam_1v8", NULL),
+};
+
+#define GPIO_REG_PDATA_INIT(_gpio,  _voltage, _supply_reg, _always_on, \
+		_boot_on, _apply_uv, _init_enable, _init_apply)      \
+static struct gpio_regulator_platform_data gpio_reg_pdata_##_gpio = \
+{								\
+	.regulator = {						\
+		.constraints = {				\
+			.min_uV = (_voltage)*1000,		\
+			.max_uV = (_voltage)*1000,		\
+			.valid_modes_mask = (REGULATOR_MODE_NORMAL |  \
+					REGULATOR_MODE_STANDBY), \
+			.valid_ops_mask = (REGULATOR_CHANGE_MODE |    \
+					REGULATOR_CHANGE_STATUS |  \
+					REGULATOR_CHANGE_VOLTAGE), \
+			.always_on = _always_on,		\
+			.boot_on = _boot_on,			\
+			.apply_uV = _apply_uv,			\
+		},						\
+		.num_consumer_supplies =			\
+		ARRAY_SIZE(gpio_##_gpio##_supply),	\
+		.consumer_supplies = gpio_##_gpio##_supply, \
+		.supply_regulator = _supply_reg,		\
+	},							\
+	.gpio = _gpio,				\
+	.init_enable = _init_enable,				\
+	.init_apply = _init_apply,				\
+};	\
+static struct platform_device gpio_reg_pdev_##_gpio = {	\
+	.id = _gpio,	\
+	.name = "gpio-regulator",	\
+}
+
+GPIO_REG_PDATA_INIT(19, 1800, NULL, 0, 0, 0, 1, 1);
+GPIO_REG_PDATA_INIT(23, 2800, NULL, 0, 0, 0, 0, 0);
+GPIO_REG_PDATA_INIT(93, 5000, NULL, 0, 0, 0, 1, 1);
+GPIO_REG_PDATA_INIT(94, 2800, NULL, 0, 0, 0, 0, 0);
+
+#define GPIO_REG_PLAT_DEV(_gpio)	\
+	SOC_PLAT_DEV(&gpio_reg_pdev_##_gpio, &gpio_reg_pdata_##_gpio)
+
+#define GPIO_REG_PLAT_DEV_REG	\
+	GPIO_REG_PLAT_DEV(19),	\
+	GPIO_REG_PLAT_DEV(23),	\
+	GPIO_REG_PLAT_DEV(93),	\
+	GPIO_REG_PLAT_DEV(94)
+
+#endif //CONFIG_REGULATOR_GPIO
+
 static struct soc_plat_dev plat_devs[] =
 {
 	SOC_PLAT_DEV(&ns115_serial_device, 	NULL),
+#if !defined CONFIG_USE_OF
 	SOC_PLAT_DEV(&ns115_sdmmc_device,  	&nusmart_sdmmc_data),
+#endif
 	SOC_PLAT_DEV(&ns115_clcd_device[0],   	&lcdc_data),
 	SOC_PLAT_DEV(&ns115_clcd_device[1],   	NULL),
+	SOC_PLAT_DEV(&ns115_dsi_device,   	&dsi_data),
+#ifndef CONFIG_USE_OF
 	SOC_PLAT_DEV(&ns115_i2c_device[0], 	NULL),
 	SOC_PLAT_DEV(&ns115_i2c_device[1], 	NULL),
 	SOC_PLAT_DEV(&ns115_i2c_device[2], 	NULL),
+	SOC_PLAT_DEV(&ns115_i2c_device[3], 	NULL),
+#endif
 	SOC_PLAT_DEV(&ns115_wk_timer_device, 	&wake_data),
 	SOC_PLAT_DEV(&ns115_udc_device,         NULL),
-	SOC_PLAT_DEV(&ns115_i2c_device[3], 	NULL),
 	SOC_PLAT_DEV(&ns115_pcm_device,		NULL),
 	SOC_PLAT_DEV(&ns115_i2s_plat_device,	NULL),
 	SOC_PLAT_DEV(&ns115_vpu_dec_device, 	NULL),  //a@nufront
@@ -426,12 +488,12 @@ static struct soc_plat_dev plat_devs[] =
 	SOC_PLAT_DEV(&ns115_camera_device,	NULL),
 	SOC_PLAT_DEV(&ns115_hdmi_device,        NULL),  //wangzhi
 	SOC_PLAT_DEV(&nusmart_gpio_keys_device, NULL),
-    SOC_PLAT_DEV(&ns115_vibrator_device,   NULL),
-#if 0
-#ifdef CONFIG_SND_SOC_ALC5631
-    SOC_PLAT_DEV(&ns115ref_rt5631_jd_device, NULL),
+	SOC_PLAT_DEV(&ns115_vibrator_device,   NULL),
+
+#if (defined(CONFIG_SND_SOC_ALC5631) || defined(CONFIG_SND_SOC_ALC3261))
+	SOC_PLAT_DEV(&ns115_jd_device, NULL),
 #endif
-#endif
+
 	/*check following setting before you enable it*/
 #ifdef CONFIG_SOC_CAMERA_OV5640
 	SOC_PLAT_DEV(&ov5640_camera_device,	&iclink[1]),
@@ -440,14 +502,23 @@ static struct soc_plat_dev plat_devs[] =
 	SOC_PLAT_DEV(&gc0329_camera_device,	&iclink[0]),
 #endif
 
+#if !defined(CONFIG_USE_OF) || !defined(CONFIG_BT_NW53)
 	SOC_PLAT_DEV(&ns115ref_bt_rfkill_device, NULL),
+#endif
 #ifdef CONFIG_NS115_BATTERY
 	SOC_PLAT_DEV(&ns115_batt_device, &ns115_batt_pdata),
 #endif
-#if 0
 #ifdef CONFIG_BQ24170_CHARGER
 	SOC_PLAT_DEV(&bq24170_charger_device, &bq24170_charger_pdata),
 #endif
+#ifdef CONFIG_REGULATOR_GPIO
+	GPIO_REG_PLAT_DEV_REG,
+#endif
+#ifdef CONFIG_TELINK_MU600
+	SOC_PLAT_DEV(&mu600_gpio_device, NULL),
+#endif
+#if defined(CONFIG_BT_NW53) && !defined(CONFIG_USE_OF)
+	SOC_PLAT_DEV(&nw53_bluesleep_device,NULL),
 #endif
 };
 
@@ -484,17 +555,48 @@ static struct extend_i2c_device __initdata extend_i2c_devs[] =
 			EXT_IRQ_NOTSPEC, USE_DEFAULT),
 #endif
 
+#ifdef CONFIG_MPU_SENSORS_AMI306
+	EXT_I2C_DEV(I2C_BUS_0, &ns115_cs_ami30x, NULL, \
+			IRQ_NS115_GPIO1_INTR16, 0x0e),
+#endif
+
 #ifdef CONFIG_SENSORS_AMI30X
 	EXT_I2C_DEV(I2C_BUS_0, &ns115_cs_ami30x, NULL, \
 			IRQ_NS115_GPIO1_INTR24, 0x0e),
 #endif
-#if 0
+
 #ifdef CONFIG_SND_SOC_ALC5631
 	EXT_I2C_DEV(I2C_BUS_0, &ns115_snd_alc5631, NULL, \
 			EXT_IRQ_NOTSPEC, USE_DEFAULT),
 #endif
+
+#ifdef CONFIG_SND_SOC_ALC3261
+	EXT_I2C_DEV(I2C_BUS_0, &ns115_snd_alc3261, NULL, \
+			EXT_IRQ_NOTSPEC, USE_DEFAULT),
 #endif
 
+#ifndef CONFIG_OF
+#ifdef CONFIG_TOUCHSCREEN_FT5X06
+	EXT_I2C_DEV(I2C_BUS_3, &ns115_tp_ft5x06, NULL, \
+			IRQ_NS115_GPIO1_INTR6, USE_DEFAULT),
+#endif
+
+#ifdef CONFIG_SENSORS_TMD27713
+	EXT_I2C_DEV(I2C_BUS_0, &ns115_snesor_tmd, NULL, \
+			IRQ_NS115_GPIO0_WAKEUP_4, USE_DEFAULT),
+#endif
+
+
+#ifdef CONFIG_SENSORS_MPU3050
+	EXT_I2C_DEV(I2C_BUS_0, &ns115_sensor_mpu3050, NULL, \
+			IRQ_NS115_GPIO1_INTR25, USE_DEFAULT),
+#endif
+
+#ifdef CONFIG_MPU_SENSORS_BMA250
+	EXT_I2C_DEV(I2C_BUS_0, &ns115_sensor_bma250, NULL, \
+			IRQ_NS115_GPIO1_INTR26, USE_DEFAULT),
+#endif
+#endif
 #if 0
 #if 0
 	EXT_I2C_DEV(I2C_BUS_0, &ns2816_hdmi_sil902x, NULL, \
@@ -503,11 +605,13 @@ static struct extend_i2c_device __initdata extend_i2c_devs[] =
 			EXT_IRQ_NOTSPEC, USE_DEFAULT),
 #endif
 #endif
-#if 0
-#ifdef CONFIG_TOUCHSCREEN_GOODIX_BIG
+#ifndef CONFIG_OF
+#ifdef CONFIG_TOUCHSCREEN_GT9XX
 	EXT_I2C_DEV(I2C_BUS_3, &ns115_tp_goodix, NULL, \
 			IRQ_NS115_GPIO1_INTR6, USE_DEFAULT),
 #endif
+#endif
+#if 0
 #ifdef CONFIG_BATTERY_BQ27410_GASGAUGE
 	EXT_I2C_DEV(I2C_BUS_1, &bq27410_gasgauge, NULL, \
 			EXT_IRQ_NOTSPEC, USE_DEFAULT),
@@ -549,7 +653,11 @@ static void __init ns115_phone_test_init(void)
 #endif
 
 #ifdef CONFIG_SND_SOC_ALC5631
-    rt5631_gpio_ref_init();
+	rt5631_gpio_ref_init();
+#endif
+
+#ifdef CONFIG_SND_SOC_ALC3261
+	rt3261_gpio_test_init();
 #endif
 	soc_plat_register_devices(plat_devs, ARRAY_SIZE(plat_devs));
 
@@ -567,6 +675,110 @@ static void __init ns115_phone_test_init(void)
 
 }
 
+#ifdef CONFIG_USE_OF
+extern struct nusmart_i2c_platform_data nusmart_i2c_data[];
+static struct of_dev_auxdata ns115_auxdata_lookup[] __initdata = {
+	OF_DEV_AUXDATA("nufront,ns115-sdmmc", NS115_SDMMC_BASE, "ns115-sdmmc.0", &nusmart_sdmmc_data),
+	OF_DEV_AUXDATA("nufront,designware-i2c", NS115_I2C0_BASE, "ns115-i2c.0", &nusmart_i2c_data[0]),
+	OF_DEV_AUXDATA("nufront,designware-i2c", NS115_I2C1_BASE, "ns115-i2c.1", &nusmart_i2c_data[1]),
+	OF_DEV_AUXDATA("nufront,designware-i2c", NS115_I2C2_BASE, "ns115-i2c.2", &nusmart_i2c_data[2]),
+	OF_DEV_AUXDATA("nufront,designware-i2c", NS115_I2C3_BASE, "ns115-i2c.3", &nusmart_i2c_data[3]),
+	OF_DEV_AUXDATA("nufront,ns115-i2s", NS115_I2S0_BASE, "ns115-i2s.0", NULL),
+	{}
+};
+static struct of_device_id ns115_dt_match_table[] __initdata = {
+	{ .compatible = "nufront,designware-i2c", },
+	{ .compatible = "nufront,ns115-sdmmc", },
+	{}
+};
+static struct of_device_id ns115_dt_gic_match[] __initdata = {
+	{ .compatible = "nufront,ns115-gic", },
+	{}
+};
+static const char * ns115_dt_board_compat[] = {
+	"nufront,ns115",
+	"nufront,ns115m",
+	NULL
+};
+
+static char *pinmux_compat = "nufront,ns115-pinmux";
+static int of_ns115_int_pinmux()
+{
+	struct device_node *of_pinmux = NULL;
+	const __be32 *list;
+	u32 size,pin_setting[NS115_PINMUX_SIZE] = {0};
+	u32 i=0;
+
+	of_pinmux = of_find_node_by_path("/pinmux");
+	if(!of_pinmux)
+		return -1;
+	if(of_device_is_compatible(of_pinmux, pinmux_compat))
+	{
+		list = of_get_property(of_pinmux,"setting_table",&size);
+		size /= sizeof(*list);
+		early_print("find pinmux of node size is %d\n",size);
+		if(size != NS115_PINMUX_SIZE)
+			size = NS115_PINMUX_SIZE;
+		while(i < size)
+		{
+			*(pin_setting+i) = be32_to_cpup(list++);
+			early_print("pin(%d~%d) setting 0x%x\n",i*4,i*4+3,*(pin_setting+i));
+			i ++;
+		}
+		pinmux_init(pin_setting,size);
+		return 0;
+	}
+	else
+		return -1;
+}
+#endif
+static void __init ns115_dt_init(void)
+{
+
+#ifdef CONFIG_USE_OF
+	struct device_node *node;
+	/*
+	 * Finished with the static registrations now; fill in the missing
+	 * devices
+	 */
+
+	node = of_find_matching_node_by_address(NULL, ns115_dt_gic_match,NS115_GIC_DIST_BASE);
+	if (node)
+		irq_domain_add_simple(node, IRQ_NS115_GIC_START);
+	else
+		early_print("%s can not find gic node\n",__func__);
+
+	common_init();
+	if(of_ns115_int_pinmux())
+		NS115_PINMUX_INIT(phone_testboard);
+	of_platform_populate(NULL, ns115_dt_match_table, ns115_auxdata_lookup, NULL);
+	bt_init();
+	/*set bt_fm_switch to high and get fm in from BT module*/
+	bt_fm_switch(1);
+#ifdef CONFIG_BCMDHD
+	extern void wifi_power_init(int);
+	wifi_power_init(WIFI_REG_ON_GPIO);
+#endif
+
+#ifdef CONFIG_SND_SOC_ALC5631
+	rt5631_gpio_ref_init();
+#endif
+	soc_plat_register_devices(plat_devs, ARRAY_SIZE(plat_devs));
+
+	ext_i2c_register_devices(extend_i2c_devs,ARRAY_SIZE(extend_i2c_devs));
+	ns115_system_pm_init();
+
+	printk("on2_base = 0x%x, on2_size = 0x%x\n lcd_base = 0x%x, \
+			lcd_size = 0x%x\n gpu_size = 0x%x, ump_size = 0x%x\n",\
+			nusmart_on2_base(),
+			nusmart_on2_len(),
+			nusmart_lcd_base(),
+			nusmart_lcd_len(),
+			nusmart_mali_len(),
+			nusmart_mali_ump_len());
+#endif
+}
+
 struct gpio_data __initdata ref_data = {
 	.gpio_ddr = {BIT(0) | BIT(4) | BIT(5),0x0,BIT(21) | BIT(30),0x0,0x0},
 };
@@ -579,6 +791,7 @@ static void __init phone_test_gic_init(void)
 #endif
 }
 
+#ifndef CONFIG_USE_OF
 MACHINE_START(NS115_PHONE_TEST, "NUFRONT-NS115-PHONE-TEST")
 .boot_params  = PHYS_OFFSET + 0x00000100,
 	.map_io       = ns115_map_io,
@@ -586,3 +799,12 @@ MACHINE_START(NS115_PHONE_TEST, "NUFRONT-NS115-PHONE-TEST")
 	.timer        = &ns115_timer,
 	.init_machine = ns115_phone_test_init,
 	MACHINE_END
+#else
+DT_MACHINE_START(NS115_PHONE_TEST, "NUFRONT-NS115-PHONE-TEST")
+	.map_io		= ns115_map_io,
+	.init_irq	= phone_test_gic_init,
+	.timer		= &ns115_timer,
+	.init_machine	= ns115_dt_init,
+	.dt_compat	= ns115_dt_board_compat,
+	MACHINE_END
+#endif

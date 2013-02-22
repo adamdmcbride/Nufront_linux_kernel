@@ -890,6 +890,18 @@ config SOC_CAMERA_GC0329
 	help
 	  This is a gc0329 camera driver
 
+config SOC_CAMERA_GC0308
+	tristate "gc0308 camera support"
+	depends on SOC_CAMERA && I2C
+	help
+	  This is a gc0308 camera driver
+
+config SOC_CAMERA_GT2005
+	tristate "gt2005 camera support"
+	depends on SOC_CAMERA && I2C
+	help
+	  This is a gt2005 camera driver
+
 config VIDEO_MRV
 	tristate "SiliconImage Marvin CMOS Sensor Interface driver"
 	depends on VIDEO_DEV && ARCH_NS115 && SOC_CAMERA

@@ -30,6 +30,7 @@
 #define V4L2_CID_CAMERA_FACING		(V4L2_CID_PRIVATE_BASE + 125)
 #define V4L2_CID_AEC_GAIN               (V4L2_CID_PRIVATE_BASE + 126)
 #define V4L2_CID_PRE_CAP		(V4L2_CID_PRIVATE_BASE + 127)
+#define V4L2_CID_FLASH_CTRL		(V4L2_CID_PRIVATE_BASE + 128)
 
 #define AFC_CMD_MASK 		0x00ff0000
 #define AFC_X_MASK		0x000000ff
@@ -430,7 +431,17 @@ static const struct v4l2_queryctrl ov5640_controls[] = {
 		.step		= 0,
 		.default_value	= 0,
 	},
-
+#ifdef CONFIG_MACH_NS115_PHONE_TEST
+	{
+		.id		= V4L2_CID_FLASH_CTRL,
+		.type		= V4L2_CTRL_TYPE_INTEGER,
+		.name		= "flash led control",
+		.minimum	= 0,
+		.maximum	= 0xffffffff,
+		.step		= 1,
+		.default_value	= 0,
+	},
+#endif
 };
 
 static int ov5640_suspend(struct soc_camera_device *icd, pm_message_t state)
@@ -694,6 +705,49 @@ static int set_sat(struct i2c_client *client, int val)
 	val += 3;
 	return ov5640_write_array(client, saturation_regs[val]);
 }
+
+#ifdef CONFIG_MACH_NS115_PHONE_TEST
+#define FLASH_MODE_GPIO 	(8 + 32 * ( 'a' - 'a' ) + 1)		//pa1
+#define FLASH_EN_GPIO 		(8 + 32 * ( 'a' - 'a' ) + 0)		//pa0
+
+static int flash_led_ctrl(int sts)
+{
+	int ret = 0;
+	int gpio_mode;
+	int gpio_en;
+
+	gpio_mode = FLASH_MODE_GPIO;
+	gpio_en = FLASH_EN_GPIO;
+
+	ret = gpio_request(gpio_mode, "ov5640");
+	if (ret) {
+		return ret;
+	}
+
+	ret = gpio_request(gpio_en, "ov5640");
+	if (ret) {
+		goto err_gpio;
+	}
+
+	if (sts & 0x0000ffff) {				// flash on
+		if (sts & 0xffff0000) {				// flash mode
+			gpio_direction_output(gpio_mode, 1);
+		} else {					// torch mode
+			gpio_direction_output(gpio_mode, 0);
+		}
+
+		gpio_direction_output(gpio_en, 1);
+	} else {					// flash off
+		gpio_direction_output(gpio_en, 0);
+	}
+
+	gpio_free(gpio_en);
+err_gpio:
+	gpio_free(gpio_mode);
+
+	return ret;
+}
+#endif
 
 static int auto_focus(struct i2c_client *client, u32 dat)
 {
@@ -1198,6 +1252,12 @@ static int ov5640_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 			PDBG("V4L2_CID_PRE_CAP\n");
 			pre_capture(client, priv);
 			break;
+#ifdef CONFIG_MACH_NS115_PHONE_TEST
+		case V4L2_CID_FLASH_CTRL:
+			PDBG("V4L2_CID_FLASH_CTRL\n");
+			flash_led_ctrl(ctrl->value);
+			break;
+#endif
 		default:
 			return -EINVAL;
 	}

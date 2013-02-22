@@ -766,7 +766,7 @@ static int __devinit ricoh583_gpio_init(struct ricoh583 *ricoh583,
 	ricoh583->gpio.dev		= ricoh583->dev;
 	ricoh583->gpio.base		= pdata->gpio_base;
 	ricoh583->gpio.ngpio		= RICOH583_NR_GPIO;
-	ricoh583->gpio.can_sleep	= 1;
+	ricoh583->gpio.can_sleep	= 0;
 
 	ricoh583->gpio.request	= ricoh583_gpio_request;
 	ricoh583->gpio.free	= ricoh583_gpio_free;

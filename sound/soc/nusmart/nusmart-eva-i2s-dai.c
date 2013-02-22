@@ -61,6 +61,7 @@ static int state = NS115_DMAOP_NONE;
 static int hdmi_state = NS115_HDMI_NONE;
 static struct eva_i2s_pridata eva_i2s_data;
 static struct clk *eva_i2s_clk;
+static struct clk *ns115_m_clk;
 static struct hdmi_params hdmi_hw_params;
 
 static struct nusmart_pcm_dma_data eva_i2s_pcm_stereo_out = {
@@ -125,6 +126,7 @@ static int eva_i2s_startup(struct snd_pcm_substream *substream,
 	DBG_PRINT("%s ....\n", __func__);
 
 	BUG_ON(IS_ERR(eva_i2s_clk));
+	clk_enable(ns115_m_clk);
 	clk_enable(eva_i2s_clk);
 	return 0;
 }
@@ -428,23 +430,88 @@ static struct snd_soc_dai_ops eva_i2s_dai_ops = {
 	.set_sysclk	= eva_i2s_set_dai_sysclk,
 };
 
-struct snd_soc_dai_driver eva_i2s_dai = {
-	.name = "eva-i2s-dai",
-	.id = 0,
-	.suspend = eva_i2s_suspend,
-	.resume = eva_i2s_resume,
-	.playback = {
-		.channels_min = 2,
-		.channels_max = 8,
-		.rates = NUSMART_I2S_RATES,
-		.formats = SNDRV_PCM_FMTBIT_S16_LE,},
-	.capture = {
-		.channels_min = 2,
-		.channels_max = 2,
-		.rates = NUSMART_I2S_RATES,
-		.formats = SNDRV_PCM_FMTBIT_S16_LE,},
-	.ops = &eva_i2s_dai_ops,
-	.symmetric_rates = 1,
+static void fake_shutdown(struct snd_pcm_substream *substream,
+		struct snd_soc_dai *dai)
+{
+}
+
+static int fake_startup(struct snd_pcm_substream *substream,
+		struct snd_soc_dai *dai)
+{
+	return 0;
+}
+
+static int fake_set_dai_fmt(struct snd_soc_dai *cpu_dai,
+		unsigned int fmt)
+{
+	return 0;
+}
+
+static int fake_hw_params(struct snd_pcm_substream *substream,
+		struct snd_pcm_hw_params *params,
+		struct snd_soc_dai *dai)
+{
+	return 0;
+}
+
+static int fake_trigger(struct snd_pcm_substream *substream, int cmd,
+		struct snd_soc_dai *dai)
+{
+	return 0;
+}
+
+static int fake_set_dai_sysclk(struct snd_soc_dai *cpu_dai,
+		int clk_id, unsigned int freq, int dir)
+{
+	return 0;
+}
+
+static struct snd_soc_dai_ops fake_dai_ops = {
+	.startup	= fake_startup,
+	.shutdown	= fake_shutdown,
+	.trigger	= fake_trigger,
+	.hw_params	= fake_hw_params,
+	.set_fmt	= fake_set_dai_fmt,
+	.set_sysclk	= fake_set_dai_sysclk,
+};
+
+struct snd_soc_dai_driver eva_i2s_dai[] = {
+	{
+		.name = "eva-i2s-dai",
+		.id = 0,
+		.suspend = eva_i2s_suspend,
+		.resume = eva_i2s_resume,
+		.playback = {
+			.channels_min = 2,
+			.channels_max = 8,
+			.rates = NUSMART_I2S_RATES,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,},
+		.capture = {
+			.channels_min = 2,
+			.channels_max = 2,
+			.rates = NUSMART_I2S_RATES,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,},
+		.ops = &eva_i2s_dai_ops,
+		.symmetric_rates = 1,
+	},
+	{
+		.name = "MODEM",
+		.playback = {
+			.stream_name = "MODEM Playback",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.capture = {
+			.stream_name = "MODEM Capture",
+			.channels_min = 1,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,
+		},
+		.ops = &fake_dai_ops,
+	},
 };
 
 /*Used to avoid underr when playback*/
@@ -496,10 +563,16 @@ static int eva_i2s_probe(struct platform_device *dev)
 		DBG_PRINT("eva_i2s_driver_probe: clk_get error\n");
 		return PTR_ERR(eva_i2s_clk);
 	}
-	ret = snd_soc_register_dai(&dev->dev, &eva_i2s_dai);
+	//ret = snd_soc_register_dai(&dev->dev, &eva_i2s_dai);
+	ret = snd_soc_register_dais(&dev->dev, eva_i2s_dai, ARRAY_SIZE(eva_i2s_dai));
 	if (ret != 0)
 		clk_put(eva_i2s_clk);
 
+	ns115_m_clk = clk_get(&dev->dev, "ns115_mclk");
+	if (IS_ERR(ns115_m_clk))
+	{
+		DBG_PRINT("eva_i2s_driver_probe: ns115_m_clk get error\n");
+	}
 	eva_i2s_data.base = __io_address(NS115_I2S0_BASE);
 
 	//reset sfr

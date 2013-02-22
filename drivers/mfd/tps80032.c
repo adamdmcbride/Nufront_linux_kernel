@@ -33,8 +33,6 @@
 #include <mach/io.h>
 #include <mach/hardware.h>
 
-#define TPS80032_DEBUG
-
 /** register address, id, address**/
 #define TPS80032_REG_INT_STS_A			2, 0XD0
 #define TPS80032_REG_INT_STS_B			2, 0XD1
@@ -50,9 +48,14 @@
 #define TPS80032_REG_SYSEN_CFG_STATE	1, 0XB5
 #define TPS80032_REG_KEY_PRESS_DURATION_CFG		1, 0X2D
 #define TPS80032_REG_PHONEIX_DEV_ON		1, 0X25
+#define TPS80032_REG_32KAUDIO_STAT		1, 0XC1
+#define TPS80032_REG_32KG_STAT			1, 0XBE
+#define TPS80032_REG_32KAO_STAT			1, 0XBB
 
 #define SW_RESET	(1 << 6)
 #define DEVOFF		1
+#define CLK32K_OFF	(0x0)
+#define CLK32K_ON	(0x1)
 
 struct tps80032 {
 	struct device		*dev;
@@ -256,6 +259,48 @@ out:
 }
 EXPORT_SYMBOL_GPL(tps80032_reg_update);
 
+int tps80032_clk32kao_switch(int on)
+{
+	int ret;
+
+	if (on){
+		ret = tps80032_write(TPS80032_REG_32KAO_STAT, CLK32K_ON);
+	}else{
+		ret = tps80032_write(TPS80032_REG_32KAO_STAT, CLK32K_OFF);
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(tps80032_clk32kao_switch);
+
+int tps80032_clk32kg_switch(int on)
+{
+	int ret;
+
+	if (on){
+		ret = tps80032_write(TPS80032_REG_32KG_STAT, CLK32K_ON);
+	}else{
+		ret = tps80032_write(TPS80032_REG_32KG_STAT, CLK32K_OFF);
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(tps80032_clk32kg_switch);
+
+int tps80032_clk32kaudio_switch(int on)
+{
+	int ret;
+
+	if (on){
+		ret = tps80032_write(TPS80032_REG_32KAUDIO_STAT, CLK32K_ON);
+	}else{
+		ret = tps80032_write(TPS80032_REG_32KAUDIO_STAT, CLK32K_OFF);
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(tps80032_clk32kaudio_switch);
+
 void tps80032_power_off(void)
 {
 	int ret;
@@ -268,6 +313,7 @@ void tps80032_power_off(void)
 
 	return;
 }
+EXPORT_SYMBOL_GPL(tps80032_power_off);
 
 extern void dw_i2c_master_init(void* i2c_base, unsigned char slv_addr);
 extern int dw_i2c_send_bytes(void* i2c_base, unsigned char * out_buf, unsigned int len);
@@ -294,6 +340,7 @@ void tps80032_restart(char str, const char * cmd)
 
 	return;
 }
+EXPORT_SYMBOL_GPL(tps80032_restart);
 
 static void tps80032_irq_lock(struct irq_data *irq_data)
 {
@@ -476,7 +523,7 @@ int tps80032_suspend_system(void)
 {
 	int ret;
 
-	ret = tps80032_reg_update(TPS80032_REG_SYSEN_CFG_STATE, 0, 0x03);
+	ret = tps80032_reg_update(TPS80032_REG_SYSEN_CFG_STATE, 0x03, 0x03);
 
 	return ret;
 }
@@ -496,6 +543,10 @@ static int tps80032_init(void)
 		ret |= tps80032_reg_update(reg_data[i][0], reg_data[i][1], 
 				reg_data[i][2], reg_data[i][3]);
 	}
+
+	ret |= tps80032_clk32kaudio_switch(1);
+	ret |= tps80032_clk32kao_switch(1);
+	ret |= tps80032_clk32kg_switch(1);
 
 	return ret;
 }
@@ -642,6 +693,13 @@ static int  __devexit tps80032_i2c_remove(struct i2c_client *i2c)
 #ifdef CONFIG_PM
 static int tps80032_i2c_suspend(struct i2c_client *i2c, pm_message_t state)
 {
+	int ret;
+
+	ret = tps80032_suspend_system();
+	if (ret){
+		dev_err(g_tps80032->dev, "%s: sysen low failed: %d\n", __func__, ret);
+		return ret;
+	}
 	if (i2c->irq)
 		disable_irq(i2c->irq);
 	return 0;

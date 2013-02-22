@@ -54,8 +54,8 @@ static void inline ns115bl_send_intensity(int intensity)
 	unsigned int ns115_base_addr_pwm = (unsigned int) __io_address(NS115_AUX_BASE);
 	printk(KERN_INFO"%s %d\n", __func__, intensity);
 
-    //temp = readl(ns115_base_addr_pwm);
-    temp = 0x28420; // 1K Frequency
+	//temp = readl(ns115_base_addr_pwm);
+	temp = 0x28420; // 1K Frequency
 	temp &= (~0x1f);
 	temp = temp | (((intensity*3) & 0x1f));
 	//printk("=======value :%x\n", temp);
@@ -70,6 +70,37 @@ static void inline bl_delay(int ms)
 	else
 		msleep(ms);
 }
+#ifdef CONFIG_MACH_NS115_PAD_PROTOTYPE
+static void inline ns115bl_send_enable(int enable)
+{
+	gpio_request(9, "LCD-BIAS-ON");
+	gpio_request(10, "LCD-VDD-ON");
+	gpio_request(12, "LCD-ON");
+	gpio_request(13, "BL-ON");
+
+	if(enable != 0)
+	{
+		gpio_direction_output(12,1);//STBYB_ON
+		bl_delay(50);
+		gpio_direction_output(10,1);//LCD_VDD_ON
+		bl_delay(20);
+		gpio_direction_output(9,1);//LCD_BIAS_ON
+		bl_delay(250);
+		gpio_direction_output(13,1); //BL-ON
+	} else {
+		gpio_direction_output(13,0); //BL-OFF
+		bl_delay(25);
+		gpio_direction_output(12,0);//STBYB_OFF
+		gpio_direction_output(9,0);//LCD_BIAS_OFF
+		gpio_direction_output(10,0);//LCD_VDD_OFF
+	}
+
+	gpio_free(13);
+	gpio_free(12);
+	gpio_free(9);
+	gpio_free(10);
+}
+#else
 static void inline ns115bl_send_enable(int enable)
 {
 	if(enable != 0)
@@ -84,10 +115,10 @@ static void inline ns115bl_send_enable(int enable)
 #ifdef CONFIG_MACH_NS115_PAD_REF
 		gpio_direction_output(102,1);
 		bl_delay(250);
-#endif 
+#endif
 		gpio_direction_output(13,1);
 #ifdef CONFIG_MACH_NS115_PAD_REF
-		gpio_free(102); 
+		gpio_free(102);
 #endif
 		gpio_free(13);
 		gpio_free(12);
@@ -96,13 +127,13 @@ static void inline ns115bl_send_enable(int enable)
 		gpio_request(13, "BL-ON");
 #ifdef CONFIG_MACH_NS115_PAD_REF
 		gpio_request(102, "LVDS-SHUTDOWN"); //gpio C[30]
-#endif 
+#endif
 		gpio_direction_output(13,0);
 		bl_delay(250);
 #ifdef CONFIG_MACH_NS115_PAD_REF
 		gpio_direction_output(102,0);
 		bl_delay(25);
-#endif 
+#endif
 		gpio_direction_output(12,0);//LCD_ON
 #ifdef CONFIG_MACH_NS115_PAD_REF
 		gpio_free(102); 
@@ -113,6 +144,7 @@ static void inline ns115bl_send_enable(int enable)
 	}
 //	ns115_writeb(enable, ns115_PWL_CLK_ENABLE);
 }
+#endif
 
 static void ns115bl_blank(struct ns115_backlight *bl, int mode)
 {
@@ -241,9 +273,9 @@ static int ns115bl_probe(struct platform_device *pdev)
 	}
 
 	mutex_init(&bl->enable_lock);
-    //temp = readl(ns115_base_addr_pwm);
-    temp = 0x28420; // 1K Frequency
-    writel(temp, ns115_base_addr_pwm);
+	//temp = readl(ns115_base_addr_pwm);
+	temp = 0x28420; // 1K Frequency
+	writel(temp, ns115_base_addr_pwm);
 
 	bl->powermode = FB_BLANK_POWERDOWN;
 	bl->current_intensity = 0x0;

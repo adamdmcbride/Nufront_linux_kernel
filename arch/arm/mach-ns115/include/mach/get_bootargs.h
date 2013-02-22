@@ -13,6 +13,8 @@
 
 extern unsigned int nusmart_pmem_base(void);
 extern unsigned int nusmart_pmem_len(void);
+extern unsigned int nusmart_gc300_base(void);
+extern unsigned int nusmart_gc300_len(void);
 extern unsigned int nusmart_lcd_base(void);
 extern unsigned int nusmart_lcd_len(void);
 extern unsigned int nusmart_mali_len(void);

@@ -244,3 +244,8 @@ config USB_YUREX
 	  To compile this driver as a module, choose M here: the
 	  module will be called yurex.
 
+config SGM7227_SWITCH
+	tristate "USB switch SGM7227 driver support"
+	default n
+	help
+	  USB host and device switch of SGM7227.

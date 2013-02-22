@@ -208,16 +208,36 @@ void ns115_timer_suspend(struct clocksource *cs)
 	timer_context[1].timer_x_ctl = readl(TIMERX_CTRL + _timer3_va_base);
 }
 
+/*
+ * Kernel assumes that sched_clock can be called early but may not have
+ * things ready yet.
+ */
+static cycle_t read_dummy(struct clocksource *cs)
+{
+	return 0;
+}
+
 static struct clocksource clocksource_ns115 = {
 	.name	= "NS115 timer3",
 	.rating	= 200,
-	.read	= ns115_get_cycles,
+	.read	= read_dummy,
 	.mask	= CLOCKSOURCE_MASK(32),
 	.shift	= 20,
 	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
 	.suspend = ns115_timer_suspend,
 	.resume	 = ns115_timer_resume,
 };
+
+/*
+ * Overwrite weak default sched_clock with something more precise
+ */
+unsigned long long notrace sched_clock(void)
+{
+	const cycle_t cyc = clocksource_ns115.read(&clocksource_ns115);
+
+	return clocksource_cyc2ns(cyc, clocksource_ns115.mult,
+				clocksource_ns115.shift);
+}
 
 static void notrace ns115_update_sched_clock(void)
 {
@@ -236,6 +256,7 @@ static void __init ns115_clocksource_init(void)
 	writel(3, _timer3_va_base + TIMERX_CTRL);
 
 	init_sched_clock(&cd, ns115_update_sched_clock, 32, TIMER_CLK_RATE);
+	clocksource_ns115.read	= ns115_get_cycles;
 	clocksource_register_hz(&clocksource_ns115, TIMER_CLK_RATE);
 
 }

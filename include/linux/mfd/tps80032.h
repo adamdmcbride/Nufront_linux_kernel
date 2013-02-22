@@ -23,6 +23,18 @@
 
 #include <linux/regulator/machine.h>
 
+//#define TPS80032_DEBUG
+#ifdef TPS80032_DEBUG
+#define  PDBG(dev, format,...)	\
+	dev_err(dev, format, ##__VA_ARGS__)
+#define  PINFO(dev, format,...)	\
+	dev_err(dev, format, ##__VA_ARGS__)
+#else
+#define  PDBG(dev, format,...)	do{}while(0)
+#define  PINFO(dev, format,...)	\
+	dev_info(dev, format, ##__VA_ARGS__)
+#endif
+
 /* TPS80032 IRQ definitions */
 enum {
 	TPS80032_IRQ_PWRON,
@@ -141,7 +153,6 @@ struct tps80032_adc_platform_data {
 
 struct tps80032_battery_platform_data {
 	int autocal_irq;
-	int max_capacity;//mAh
 	int resistor;//mohm
 	int alarm_mvolts; 
 	int power_off_mvolts;
@@ -188,5 +199,8 @@ extern void tps80032_charger_unplug(void);
 extern int tps80032_get_adc_value(int channel, int scalar, int cur_source);
 extern int tps80032_chg_watchdog_init(int seconds);
 extern int tps80032_chg_watchdog_reset(void);
+extern int tps80032_clk32kaudio_switch(int on);
+extern int tps80032_clk32kao_switch(int on);
+extern int tps80032_clk32kg_switch(int on);
 
 #endif

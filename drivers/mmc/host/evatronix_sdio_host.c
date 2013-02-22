@@ -1,3 +1,4 @@
+#define	EVATRONIX_DBG
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/init.h>
@@ -15,7 +16,7 @@
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
-
+#include <linux/of.h>
 
 #include <asm/dma.h>
 #include <asm/io.h>
@@ -229,7 +230,7 @@ static void crime_scene(struct evatronix_host *host, int id)
 		err("\t *** length 0x%08x, dma addr 0x%08x", length, sg_dma_address(&sg[i/2]));
 	}
 
-	for(i = 0; i < host->sg_len; i++) {
+	for(i = 0; i < host->sg_len; i++) { 
 		err("\t *** 0x%08x 0x%08x\n", host->desc[i].desc_1, host->desc[i].desc_2);
 	}
 
@@ -360,8 +361,8 @@ static void evatronix_error_recovery(struct evatronix_host *host,
 
 	ENTER();
 	//disable interrupts
-	slot_writel(host, SFR13, id, 0);
-	slot_writel(host, SFR14, id, 0);
+	slot_writel(host, SFR13, id, 0xFFFFFFFF);
+	slot_writel(host, SFR14, id, 0xffffffff);
 	err("slot%u: DISABLE INTERRUPTS", id);
 
 	val = slot_readl(host, SFR12, id);
@@ -416,8 +417,8 @@ reset:
 		}
 
 		//OK, enable interrupts now
-		slot_writel(host, SFR13, id, 0x02ff00cb);
-		slot_writel(host, SFR14, id, 0x02ff00cb);
+		slot_writel(host, SFR13, id, 0xFFFFFFFF);
+		slot_writel(host, SFR14, id, 0xFFFFFFFF);
 	}
 
 	LEAVE();
@@ -653,16 +654,14 @@ static irqreturn_t evatronix_irq_handler_new(int irq, void *dev_id)
 	}
 #endif
 
-	int tmp;
-	tmp = readl(host->virt_base + SDIO_REG_COMM_SFR63);
 	for( i = 0; i < host->nr_slots; i++) {
 		/* reset */
+		cnt = 0;
 
 		slot = host->slots[i];
 		if(!slot)
 			continue;
-		else if ((tmp & (0x1 << i)))
-		{
+		do {
 			pending = slot_readl(host, SFR12, i);
 
 			if(!pending)
@@ -675,7 +674,7 @@ static irqreturn_t evatronix_irq_handler_new(int irq, void *dev_id)
 #ifdef DEBUG
 			if(slot->irq_status == 0 && pending == 0x108000) {
 				err("cur_slot %d #pre_slot %d pre_cmd CMD%d############slot%d CMD%d####### 0x108000\n",
-					host->cur_slot,
+					host->cur_slot, 
 					host->prev_slot, host->prev_cmd,
 					slot->id, slot->mrq ? slot->mrq->cmd->opcode:111111);
 			}
@@ -774,7 +773,7 @@ static irqreturn_t evatronix_irq_handler_new(int irq, void *dev_id)
 					tasklet_schedule(&host->tasklet_cd);
 				}
 			}
-		}
+		} while(cnt++ < 3);
 	}
 
 	LEAVE();
@@ -1000,16 +999,16 @@ static u8 check_dma_desc(struct evatronix_slot *slot, struct mmc_data *data, int
 			printk(KERN_EMERG "%s, desc_addr = 0 <<<<<<<<<<<<< \n", __func__);
 
 		if(log > 0) {
-			printk(KERN_EMERG "check: 0x%08x[0x%08x] 0x%08x[0x%08x]\n",
+			printk(KERN_EMERG "check: 0x%08x[0x%08x] 0x%08x[0x%08x]\n", 
 				Descriptors, pDesc[i], desc_addr, pDesc[i + 1]);
 		}
 		if(Descriptors == pDesc[i] && desc_addr == pDesc[i + 1]) {
 			continue;
 		}
-		pDesc[i] = Descriptors;
+		pDesc[i] = Descriptors; 
 		pDesc[i + 1] = desc_addr;
 		wmb();
-		ret = 0;
+		ret = 0; 
 	}
 	wmb();
 	if(ret == 0) {
@@ -1787,8 +1786,8 @@ static void evatronix_init_slot(struct evatronix_host *host, int id)
 
 	if(slot->ctype == SDIO_CARD) {
 #ifdef	WIFI_OOB
-		slot_writel(host, SFR13, id, 0x02ff00cb);
-		slot_writel(host, SFR14, id, 0x02ff00cb);
+		slot_writel(host, SFR13, id, 0xFFFFFeFF);
+		slot_writel(host, SFR14, id, 0xFFFFFeFF);
 #else
 		slot_writel(host, SFR13, id, 0xFFFFFFFF);
 		slot_writel(host, SFR14, id, 0xFFFFFFFF);
@@ -1796,8 +1795,8 @@ static void evatronix_init_slot(struct evatronix_host *host, int id)
 #endif
 
 	} else {
-		slot_writel(host, SFR13, id, 0x02ff00cb);
-		slot_writel(host, SFR14, id, 0x02ff00cb);
+		slot_writel(host, SFR13, id, 0xFFFFFeFF);
+		slot_writel(host, SFR14, id, 0xFFFFFeFF);
 	}
 
 	VDBG("slot%d: IRQ enable SFR13 0x%08x", id, slot_readl(host, SFR13, id));
@@ -1892,7 +1891,7 @@ static void slot_cleanup(struct evatronix_host *host, struct evatronix_slot *slo
 		}
 
 	} else {
-		err("\t *** slot%u: CD %s slot mrq 0x%x",
+		err("\t *** slot%u: CD %s slot mrq 0x%x", 
 			slot->id, (present ? "insert" : "remove"), slot->mrq);
 	}
 }
@@ -2033,10 +2032,103 @@ out:
 	LEAVE();
 }
 
+#ifdef CONFIG_USE_OF
+static int evatronix_get_pdata_from_of(struct platform_device *pdev,struct ns115_mmc_platform_data *of_data)
+{
+	struct device_node *of_node = NULL,*child = NULL;
+	const u32 *value = NULL;
+	u32 count = 0;
+	of_node = pdev->dev.of_node;
+	if(of_node == NULL)
+		return -1;
+	eng("find sdmmc node %s\n",of_node->full_name);
+	if((value = of_get_property(of_node,"ref_clk",NULL)) == NULL){
+		eng("can not get property ref_clk from of node\n");
+		return -1;
+	}
+	else
+		of_data->ref_clk = be32_to_cpup(value);
+	if((value = of_get_property(of_node,"nr_slots",NULL)) == NULL){
+		eng("can not get property nr_slots from of node\n");
+		return -1;
+	}
+	else
+		of_data->nr_slots = be32_to_cpup(value);
+	if((value = of_get_property(of_node,"detect_delay_ms",NULL)) == NULL){
+		eng("can not get property detect_delay_ms from of node\n");
+		return -1;
+	}
+	else
+		of_data->detect_delay_ms = be32_to_cpup(value);
+	if((value = of_get_property(of_node,"gpio",NULL)) == NULL){
+		eng("can not get property gpio from of node\n");
+	}
+	else
+		of_data->gpio = be32_to_cpup(value);
+
+	for_each_child_of_node(of_node, child) {
+		if(child && count > of_data->nr_slots){
+			eng("child of %s is more than nr_slots:%d\n",of_node->name,of_data->nr_slots);
+			break;
+		}
+		if((value = of_get_property(child,"ctype",NULL)) == NULL)
+			eng("can not get property ctype from of node\n");
+		else
+			of_data->slots[count].ctype = be32_to_cpup(value);
+		if((value = of_get_property(child,"caps",NULL)) == NULL)
+			eng("can not get property caps from of node\n");
+		else
+			of_data->slots[count].caps = be32_to_cpup(value);
+		if((value = of_get_property(child,"freq",NULL)) == NULL)
+			eng("can not get property freq from of node\n");
+		else
+			of_data->slots[count].freq = be32_to_cpup(value);
+			eng("freq from of node = %d\n",be32_to_cpup(value));
+		if((value = of_get_property(child,"ocr_avail",NULL)) == NULL)
+			eng("can not get property ocr_avail from of node\n");
+		else
+			of_data->slots[count].ocr_avail = be32_to_cpup(value);
+		if((value = of_get_property(child,"force_rescan",NULL)) == NULL)
+			eng("can not get property force_rescan from of node\n");
+		else
+			of_data->slots[count].force_rescan = be32_to_cpup(value);
+		if((value = of_get_property(child,"pm_caps",NULL)) == NULL)
+			eng("can not get property pm_caps from of node\n");
+		else
+			of_data->slots[count].pm_caps = be32_to_cpup(value);
+		count ++;
+	}
+
+	return 0;
+}
+static void evatronix_dump_platform_data(struct ns115_mmc_platform_data *of_data)
+{
+	int i;
+	eng("\n%s",__func__);
+	eng("nr_slots=%d",of_data->nr_slots);
+	eng("ref_clk=%d",of_data->ref_clk);
+	eng("detect_delay_ms=%d",of_data->detect_delay_ms);
+	eng("gpio=%d",of_data->gpio);
+	eng("slot_attr_init=0x%x",of_data->slot_attr_init);
+	for(i=0;i<of_data->nr_slots;i++)
+	{
+		eng("	slot %d-----",i);
+		eng("	ctype=0x%x",of_data->slots[i].ctype);
+		eng("	force_rescan=%d",of_data->slots[i].force_rescan);
+		eng("	caps=0x%x",of_data->slots[i].caps);
+		eng("	pm_caps=0x%x",of_data->slots[i].pm_caps);
+		eng("	freq=%d",of_data->slots[i].freq);
+		eng("	voltage_switch=0x%x",of_data->slots[i].voltage_switch);
+		eng("	ocr_avail=0x%x\n",of_data->slots[i].ocr_avail);
+	}
+	eng("end\n");
+}
+#endif
 
 static int evatronix_probe(struct platform_device *pdev)
 {
 	struct ns115_mmc_platform_data *pdata = pdev->dev.platform_data;
+	struct ns115_mmc_platform_data of_data={0};
 	struct evatronix_host *host = NULL;
 	struct resource	*res;
 
@@ -2057,7 +2149,10 @@ static int evatronix_probe(struct platform_device *pdev)
 	gpio_direction_output(GPIONUM, 1);
 	udelay(10);
 #endif
-
+#if defined CONFIG_USE_OF
+	evatronix_get_pdata_from_of(pdev,pdata);
+	evatronix_dump_platform_data(pdata);
+#endif
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res) {
 		err("platform_get_resource failed");
@@ -2300,7 +2395,7 @@ static int evatronix_suspend(struct platform_device *pdev, pm_message_t state)
 	}
 
 	host->suspended = 1;
-	err("Leave %s", __func__);
+	err("Leave %s", __func__); 
 	return 0;
 }
 
@@ -2352,7 +2447,7 @@ static int evatronix_resume(struct platform_device *pdev)
 			slot_writel(host, SFR11, i, val);
 			while((2 & slot_readl(host, SFR11, i)) != 2) {
 				udelay(2);
-				cnt++;
+				cnt++; 
 				if(cnt > 100)
 					err("waiting for Internal Clock Stable timeout");
 			}
@@ -2396,6 +2491,16 @@ static int evatronix_resume(struct platform_device *pdev)
 #define evatronix_resume	NULL
 #endif	/* CONFIG_PM */
 
+#if defined(CONFIG_OF)
+/* Match table for of_platform binding */
+static const struct of_device_id sdmmc_of_match[] __devinitconst = {
+	{ .compatible = "nufront,ns115-sdmmc", },
+	{},
+};
+MODULE_DEVICE_TABLE(of, sdmmc_of_match);
+#else
+#define sdmmc_of_match NULL
+#endif
 static struct platform_driver evatronix_mmc_driver = {
 	.probe		= evatronix_probe,
 	.remove		= __exit_p(evatronix_remove),
@@ -2403,6 +2508,7 @@ static struct platform_driver evatronix_mmc_driver = {
 	.resume		= evatronix_resume,
 	.driver		= {
 		.name		= DRIVER_NAME,
+		.of_match_table = sdmmc_of_match,
 	},
 };
 
