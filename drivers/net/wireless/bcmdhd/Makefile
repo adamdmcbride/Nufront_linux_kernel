@@ -1,28 +1,34 @@
-# bcmdhd
-DHDCFLAGS = -Wall -Wstrict-prototypes -Dlinux -DBCMDRIVER                     \
-	-DBCMDONGLEHOST -DUNRELEASEDCHIP -DBCMDMA32 -DWLBTAMP -DBCMFILEIMAGE  \
-	-DDHDTHREAD -DDHD_GPL -DDHD_SCHED -DDHD_DEBUG -DSDTEST -DBDC -DTOE    \
-	-DDHD_BCMEVENTS -DSHOW_EVENTS -DDONGLEOVERLAYS -DBCMDBG               \
-	-DMMC_SDIO_ABORT -DBCMSDIO -DBCMLXSDMMC -DBCMPLATFORM_BUS -DWLP2P     \
-	-DNEW_COMPAT_WIRELESS -DWIFI_ACT_FRAME -DARP_OFFLOAD_SUPPORT          \
-	-DKEEP_ALIVE -DCSCAN -DPKT_FILTER_SUPPORT     \
-	-DEMBEDDED_PLATFORM -DENABLE_INSMOD_NO_FW_LOAD -DPNO_SUPPORT          \
-	-DSET_RANDOM_MAC_SOFTAP -DDHD_USE_EARLYSUSPEND \
-	-Idrivers/net/wireless/bcmdhd -Idrivers/net/wireless/bcmdhd/include -Iarch/arm/mach-ns115/include
+#bcmdhd flags
+DHDCFLAGS = -Wall -Wstrict-prototypes -Dlinux -DBCMDRIVER					\
+	-DBCMDONGLEHOST -DUNRELEASEDCHIP -DBCMDMA32 -DWLBTAMP -DBCMFILEIMAGE	\
+	-DDHDTHREAD -DDHD_GPL -DDHD_SCHED -DDHD_DEBUG -DBDC -DTOE				\
+	-DDHD_BCMEVENTS -DSHOW_EVENTS -DDONGLEOVERLAYS -DBCMDBG					\
+	-DMMC_SDIO_ABORT -DBCMSDIO -DBCMLXSDMMC -DBCMPLATFORM_BUS -DWLP2P		\
+	-DNEW_COMPAT_WIRELESS -DWIFI_ACT_FRAME -DARP_OFFLOAD_SUPPORT			\
+	-DKEEP_ALIVE -DCSCAN -DPKT_FILTER_SUPPORT -DSET_RANDOM_MAC_SOFTAP   	\
+	-DEMBEDDED_PLATFORM -DENABLE_INSMOD_NO_FW_LOAD -DPNO_SUPPORT        	\
+	-DDHD_SDALIGN=8 -DMAX_HDR_READ=64 -DDHD_FIRSTREAD=64\
+	-Idrivers/net/wireless/bcmdhd -Idrivers/net/wireless/bcmdhd/include
 
-DHDOFILES = aiutils.o bcmsdh_sdmmc_linux.o dhd_linux.o siutils.o bcmutils.o   \
-	dhd_linux_sched.o bcmwifi.o dhd_sdio.o bcmevent.o dhd_bta.o hndpmu.o  \
-	bcmsdh.o dhd_cdc.o bcmsdh_linux.o dhd_common.o linux_osl.o            \
+DHDOFILES = aiutils.o bcmsdh_sdmmc_linux.o dhd_linux.o siutils.o bcmutils.o \
+	dhd_linux_sched.o bcmwifi.o dhd_sdio.o bcmevent.o dhd_bta.o hndpmu.o  	\
+	bcmsdh.o dhd_cdc.o bcmsdh_linux.o dhd_common.o linux_osl.o            	\
 	bcmsdh_sdmmc.o dhd_custom_gpio.o sbutils.o wldev_common.o wl_android.o
 
 obj-$(CONFIG_BCMDHD) += bcmdhd.o
 bcmdhd-objs += $(DHDOFILES)
 
 DHDCFLAGS += -DEXPORT_WIFI_MAC -DSET_RANDOM_MAC_SOFTAP -DCSCAN
-DHDCFLAGS += -DCUSTOMER_HW -DNUFRONT_OOB -DOOB_INTR_ONLY
+DHDCFLAGS += -DCUSTOMER_HW
 
-ifneq ($(CONFIG_WIFI_NW51),)
-DHDCFLAGS += -DHW_OOB
+ifeq ($(CONFIG_BCMDHD_OOB),y)
+	DHDCFLAGS += -DOOB_INTR_ONLY -DHW_OOB -DCUSTOMER_OOB -DNUFRONT_OOB
+else
+	DHDCFLAGS += -DSDIO_ISR_THREAD
+endif
+
+ifeq ($(CONFIG_BCMDHD_AG),y)
+	DHDCFLAGS += -DBAND_AG
 endif
 
 ifneq ($(CONFIG_WIRELESS_EXT),)

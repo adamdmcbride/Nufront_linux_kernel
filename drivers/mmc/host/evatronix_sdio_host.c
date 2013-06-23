@@ -43,8 +43,9 @@
 #endif
 
 #define			MEMMAX0_TUNING
-
+#ifndef CONFIG_BCMDHD_SDIO_IRQ
 #define			WIFI_OOB
+#endif
 #define			REQUEST_STAT
 
 /* specify your SDIO-capable slot */
@@ -692,7 +693,7 @@ static irqreturn_t evatronix_irq_handler_new(int irq, void *dev_id)
 			if((pending & SFR12_CARD_INTERRUPT) && (slot->id == SDIO_SLOT_ID) ) {
 				//set_bit(EVENT_CARD_INTR, &slot->pending_events);
 				//tasklet_schedule(&slot->tasklet);
-				printk(KERN_ERR "%s: SDIO IRQ comming \n", __func__);
+				/*printk(KERN_ERR "%s: SDIO IRQ comming \n", __func__);*/
 				mmc_signal_sdio_irq(slot->mmc);
 				//SDIO int bit ROC
 			}

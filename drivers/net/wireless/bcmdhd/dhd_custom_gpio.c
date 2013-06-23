@@ -20,7 +20,7 @@
 * software in any way with any other Broadcom software provided under a license
 * other than the GPL, without Broadcom's express prior written consent.
 *
-* $Id: dhd_custom_gpio.c,v 1.2.42.1 2010-10-19 00:41:09 Exp $
+* $Id: dhd_custom_gpio.c 280266 2011-08-28 04:18:20Z $
 */
 
 #include <typedefs.h>
@@ -38,6 +38,9 @@
 #define WL_TRACE(x)
 
 #ifdef CUSTOMER_HW
+#if defined(CUSTOMER_OOB)
+extern int bcm_wlan_get_oob_irq(void);
+#endif
 extern  void bcm_wlan_power_off(int);
 extern  void bcm_wlan_power_on(int);
 #endif /* CUSTOMER_HW */
@@ -151,6 +154,7 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 #ifdef CUSTOMER_HW2
 			wifi_set_power(0, 0);
 #endif
+			mdelay(100);
 			WL_ERROR(("=========== WLAN placed in RESET ========\n"));
 		break;
 
@@ -163,6 +167,7 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 #ifdef CUSTOMER_HW2
 			wifi_set_power(1, 0);
 #endif
+			mdelay(100);
 			WL_ERROR(("=========== WLAN going back to live  ========\n"));
 		break;
 
@@ -180,9 +185,9 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 				__FUNCTION__));
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_on(1);
-			/* Lets customer power to get stable */
-			OSL_DELAY(200);
 #endif /* CUSTOMER_HW */
+			/* Lets customer power to get stable */
+			mdelay(100);
 			WL_ERROR(("=========== WLAN placed in POWER ON ========\n"));
 		break;
 	}
@@ -310,5 +315,5 @@ void get_customized_country_code(char *country_iso_code, wl_country_t *cspec)
 	cspec->rev = translate_custom_table[0].custom_locale_rev;
 #endif /* EXMAPLE_TABLE */
 	return;
-#endif /* defined(CUSTOMER_HW2) && (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)) */
+#endif /* defined(CUSTOMER_HW2) && (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)) */
 }

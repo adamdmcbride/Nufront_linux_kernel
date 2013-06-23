@@ -53,13 +53,15 @@ s32 wldev_ioctl(
 	s32 ret = 0;
 	struct wl_ioctl ioc;
 
+
 	memset(&ioc, 0, sizeof(ioc));
 	ioc.cmd = cmd;
 	ioc.buf = arg;
 	ioc.len = len;
 	ioc.set = set;
-
 	ret = dhd_ioctl_entry_local(dev, &ioc, cmd);
+
+
 	return ret;
 }
 
@@ -190,7 +192,6 @@ s32 wldev_mkiovar_bsscfg(
 	return iolen;
 
 }
-
 s32 wldev_iovar_getbuf_bsscfg(
 	struct net_device *dev, s8 *iovar_name,
 	void *param, s32 paramlen, void *buf, s32 buflen, s32 bsscfg_idx, struct mutex* buf_sync)

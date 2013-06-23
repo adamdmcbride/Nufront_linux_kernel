@@ -370,8 +370,12 @@ static struct ns115_mmc_platform_data nusmart_sdmmc_data = {
 	.slots[2] = {
 		.ctype       	= SDIO_CARD,
 		.force_rescan	= true,
+#ifdef CONFIG_BCMDHD_SDIO_IRQ
 		.caps		= (MMC_CAP_4_BIT_DATA|/*MMC_CAP_SD_HIGHSPEED|*/
-					MMC_CAP_NONREMOVABLE/*|MMC_CAP_SDIO_IRQ*/),
+					MMC_CAP_NONREMOVABLE|MMC_CAP_SDIO_IRQ),
+#else
+		.caps		= (MMC_CAP_4_BIT_DATA|MMC_CAP_NONREMOVABLE),
+#endif
 		.pm_caps	= (MMC_PM_KEEP_POWER|MMC_PM_IGNORE_PM_NOTIFY),
 		.freq 		= 25000000,
 		.ocr_avail	= 0xff8000,

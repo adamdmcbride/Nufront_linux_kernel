@@ -44,6 +44,7 @@
 #include <bcmsdpcm.h>
 #include <hndpmu.h>
 
+
 #include "siutils_priv.h"
 
 /* local prototypes */
@@ -297,6 +298,7 @@ si_buscore_setup(si_info_t *sii, chipcregs_t *cc, uint bustype, uint32 savewin,
 
 
 
+
 static si_info_t *
 si_doattach(si_info_t *sii, uint devid, osl_t *osh, void *regs,
                        uint bustype, void *sdh, char **vars, uint *varsz)
@@ -366,16 +368,7 @@ si_doattach(si_info_t *sii, uint devid, osl_t *osh, void *regs,
 	}
 
 #if defined(HW_OOB)
-	if (CHIPID(sih->chip) == BCM43362_CHIP_ID) {
-		uint32 gpiocontrol, addr;
-		addr = SI_ENUM_BASE + OFFSETOF(chipcregs_t, gpiocontrol);
-		gpiocontrol = bcmsdh_reg_read(sdh, addr, 4);
-		gpiocontrol |= 0x2;
-		bcmsdh_reg_write(sdh, addr, 4, gpiocontrol);
-		bcmsdh_cfg_write(sdh, SDIO_FUNC_1, 0x10005, 0xf, NULL);
-		bcmsdh_cfg_write(sdh, SDIO_FUNC_1, 0x10006, 0x0, NULL);
-		bcmsdh_cfg_write(sdh, SDIO_FUNC_1, 0x10007, 0x2, NULL);
-	}
+//	bcmsdh_config_hw_oob_intr(sdh, sih->chip);
 #endif
 
 	if ((CHIPID(sih->chip) == BCM4329_CHIP_ID) && (sih->chiprev == 0) &&
@@ -443,6 +436,7 @@ si_doattach(si_info_t *sii, uint devid, osl_t *osh, void *regs,
 			W_REG(osh, &cc->gpiopulldown, 0);
 			si_setcoreidx(sih, origidx);
 		}
+
 
 
 
@@ -1226,6 +1220,7 @@ si_clkctl_init(si_t *sih)
 	if (!fast)
 		si_setcoreidx(sih, origidx);
 }
+
 
 /* change logical "focus" to the gpio core for optimized access */
 void *

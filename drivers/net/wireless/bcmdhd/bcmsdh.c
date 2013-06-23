@@ -74,6 +74,25 @@ bcmsdh_enable_hw_oob_intr(bcmsdh_info_t *sdh, bool enable)
 }
 #endif
 
+#if defined(HW_OOB)
+#include <sbchipc.h>
+void
+bcmsdh_config_hw_oob_intr(bcmsdh_info_t *sdh, uint chip)
+{
+	uint32 gpiocontrol, addr;
+	printf("%s: Enter\n", __FUNCTION__);
+	if (CHIPID(chip) == BCM43362_CHIP_ID) {
+		addr = SI_ENUM_BASE + OFFSETOF(chipcregs_t, gpiocontrol);
+		gpiocontrol = bcmsdh_reg_read(sdh, addr, 4);
+		gpiocontrol |= 0x2;
+		bcmsdh_reg_write(sdh, addr, 4, gpiocontrol);
+		bcmsdh_cfg_write(sdh, SDIO_FUNC_1, 0x10005, 0xf, NULL);
+		bcmsdh_cfg_write(sdh, SDIO_FUNC_1, 0x10006, 0x0, NULL);
+		bcmsdh_cfg_write(sdh, SDIO_FUNC_1, 0x10007, 0x2, NULL);
+	}
+}
+#endif
+
 /* Attach BCMSDH layer to SDIO Host Controller Driver
  *
  * @param osh OSL Handle.
@@ -687,4 +706,40 @@ bcmsdh_sleep(void *sdh, bool enab)
 #else
 	return BCME_UNSUPPORTED;
 #endif
+}
+
+int
+bcmsdh_gpio_init(void *sdh)
+{
+	bcmsdh_info_t *p = (bcmsdh_info_t *)sdh;
+	sdioh_info_t *sd = (sdioh_info_t *)(p->sdioh);
+
+	return sdioh_gpio_init(sd);
+}
+
+bool
+bcmsdh_gpioin(void *sdh, uint32 gpio)
+{
+	bcmsdh_info_t *p = (bcmsdh_info_t *)sdh;
+	sdioh_info_t *sd = (sdioh_info_t *)(p->sdioh);
+
+	return sdioh_gpioin(sd, gpio);
+}
+
+int
+bcmsdh_gpioouten(void *sdh, uint32 gpio)
+{
+	bcmsdh_info_t *p = (bcmsdh_info_t *)sdh;
+	sdioh_info_t *sd = (sdioh_info_t *)(p->sdioh);
+
+	return sdioh_gpioouten(sd, gpio);
+}
+
+int
+bcmsdh_gpioout(void *sdh, uint32 gpio, bool enab)
+{
+	bcmsdh_info_t *p = (bcmsdh_info_t *)sdh;
+	sdioh_info_t *sd = (sdioh_info_t *)(p->sdioh);
+
+	return sdioh_gpioout(sd, gpio, enab);
 }

@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_common.c 316272 2012-02-21 22:35:51Z $
+ * $Id: dhd_common.c 307573 2012-01-12 00:04:39Z $
  */
 #include <typedefs.h>
 #include <osl.h>
@@ -332,22 +332,35 @@ dhd_doiovar(dhd_pub_t *dhd_pub, const bcm_iovar_t *vi, uint32 actionid, const ch
 		break;
 
 	case IOV_GVAL(IOV_WLMSGLEVEL):
+		printk("android_msg_level=0x%x\n", android_msg_level);
+#if defined(CONFIG_WIRELESS_EXT)
 		int_val = (int32)iw_msg_level;
 		bcopy(&int_val, arg, val_size);
+		printk("iw_msg_level=0x%x\n", iw_msg_level);
+#endif
+#ifdef WL_CFG80211
+		int_val = (int32)wl_dbg_level;
+		bcopy(&int_val, arg, val_size);
+		printk("cfg_msg_level=0x%x\n", wl_dbg_level);
+#endif
 		break;
 
 	case IOV_SVAL(IOV_WLMSGLEVEL):
-#if defined(CONFIG_WIRELESS_EXT) || defined(WL_WIRELESS_EXT)
-		if (int_val & DHD_IW_VAL)
-			iw_msg_level = int_val;
-		else
+#if defined(CONFIG_WIRELESS_EXT)
+		if (int_val & DHD_IW_VAL) {
+			iw_msg_level = (uint)(int_val & 0xFFFF);
+			printk("iw_msg_level=0x%x\n", iw_msg_level);
+		} else
 #endif
 #ifdef WL_CFG80211
-		if (int_val & DHD_CFG_VAL)
-			wl_cfg80211_enable_trace(int_val);
-		else
+		if (int_val & DHD_CFG_VAL) {
+			wl_cfg80211_enable_trace((u32)(int_val & 0xFFFF));
+		} else
 #endif
-		android_msg_level = int_val;
+		{
+			android_msg_level = (uint)int_val;
+			printk("android_msg_level=0x%x\n", android_msg_level);
+		}
 		break;
 
 	case IOV_GVAL(IOV_MSGLEVEL):
@@ -1831,21 +1844,10 @@ exit:
 bool dhd_check_ap_wfd_mode_set(dhd_pub_t *dhd)
 {
 #ifdef  WL_CFG80211
-#ifndef ENABLE_P2P_INTERFACE
-	/* To be back compatble with ICS MR1 release where p2p interface disable but wlan0 used for p2p */
 	if (((dhd->op_mode & HOSTAPD_MASK) == HOSTAPD_MASK) ||
 		((dhd->op_mode & WFD_MASK) == WFD_MASK))
 		return TRUE;
 	else
-#else
-	/* concurent mode with p2p interface for wfd and wlan0 for sta */
-	if (((dhd->op_mode & P2P_GO_ENABLED) == P2P_GO_ENABLED) ||
-		((dhd->op_mode & P2P_GC_ENABLED) == P2P_GC_ENABLED)) {
-		DHD_ERROR(("%s P2P enabled for  mode=%d\n", __FUNCTION__, dhd->op_mode));
-		return TRUE;
-	}
-	else
-#endif
 #endif /* WL_CFG80211 */
 		return FALSE;
 }
@@ -2076,7 +2078,7 @@ int dhd_keep_alive_onoff(dhd_pub_t *dhd)
 	mkeep_alive_pkt.keep_alive_id = 0;
 	mkeep_alive_pkt.len_bytes = 0;
 	buf_len += WL_MKEEP_ALIVE_FIXED_LEN;
-	/* Keep-alive attributes are set in local variable (mkeep_alive_pkt), and
+	/* Keep-alive attributes are set in local	variable (mkeep_alive_pkt), and
 	 * then memcpy'ed into buffer (mkeep_alive_pktp) since there is no
 	 * guarantee that the buffer is properly aligned.
 	 */
@@ -2087,7 +2089,6 @@ int dhd_keep_alive_onoff(dhd_pub_t *dhd)
 	return res;
 }
 #endif /* defined(KEEP_ALIVE) */
-
 /* Android ComboSCAN support */
 
 /*
